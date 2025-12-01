@@ -70,6 +70,38 @@ class TestPostOperations:
         post = get_post(post_id)
         assert post is None
 
+    def test_delete_post_cascades(self):
+        """Should cascade delete all related data when post is deleted."""
+        # Create post with related data
+        post = create_post('post-1', 'Rent', 'expense')
+        tag = create_tag('tag-1', 'Housing')
+
+        # Create relationships and entries
+        add_tag_to_post(post.id, tag.id)
+        create_budget_entry('budget-1', post.id, 2024, 1, 1500.00)
+        create_budget_entry('budget-2', post.id, 2024, 2, 1500.00)
+        create_actual_entry('actual-1', post.id, date(2024, 1, 15), 1500.00, 'Rent payment')
+        create_actual_entry('actual-2', post.id, date(2024, 2, 15), 1500.00, 'Rent payment')
+
+        # Verify data exists before deletion
+        assert len(get_post_tags(post.id)) == 1
+        assert len(get_budget_entries(post.id, 2024)) == 2
+        assert len(get_actual_entries(post.id, date(2024, 1, 1), date(2024, 12, 31))) == 2
+
+        # Delete post
+        delete_post(post.id)
+
+        # Verify post is deleted
+        assert get_post(post.id) is None
+
+        # Verify all related data is deleted
+        assert len(get_post_tags(post.id)) == 0
+        assert len(get_budget_entries(post.id, 2024)) == 0
+        assert len(get_actual_entries(post.id, date(2024, 1, 1), date(2024, 12, 31))) == 0
+
+        # Verify tag still exists (only relationship was deleted)
+        assert get_tag_by_name('Housing') is not None
+
 
 class TestTagOperations:
     def test_create_tag(self):

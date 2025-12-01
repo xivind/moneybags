@@ -76,11 +76,22 @@ def update_post(post_id: str, name: Optional[str] = None) -> Post:
 
 def delete_post(post_id: str) -> None:
     """
-    Delete a post.
+    Delete a post and all related data.
+
+    WARNING: This cascades to delete all associated:
+    - Post-Tag relationships
+    - Budget entries
+    - Actual entries
 
     Args:
         post_id: Post identifier
     """
+    # Delete related records first
+    PostTag.delete().where(PostTag.post == post_id).execute()
+    BudgetEntry.delete().where(BudgetEntry.post == post_id).execute()
+    ActualEntry.delete().where(ActualEntry.post == post_id).execute()
+
+    # Then delete the post
     post = Post.get_by_id(post_id)
     post.delete_instance()
 
