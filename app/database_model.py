@@ -1,8 +1,7 @@
 """Database models using PeeWee ORM."""
-from datetime import datetime
 from peewee import (
     Model, SqliteDatabase, CharField, DateTimeField,
-    IntegerField, DecimalField, DateField, TextField, ForeignKeyField
+    IntegerField, DecimalField, DateField, TextField, ForeignKeyField, SQL
 )
 
 
@@ -21,8 +20,8 @@ class Post(BaseModel):
     id = CharField(primary_key=True, max_length=36)
     name = CharField(max_length=255)
     type = CharField(max_length=10)  # 'income' or 'expense'
-    created_at = DateTimeField(default=datetime.now)
-    updated_at = DateTimeField(default=datetime.now)
+    created_at = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")])
+    updated_at = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")])
 
     class Meta:
         table_name = 'posts'
@@ -39,8 +38,8 @@ class Tag(BaseModel):
 
 class PostTag(BaseModel):
     """Many-to-many relationship between Posts and Tags."""
-    post = ForeignKeyField(Post, backref='post_tags')
-    tag = ForeignKeyField(Tag, backref='tag_posts')
+    post = ForeignKeyField(Post)
+    tag = ForeignKeyField(Tag)
 
     class Meta:
         table_name = 'post_tags'
@@ -52,12 +51,12 @@ class PostTag(BaseModel):
 class BudgetEntry(BaseModel):
     """Monthly budget values for posts."""
     id = CharField(primary_key=True, max_length=36)
-    post = ForeignKeyField(Post, backref='budget_entries')
+    post = ForeignKeyField(Post)
     year = IntegerField()
     month = IntegerField()  # 1-12
     amount = DecimalField(max_digits=15, decimal_places=2)
-    created_at = DateTimeField(default=datetime.now)
-    updated_at = DateTimeField(default=datetime.now)
+    created_at = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")])
+    updated_at = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")])
 
     class Meta:
         table_name = 'budget_entries'
@@ -69,12 +68,12 @@ class BudgetEntry(BaseModel):
 class ActualEntry(BaseModel):
     """Real income/expenses with specific dates."""
     id = CharField(primary_key=True, max_length=36)
-    post = ForeignKeyField(Post, backref='actual_entries')
+    post = ForeignKeyField(Post)
     date = DateField()
     amount = DecimalField(max_digits=15, decimal_places=2)
     comment = TextField(null=True)
-    created_at = DateTimeField(default=datetime.now)
-    updated_at = DateTimeField(default=datetime.now)
+    created_at = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")])
+    updated_at = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")])
 
     class Meta:
         table_name = 'actual_entries'
