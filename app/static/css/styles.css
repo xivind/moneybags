@@ -1,0 +1,80 @@
+/* Moneybags Custom Styles */
+
+:root {
+    --color-income: #28a745;
+    --color-expense: #dc3545;
+    --color-under-budget: #28a745;
+    --color-over-budget: #dc3545;
+    --color-neutral: #6c757d;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Budget input styling */
+.budget-input {
+    width: 80px;
+    text-align: right;
+}
+
+/* Variance indicators */
+.variance-positive {
+    color: var(--color-under-budget);
+    font-weight: bold;
+}
+
+.variance-negative {
+    color: var(--color-over-budget);
+    font-weight: bold;
+}
+
+/* Post row styling */
+.post-row {
+    border-bottom: 1px solid #dee2e6;
+    padding: 1rem 0;
+}
+
+.post-row:last-child {
+    border-bottom: none;
+}
+
+/* Chart containers */
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin-bottom: 2rem;
+}
+
+/* Income/Expense sections */
+.income-section {
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin-bottom: 2rem;
+}
+
+.expense-section {
+    padding: 1.5rem;
+}
+
+/* Loading indicators */
+.htmx-indicator {
+    display: none;
+}
+
+.htmx-request .htmx-indicator {
+    display: inline-block;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .budget-input {
+        width: 60px;
+        font-size: 0.875rem;
+    }
+
+    .chart-container {
+        height: 200px;
+    }
+}
