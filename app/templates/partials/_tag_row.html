@@ -6,6 +6,7 @@
                 hx-target="#tag-{{ tag.id }}"
                 hx-swap="outerHTML swap:1s"
                 hx-confirm="Delete tag '{{ tag.name }}'?">
+            <span class="htmx-indicator spinner-border spinner-border-sm me-2" role="status"></span>
             Delete
         </button>
     </td>

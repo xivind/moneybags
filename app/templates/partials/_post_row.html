@@ -20,6 +20,7 @@
         {% set entries = item.entries | default([]) %}
         {% include "partials/_actual_entries_list.html" %}
         <button class="btn btn-sm btn-outline-primary mt-2" hx-get="/api/actual/create-form?post_id={{ item.post.id }}" hx-target="#modal-content">
+            <span class="htmx-indicator spinner-border spinner-border-sm me-2" role="status"></span>
             + Add Entry
         </button>
     </div>

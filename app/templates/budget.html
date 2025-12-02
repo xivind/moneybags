@@ -18,6 +18,7 @@
     {% endfor %}
 
     <button class="btn btn-success btn-sm mt-2" hx-get="/api/post/create-form?type=income" hx-target="#modal-content">
+        <span class="htmx-indicator spinner-border spinner-border-sm me-2" role="status"></span>
         + Add Income Post
     </button>
 </div>
@@ -30,6 +31,7 @@
     {% endfor %}
 
     <button class="btn btn-danger btn-sm mt-2" hx-get="/api/post/create-form?type=expense" hx-target="#modal-content">
+        <span class="htmx-indicator spinner-border spinner-border-sm me-2" role="status"></span>
         + Add Expense Post
     </button>
 </div>
