@@ -2,8 +2,8 @@
 import os
 from pathlib import Path
 from datetime import datetime
-from fastapi import FastAPI, Request, Form
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request, Form, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
@@ -13,7 +13,8 @@ from app.business_logic import (
     get_dashboard_data,
     get_posts_by_type,
     get_budget_vs_actual_analysis,
-    get_year_over_year_comparison
+    get_year_over_year_comparison,
+    create_post_with_tags
 )
 from app.database_manager import (
     get_budget_entries,
@@ -134,12 +135,12 @@ async def update_budget(
 
 
 @app.get("/api/post/create-form")
-async def post_create_form(request: Request, type: str):
+async def post_create_form(request: Request, post_type: str):
     """Return form for creating a new post (income or expense)."""
     tags = get_all_tags()
     return templates.TemplateResponse("partials/_post_create_form.html", {
         "request": request,
-        "post_type": type,
+        "post_type": post_type,
         "tags": tags
     })
 
@@ -162,10 +163,18 @@ async def create_new_post(
     tag_ids: list = Form([])
 ):
     """Create a new post with tags."""
-    from app.business_logic import create_post_with_tags
-    from fastapi.responses import RedirectResponse
+    # Validate post_type
+    if post_type not in ["income", "expense"]:
+        raise HTTPException(status_code=400, detail="Invalid post type. Must be 'income' or 'expense'.")
 
-    post = create_post_with_tags(name, post_type, tag_ids)
+    # Validate name is not empty after stripping whitespace
+    if not name.strip():
+        raise HTTPException(status_code=400, detail="Post name cannot be empty.")
+
+    try:
+        post = create_post_with_tags(name, post_type, tag_ids)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create post: {str(e)}")
 
     # Redirect to budget page (full page reload to show new post)
     return RedirectResponse(url="/budget", status_code=303)
