@@ -53,60 +53,72 @@ initialize_database(DATABASE_PATH)
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     """Dashboard page."""
-    current_year = datetime.now().year
-    current_month = datetime.now().month
+    try:
+        current_year = datetime.now().year
+        current_month = datetime.now().month
 
-    data = get_dashboard_data(current_year, current_month)
-    chart_data = get_monthly_chart_data(current_year)
+        data = get_dashboard_data(current_year, current_month)
+        chart_data = get_monthly_chart_data(current_year)
 
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request,
-        **data,
-        "chart_data": chart_data
-    })
+        return templates.TemplateResponse("dashboard.html", {
+            "request": request,
+            **data,
+            "chart_data": chart_data
+        })
+    except Exception as e:
+        return templates.TemplateResponse("partials/_error_message.html", {
+            "request": request,
+            "error_message": f"Failed to load dashboard: {str(e)}"
+        }, status_code=500)
 
 
 @app.get("/budget", response_class=HTMLResponse)
 async def budget_page(request: Request):
     """Budget and actuals page."""
-    from datetime import date as date_cls
+    try:
+        from datetime import date as date_cls
 
-    current_year = datetime.now().year
+        current_year = datetime.now().year
 
-    income_posts = get_posts_by_type('income')
-    expense_posts = get_posts_by_type('expense')
+        income_posts = get_posts_by_type('income')
+        expense_posts = get_posts_by_type('expense')
 
-    # Date range for actual entries
-    start_date = date_cls(current_year, 1, 1)
-    end_date = date_cls(current_year, 12, 31)
+        # Date range for actual entries
+        start_date = date_cls(current_year, 1, 1)
+        end_date = date_cls(current_year, 12, 31)
 
-    # Get budget entries and actual entries for each post
-    income_data = []
-    for post in income_posts:
-        budgets = get_budget_entries(post.id, current_year)
-        entries = get_actual_entries(post.id, start_date, end_date)
-        income_data.append({
-            'post': post,
-            'budgets': budgets,
-            'entries': entries
+        # Get budget entries and actual entries for each post
+        income_data = []
+        for post in income_posts:
+            budgets = get_budget_entries(post.id, current_year)
+            entries = get_actual_entries(post.id, start_date, end_date)
+            income_data.append({
+                'post': post,
+                'budgets': budgets,
+                'entries': entries
+            })
+
+        expense_data = []
+        for post in expense_posts:
+            budgets = get_budget_entries(post.id, current_year)
+            entries = get_actual_entries(post.id, start_date, end_date)
+            expense_data.append({
+                'post': post,
+                'budgets': budgets,
+                'entries': entries
+            })
+
+        return templates.TemplateResponse("budget.html", {
+            "request": request,
+            "year": current_year,
+            "income_data": income_data,
+            "expense_data": expense_data
         })
-
-    expense_data = []
-    for post in expense_posts:
-        budgets = get_budget_entries(post.id, current_year)
-        entries = get_actual_entries(post.id, start_date, end_date)
-        expense_data.append({
-            'post': post,
-            'budgets': budgets,
-            'entries': entries
-        })
-
-    return templates.TemplateResponse("budget.html", {
-        "request": request,
-        "year": current_year,
-        "income_data": income_data,
-        "expense_data": expense_data
-    })
+    except Exception as e:
+        return templates.TemplateResponse("partials/_error_message.html", {
+            "request": request,
+            "error_message": f"Failed to load budget page: {str(e)}"
+        }, status_code=500)
 
 
 @app.post("/api/budget/update")
@@ -118,62 +130,82 @@ async def update_budget(
     amount: float = Form(...)
 ):
     """Update or create a budget entry via htmx."""
-    # Validate amount (>= 0)
-    if amount < 0:
-        raise HTTPException(status_code=400, detail="Budget amount must be greater than or equal to 0.")
+    try:
+        # Validate amount (>= 0)
+        if amount < 0:
+            raise HTTPException(status_code=400, detail="Budget amount must be greater than or equal to 0.")
 
-    # Validate month (1-12)
-    if month < 1 or month > 12:
-        raise HTTPException(status_code=400, detail="Month must be between 1 and 12.")
+        # Validate month (1-12)
+        if month < 1 or month > 12:
+            raise HTTPException(status_code=400, detail="Month must be between 1 and 12.")
 
-    # Validate year (reasonable range)
-    current_year = datetime.now().year
-    if year < 2000 or year > current_year + 10:
-        raise HTTPException(status_code=400, detail=f"Year must be between 2000 and {current_year + 10}.")
+        # Validate year (reasonable range)
+        current_year = datetime.now().year
+        if year < 2000 or year > current_year + 10:
+            raise HTTPException(status_code=400, detail=f"Year must be between 2000 and {current_year + 10}.")
 
-    # Check if budget entry exists
-    existing_entries = get_budget_entries(post_id, year)
-    existing = next((e for e in existing_entries if e.month == month), None)
+        # Check if budget entry exists
+        existing_entries = get_budget_entries(post_id, year)
+        existing = next((e for e in existing_entries if e.month == month), None)
 
-    if existing:
-        # Update existing
-        entry = update_budget_entry(existing.id, amount=amount)
-    else:
-        # Create new
-        entry_id = generate_uuid()
-        entry = create_budget_entry(entry_id, post_id, year, month, amount)
+        if existing:
+            # Update existing
+            entry = update_budget_entry(existing.id, amount=amount)
+        else:
+            # Create new
+            entry_id = generate_uuid()
+            entry = create_budget_entry(entry_id, post_id, year, month, amount)
 
-    # Return updated input HTML (partial)
-    return templates.TemplateResponse("partials/_budget_input.html", {
-        "request": request,
-        "budget_amount": entry.amount,
-        "post_id": post_id,
-        "year": year,
-        "month": month
-    })
+        # Return updated input HTML (partial)
+        return templates.TemplateResponse("partials/_budget_input.html", {
+            "request": request,
+            "budget_amount": entry.amount,
+            "post_id": post_id,
+            "year": year,
+            "month": month
+        })
+    except HTTPException:
+        raise
+    except Exception as e:
+        return templates.TemplateResponse("partials/_error_message.html", {
+            "request": request,
+            "error_message": f"Failed to update budget: {str(e)}"
+        }, status_code=500)
 
 
 @app.get("/api/post/create-form")
 async def post_create_form(request: Request, post_type: str):
     """Return form for creating a new post (income or expense)."""
-    tags = get_all_tags()
-    return templates.TemplateResponse("partials/_post_create_form.html", {
-        "request": request,
-        "post_type": post_type,
-        "tags": tags
-    })
+    try:
+        tags = get_all_tags()
+        return templates.TemplateResponse("partials/_post_create_form.html", {
+            "request": request,
+            "post_type": post_type,
+            "tags": tags
+        })
+    except Exception as e:
+        return templates.TemplateResponse("partials/_error_message.html", {
+            "request": request,
+            "error_message": f"Failed to load post form: {str(e)}"
+        }, status_code=500)
 
 
 @app.get("/api/actual/create-form")
 async def actual_entry_form(request: Request, post_id: str):
     """Return the form for creating a new actual entry (htmx modal)."""
-    post = get_post(post_id)
-    today = datetime.now().date().isoformat()
-    return templates.TemplateResponse("partials/_actual_entry_form.html", {
-        "request": request,
-        "post": post,
-        "today": today
-    })
+    try:
+        post = get_post(post_id)
+        today = datetime.now().date().isoformat()
+        return templates.TemplateResponse("partials/_actual_entry_form.html", {
+            "request": request,
+            "post": post,
+            "today": today
+        })
+    except Exception as e:
+        return templates.TemplateResponse("partials/_error_message.html", {
+            "request": request,
+            "error_message": f"Failed to load actual entry form: {str(e)}"
+        }, status_code=500)
 
 
 @app.post("/api/post/create")
@@ -221,94 +253,117 @@ async def create_actual(
     comment: str = Form("")
 ):
     """Create a new actual entry via htmx."""
-    from datetime import date as date_cls
-
-    # Validate amount (>= 0)
-    if amount < 0:
-        raise HTTPException(status_code=400, detail="Amount must be greater than or equal to 0.")
-
-    # Parse and validate date
     try:
-        entry_date = datetime.strptime(date, "%Y-%m-%d").date()
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format. Expected YYYY-MM-DD.")
+        from datetime import date as date_cls
 
-    # Validate date is not in the future
-    today = datetime.now().date()
-    if entry_date > today:
-        raise HTTPException(status_code=400, detail="Date cannot be in the future.")
+        # Validate amount (>= 0)
+        if amount < 0:
+            raise HTTPException(status_code=400, detail="Amount must be greater than or equal to 0.")
 
-    # Create entry
-    entry_id = generate_uuid()
-    create_actual_entry(entry_id, post_id, entry_date, amount, comment)
+        # Parse and validate date
+        try:
+            entry_date = datetime.strptime(date, "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Expected YYYY-MM-DD.")
 
-    # Get all entries for this post (current year)
-    current_year = datetime.now().year
-    start_date = date_cls(current_year, 1, 1)
-    end_date = date_cls(current_year, 12, 31)
-    entries = get_actual_entries(post_id, start_date, end_date)
+        # Validate date is not in the future
+        today = datetime.now().date()
+        if entry_date > today:
+            raise HTTPException(status_code=400, detail="Date cannot be in the future.")
 
-    # Return updated list
-    return templates.TemplateResponse("partials/_actual_entries_list.html", {
-        "request": request,
-        "post_id": post_id,
-        "entries": entries
-    })
+        # Create entry
+        entry_id = generate_uuid()
+        create_actual_entry(entry_id, post_id, entry_date, amount, comment)
+
+        # Get all entries for this post (current year)
+        current_year = datetime.now().year
+        start_date = date_cls(current_year, 1, 1)
+        end_date = date_cls(current_year, 12, 31)
+        entries = get_actual_entries(post_id, start_date, end_date)
+
+        # Return updated list
+        return templates.TemplateResponse("partials/_actual_entries_list.html", {
+            "request": request,
+            "post_id": post_id,
+            "entries": entries
+        })
+    except HTTPException:
+        raise
+    except Exception as e:
+        return templates.TemplateResponse("partials/_error_message.html", {
+            "request": request,
+            "error_message": f"Failed to create actual entry: {str(e)}"
+        }, status_code=500)
 
 
 @app.delete("/api/actual/{entry_id}")
 async def delete_actual_entry_endpoint(entry_id: str):
     """Delete an actual entry."""
-    from app.database_manager import delete_actual_entry as db_delete
+    try:
+        from app.database_manager import delete_actual_entry as db_delete
 
-    db_delete(entry_id)
-    return {"status": "success"}
+        db_delete(entry_id)
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete actual entry: {str(e)}")
 
 
 @app.get("/analysis", response_class=HTMLResponse)
 async def analysis_page(request: Request):
     """Analysis page with multiple analysis modes."""
-    current_year = datetime.now().year
+    try:
+        current_year = datetime.now().year
 
-    # Get budget vs actual analysis
-    budget_analysis = get_budget_vs_actual_analysis(current_year)
+        # Get budget vs actual analysis
+        budget_analysis = get_budget_vs_actual_analysis(current_year)
 
-    # Get year-over-year comparison data (last 3 years)
-    years_to_compare = [current_year - 2, current_year - 1, current_year]
-    yoy_data = get_yoy_comparison_data(years_to_compare)
+        # Get year-over-year comparison data (last 3 years)
+        years_to_compare = [current_year - 2, current_year - 1, current_year]
+        yoy_data = get_yoy_comparison_data(years_to_compare)
 
-    # Get tag analysis data
-    tag_analysis = get_tag_analysis_data()
+        # Get tag analysis data
+        tag_analysis = get_tag_analysis_data()
 
-    # Get time series data for current year
-    time_series = get_time_series_data(current_year)
+        # Get time series data for current year
+        time_series = get_time_series_data(current_year)
 
-    return templates.TemplateResponse("analysis.html", {
-        "request": request,
-        "year": current_year,
-        "budget_analysis": budget_analysis,
-        "yoy_data": yoy_data,
-        "tag_analysis": tag_analysis,
-        "time_series": time_series
-    })
+        return templates.TemplateResponse("analysis.html", {
+            "request": request,
+            "year": current_year,
+            "budget_analysis": budget_analysis,
+            "yoy_data": yoy_data,
+            "tag_analysis": tag_analysis,
+            "time_series": time_series
+        })
+    except Exception as e:
+        return templates.TemplateResponse("partials/_error_message.html", {
+            "request": request,
+            "error_message": f"Failed to load analysis page: {str(e)}"
+        }, status_code=500)
 
 
 @app.get("/config", response_class=HTMLResponse)
 async def config_page(request: Request):
     """Configuration page."""
-    # Get current preferences
-    currency = get_or_create_preference('currency_notation', 'USD')
-    date_format = get_or_create_preference('date_format', 'YYYY-MM-DD')
+    try:
+        # Get current preferences
+        currency = get_or_create_preference('currency_notation', 'USD')
+        date_format = get_or_create_preference('date_format', 'YYYY-MM-DD')
 
-    # Get all tags
-    tags = get_all_tags()
+        # Get all tags
+        tags = get_all_tags()
 
-    return templates.TemplateResponse("config.html", {
-        "request": request,
-        "currency": currency,
-        "date_format": date_format,
-        "tags": tags
-    })
+        return templates.TemplateResponse("config.html", {
+            "request": request,
+            "currency": currency,
+            "date_format": date_format,
+            "tags": tags
+        })
+    except Exception as e:
+        return templates.TemplateResponse("partials/_error_message.html", {
+            "request": request,
+            "error_message": f"Failed to load configuration page: {str(e)}"
+        }, status_code=500)
 
 
 @app.post("/api/config/preference")
@@ -317,8 +372,11 @@ async def update_user_preference(
     value: str = Form(...)
 ):
     """Update user preference via htmx."""
-    update_preference(key, value)
-    return {"status": "success"}
+    try:
+        update_preference(key, value)
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update preference: {str(e)}")
 
 
 @app.post("/api/tag/create")
@@ -327,37 +385,48 @@ async def create_new_tag(
     name: str = Form(...)
 ):
     """Create a new tag."""
-    # Validate name is not empty after stripping whitespace
-    name_stripped = name.strip()
-    if not name_stripped:
-        raise HTTPException(status_code=400, detail="Tag name cannot be empty.")
+    try:
+        # Validate name is not empty after stripping whitespace
+        name_stripped = name.strip()
+        if not name_stripped:
+            raise HTTPException(status_code=400, detail="Tag name cannot be empty.")
 
-    # Validate name length (max 50 characters)
-    if len(name_stripped) > 50:
-        raise HTTPException(status_code=400, detail="Tag name cannot exceed 50 characters.")
+        # Validate name length (max 50 characters)
+        if len(name_stripped) > 50:
+            raise HTTPException(status_code=400, detail="Tag name cannot exceed 50 characters.")
 
-    # Check for uniqueness - tag names must be unique (case-insensitive)
-    existing_tags = get_all_tags()
-    if any(t.name.lower() == name_stripped.lower() for t in existing_tags):
-        raise HTTPException(status_code=400, detail=f"A tag with the name '{name_stripped}' already exists.")
+        # Check for uniqueness - tag names must be unique (case-insensitive)
+        existing_tags = get_all_tags()
+        if any(t.name.lower() == name_stripped.lower() for t in existing_tags):
+            raise HTTPException(status_code=400, detail=f"A tag with the name '{name_stripped}' already exists.")
 
-    tag_id = generate_uuid()
-    tag = create_tag(tag_id, name_stripped)
+        tag_id = generate_uuid()
+        tag = create_tag(tag_id, name_stripped)
 
-    # Return updated tag row
-    return templates.TemplateResponse("partials/_tag_row.html", {
-        "request": request,
-        "tag": tag
-    })
+        # Return updated tag row
+        return templates.TemplateResponse("partials/_tag_row.html", {
+            "request": request,
+            "tag": tag
+        })
+    except HTTPException:
+        raise
+    except Exception as e:
+        return templates.TemplateResponse("partials/_error_message.html", {
+            "request": request,
+            "error_message": f"Failed to create tag: {str(e)}"
+        }, status_code=500)
 
 
 @app.delete("/api/tag/{tag_id}")
 async def delete_tag_endpoint(tag_id: str):
     """Delete a tag."""
-    from app.database_manager import delete_tag as db_delete_tag
+    try:
+        from app.database_manager import delete_tag as db_delete_tag
 
-    db_delete_tag(tag_id)
-    return {"status": "success"}
+        db_delete_tag(tag_id)
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete tag: {str(e)}")
 
 
 @app.get("/health")
