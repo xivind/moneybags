@@ -6,15 +6,9 @@
         <div class="col-1">
             <label class="form-label small">{{ ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][month-1] }}</label>
             {% set budget = (item.budgets | selectattr('month', '==', month) | list | first) if (item.budgets | selectattr('month', '==', month) | list) else None %}
-            <input
-                type="number"
-                class="form-control budget-input"
-                value="{{ budget.amount if budget else '0' }}"
-                hx-post="/api/budget/update"
-                hx-trigger="change delay:500ms"
-                hx-vals='{"post_id": "{{ item.post.id }}", "year": {{ year }}, "month": {{ month }}}'
-                step="0.01"
-            >
+            {% set budget_amount = budget.amount if budget else 0 %}
+            {% set post_id = item.post.id %}
+            {% include "partials/_budget_input.html" %}
         </div>
         {% endfor %}
     </div>

@@ -1,0 +1,11 @@
+<input
+    type="number"
+    class="form-control budget-input"
+    name="amount"
+    value="{{ "%.2f"|format(budget_amount) }}"
+    hx-post="/api/budget/update"
+    hx-trigger="change delay:500ms"
+    hx-vals='{"post_id": "{{ post_id }}", "year": {{ year }}, "month": {{ month }}}'
+    hx-swap="outerHTML"
+    step="0.01"
+>
