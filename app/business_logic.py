@@ -140,3 +140,57 @@ def calculate_post_total_actual(
     """
     actuals = get_actual_entries(post_id, start_date, end_date)
     return sum(Decimal(str(e.amount)) for e in actuals)
+
+
+def get_dashboard_data(year: int, current_month: int) -> Dict[str, Any]:
+    """
+    Get all data needed for dashboard.
+
+    Args:
+        year: Current year
+        current_month: Current month (1-12)
+
+    Returns:
+        Dict with year overview, monthly data, recent entries
+    """
+    overview = get_year_overview(year)
+
+    # Get current month variance for all posts
+    posts = get_all_posts()
+    monthly_variances = []
+    for post in posts:
+        variance = get_monthly_variance(post.id, year, current_month)
+        monthly_variances.append({
+            'post_name': post.name,
+            'post_type': post.type,
+            **variance
+        })
+
+    # Get recent actual entries (last 10)
+    from datetime import datetime
+    all_recent = []
+    for post in posts:
+        actuals = get_actual_entries(
+            post.id,
+            date(year, 1, 1),
+            date.today()
+        )
+        for actual in actuals[:10]:  # Limit per post
+            all_recent.append({
+                'post_name': post.name,
+                'date': actual.date,
+                'amount': actual.amount,
+                'comment': actual.comment
+            })
+
+    # Sort by date descending and take top 10
+    all_recent.sort(key=lambda x: x['date'], reverse=True)
+    recent_entries = all_recent[:10]
+
+    return {
+        'overview': overview,
+        'monthly_variances': monthly_variances,
+        'recent_entries': recent_entries,
+        'year': year,
+        'month': current_month
+    }
