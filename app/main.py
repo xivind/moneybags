@@ -9,7 +9,12 @@ from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
 
 from app.database_model import initialize_database
-from app.business_logic import get_dashboard_data, get_posts_by_type
+from app.business_logic import (
+    get_dashboard_data,
+    get_posts_by_type,
+    get_budget_vs_actual_analysis,
+    get_year_over_year_comparison
+)
 from app.database_manager import (
     get_budget_entries,
     create_budget_entry,
@@ -163,6 +168,21 @@ async def create_actual(
         "request": request,
         "post_id": post_id,
         "entries": entries
+    })
+
+
+@app.get("/analysis", response_class=HTMLResponse)
+async def analysis_page(request: Request):
+    """Analysis page with multiple analysis modes."""
+    current_year = datetime.now().year
+
+    # Get budget vs actual analysis
+    budget_analysis = get_budget_vs_actual_analysis(current_year)
+
+    return templates.TemplateResponse("analysis.html", {
+        "request": request,
+        "year": current_year,
+        "budget_analysis": budget_analysis
     })
 
 

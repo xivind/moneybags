@@ -194,3 +194,67 @@ def get_dashboard_data(year: int, current_month: int) -> Dict[str, Any]:
         'year': year,
         'month': current_month
     }
+
+
+def get_budget_vs_actual_analysis(year: int) -> List[Dict[str, Any]]:
+    """
+    Calculate budget vs actual for all posts in a year.
+
+    Args:
+        year: Year to analyze
+
+    Returns:
+        List of dicts with post_name, post_type, budget, actual, variance, percentage
+    """
+    posts = get_all_posts()
+    results = []
+
+    for post in posts:
+        # Get all 12 months of budget
+        budgets = get_budget_entries(post.id, year)
+        budget_total = sum(Decimal(str(b.amount)) for b in budgets)
+
+        # Get all actuals for the year
+        actuals = get_actual_entries(post.id, date(year, 1, 1), date(year, 12, 31))
+        actual_total = sum(Decimal(str(a.amount)) for a in actuals)
+
+        variance = budget_total - actual_total
+        percentage = float((actual_total / budget_total * 100)) if budget_total > 0 else 0.0
+
+        results.append({
+            'post_name': post.name,
+            'post_type': post.type,
+            'budget': budget_total,
+            'actual': actual_total,
+            'variance': variance,
+            'percentage': percentage
+        })
+
+    return results
+
+
+def get_year_over_year_comparison(year1: int, year2: int) -> Dict[str, Any]:
+    """
+    Compare two years' income and expenses.
+
+    Args:
+        year1: First year
+        year2: Second year
+
+    Returns:
+        Dict with year1, year2, year1_data, year2_data, income_change, expense_change
+    """
+    overview1 = get_year_overview(year1)
+    overview2 = get_year_overview(year2)
+
+    income_change = overview2['total_income'] - overview1['total_income']
+    expense_change = overview2['total_expenses'] - overview1['total_expenses']
+
+    return {
+        'year1': year1,
+        'year2': year2,
+        'year1_data': overview1,
+        'year2_data': overview2,
+        'income_change': income_change,
+        'expense_change': expense_change
+    }
