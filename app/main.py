@@ -118,6 +118,19 @@ async def update_budget(
     amount: float = Form(...)
 ):
     """Update or create a budget entry via htmx."""
+    # Validate amount (>= 0)
+    if amount < 0:
+        raise HTTPException(status_code=400, detail="Budget amount must be greater than or equal to 0.")
+
+    # Validate month (1-12)
+    if month < 1 or month > 12:
+        raise HTTPException(status_code=400, detail="Month must be between 1 and 12.")
+
+    # Validate year (reasonable range)
+    current_year = datetime.now().year
+    if year < 2000 or year > current_year + 10:
+        raise HTTPException(status_code=400, detail=f"Year must be between 2000 and {current_year + 10}.")
+
     # Check if budget entry exists
     existing_entries = get_budget_entries(post_id, year)
     existing = next((e for e in existing_entries if e.month == month), None)
@@ -155,9 +168,11 @@ async def post_create_form(request: Request, post_type: str):
 async def actual_entry_form(request: Request, post_id: str):
     """Return the form for creating a new actual entry (htmx modal)."""
     post = get_post(post_id)
+    today = datetime.now().date().isoformat()
     return templates.TemplateResponse("partials/_actual_entry_form.html", {
         "request": request,
-        "post": post
+        "post": post,
+        "today": today
     })
 
 
@@ -174,11 +189,22 @@ async def create_new_post(
         raise HTTPException(status_code=400, detail="Invalid post type. Must be 'income' or 'expense'.")
 
     # Validate name is not empty after stripping whitespace
-    if not name.strip():
+    name_stripped = name.strip()
+    if not name_stripped:
         raise HTTPException(status_code=400, detail="Post name cannot be empty.")
 
+    # Validate name length (max 100 characters)
+    if len(name_stripped) > 100:
+        raise HTTPException(status_code=400, detail="Post name cannot exceed 100 characters.")
+
+    # Check for uniqueness - post names must be unique
+    from app.database_manager import get_all_posts
+    existing_posts = get_all_posts()
+    if any(p.name.lower() == name_stripped.lower() for p in existing_posts):
+        raise HTTPException(status_code=400, detail=f"A post with the name '{name_stripped}' already exists.")
+
     try:
-        post = create_post_with_tags(name, post_type, tag_ids)
+        post = create_post_with_tags(name_stripped, post_type, tag_ids)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create post: {str(e)}")
 
@@ -197,8 +223,20 @@ async def create_actual(
     """Create a new actual entry via htmx."""
     from datetime import date as date_cls
 
-    # Parse date string
-    entry_date = datetime.strptime(date, "%Y-%m-%d").date()
+    # Validate amount (>= 0)
+    if amount < 0:
+        raise HTTPException(status_code=400, detail="Amount must be greater than or equal to 0.")
+
+    # Parse and validate date
+    try:
+        entry_date = datetime.strptime(date, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Expected YYYY-MM-DD.")
+
+    # Validate date is not in the future
+    today = datetime.now().date()
+    if entry_date > today:
+        raise HTTPException(status_code=400, detail="Date cannot be in the future.")
 
     # Create entry
     entry_id = generate_uuid()
@@ -289,8 +327,22 @@ async def create_new_tag(
     name: str = Form(...)
 ):
     """Create a new tag."""
+    # Validate name is not empty after stripping whitespace
+    name_stripped = name.strip()
+    if not name_stripped:
+        raise HTTPException(status_code=400, detail="Tag name cannot be empty.")
+
+    # Validate name length (max 50 characters)
+    if len(name_stripped) > 50:
+        raise HTTPException(status_code=400, detail="Tag name cannot exceed 50 characters.")
+
+    # Check for uniqueness - tag names must be unique (case-insensitive)
+    existing_tags = get_all_tags()
+    if any(t.name.lower() == name_stripped.lower() for t in existing_tags):
+        raise HTTPException(status_code=400, detail=f"A tag with the name '{name_stripped}' already exists.")
+
     tag_id = generate_uuid()
-    tag = create_tag(tag_id, name)
+    tag = create_tag(tag_id, name_stripped)
 
     # Return updated tag row
     return templates.TemplateResponse("partials/_tag_row.html", {

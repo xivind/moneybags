@@ -72,12 +72,14 @@
                 <form hx-post="/api/tag/create" hx-target="#tags-tbody" hx-swap="beforeend">
                     <div class="input-group">
                         <input type="text" name="name" class="form-control"
-                               placeholder="New tag name" required>
+                               placeholder="New tag name"
+                               required maxlength="50" minlength="1" pattern=".*\S+.*">
                         <button type="submit" class="btn btn-primary">
                             <span class="htmx-indicator spinner-border spinner-border-sm me-2" role="status"></span>
                             + Add Tag
                         </button>
                     </div>
+                    <small class="form-text text-muted">Tag name must be unique and not empty (max 50 characters)</small>
                 </form>
             </div>
         </div>
