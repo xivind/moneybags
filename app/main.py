@@ -215,6 +215,15 @@ async def create_actual(
     })
 
 
+@app.delete("/api/actual/{entry_id}")
+async def delete_actual_entry_endpoint(entry_id: str):
+    """Delete an actual entry."""
+    from app.database_manager import delete_actual_entry as db_delete
+
+    db_delete(entry_id)
+    return {"status": "success"}
+
+
 @app.get("/analysis", response_class=HTMLResponse)
 async def analysis_page(request: Request):
     """Analysis page with multiple analysis modes."""
