@@ -10,6 +10,32 @@
     </div>
 </div>
 
+<!-- Export Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Export Data</h5>
+                <p class="text-muted mb-3">Download your financial data in CSV format</p>
+                <div class="btn-group" role="group">
+                    <a href="/api/export/csv?export_type=posts" class="btn btn-outline-primary" download>
+                        <i class="bi bi-download"></i> Export Posts
+                    </a>
+                    <a href="/api/export/csv?export_type=budgets" class="btn btn-outline-primary" download>
+                        <i class="bi bi-download"></i> Export Budgets
+                    </a>
+                    <a href="/api/export/csv?export_type=actuals&start_date={{ year }}-01-01&end_date={{ year }}-12-31" class="btn btn-outline-primary" download>
+                        <i class="bi bi-download"></i> Export Actuals ({{ year }})
+                    </a>
+                    <a href="/api/export/csv?export_type=analysis" class="btn btn-outline-primary" download>
+                        <i class="bi bi-download"></i> Export Analysis
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Analysis Mode Tabs -->
 <ul class="nav nav-tabs mb-4" role="tablist">
     <li class="nav-item">

@@ -1,9 +1,11 @@
 """FastAPI application router for Moneybags."""
 import os
+import csv
+from io import StringIO
 from pathlib import Path
 from datetime import datetime
 from fastapi import FastAPI, Request, Form, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
@@ -427,6 +429,143 @@ async def delete_tag_endpoint(tag_id: str):
         return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete tag: {str(e)}")
+
+
+@app.get("/api/export/csv")
+async def export_csv(
+    export_type: str,
+    start_date: str = None,
+    end_date: str = None
+):
+    """
+    Export data to CSV format.
+
+    Args:
+        export_type: Type of data to export (posts, budgets, actuals, analysis)
+        start_date: Optional start date filter (YYYY-MM-DD)
+        end_date: Optional end date filter (YYYY-MM-DD)
+    """
+    try:
+        from datetime import date as date_cls
+
+        # Parse date filters if provided
+        date_filter_start = None
+        date_filter_end = None
+        if start_date:
+            date_filter_start = datetime.strptime(start_date, "%Y-%m-%d").date()
+        if end_date:
+            date_filter_end = datetime.strptime(end_date, "%Y-%m-%d").date()
+
+        # Generate CSV content based on export type
+        output = StringIO()
+        writer = csv.writer(output)
+
+        if export_type == "posts":
+            # Export all posts
+            from app.database_manager import get_all_posts
+            posts = get_all_posts()
+
+            # CSV headers
+            writer.writerow(["ID", "Name", "Type", "Created"])
+
+            # CSV rows
+            for post in posts:
+                writer.writerow([
+                    post.id,
+                    post.name,
+                    post.type,
+                    post.created_at.isoformat() if hasattr(post, 'created_at') else ""
+                ])
+
+        elif export_type == "budgets":
+            # Export budget entries
+            from app.database_manager import get_all_posts
+            posts = get_all_posts()
+
+            # CSV headers
+            writer.writerow(["Post ID", "Post Name", "Post Type", "Year", "Month", "Amount"])
+
+            # Get budget entries for each post
+            current_year = datetime.now().year
+            for post in posts:
+                budgets = get_budget_entries(post.id, current_year)
+                for budget in budgets:
+                    writer.writerow([
+                        post.id,
+                        post.name,
+                        post.type,
+                        budget.year,
+                        budget.month,
+                        float(budget.amount)
+                    ])
+
+        elif export_type == "actuals":
+            # Export actual entries
+            from app.database_manager import get_all_posts
+            posts = get_all_posts()
+
+            # CSV headers
+            writer.writerow(["Post ID", "Post Name", "Post Type", "Date", "Amount", "Comment"])
+
+            # Get actual entries for each post
+            if not date_filter_start:
+                date_filter_start = date_cls(datetime.now().year, 1, 1)
+            if not date_filter_end:
+                date_filter_end = date_cls(datetime.now().year, 12, 31)
+
+            for post in posts:
+                entries = get_actual_entries(post.id, date_filter_start, date_filter_end)
+                for entry in entries:
+                    writer.writerow([
+                        post.id,
+                        post.name,
+                        post.type,
+                        entry.date.isoformat(),
+                        float(entry.amount),
+                        entry.comment
+                    ])
+
+        elif export_type == "analysis":
+            # Export budget vs actual analysis
+            current_year = datetime.now().year
+            analysis = get_budget_vs_actual_analysis(current_year)
+
+            # CSV headers
+            writer.writerow(["Post Name", "Post Type", "Budget", "Actual", "Variance", "Percentage"])
+
+            # CSV rows
+            for item in analysis:
+                writer.writerow([
+                    item['post_name'],
+                    item['post_type'],
+                    float(item['budget']),
+                    float(item['actual']),
+                    float(item['variance']),
+                    float(item['percentage'])
+                ])
+        else:
+            raise HTTPException(status_code=400, detail=f"Invalid export type: {export_type}")
+
+        # Generate filename with timestamp and filters
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"moneybags_{export_type}_{timestamp}"
+        if start_date and end_date:
+            filename += f"_{start_date}_to_{end_date}"
+        filename += ".csv"
+
+        # Return CSV as downloadable file
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to export CSV: {str(e)}")
 
 
 @app.get("/health")
