@@ -1,6 +1,6 @@
 """Business logic layer for Moneybags application."""
 from typing import List, Dict, Any
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from app.utils import generate_uuid
 from app.database_manager import (
@@ -167,7 +167,6 @@ def get_dashboard_data(year: int, current_month: int) -> Dict[str, Any]:
         })
 
     # Get recent actual entries (last 10)
-    from datetime import datetime
     all_recent = []
     for post in posts:
         actuals = get_actual_entries(
