@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budsjett og Resultat 2025</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --balance-color: #4a5568;
+            --income-color: #2d3748;
+            --expense-color: #2d3748;
+        }
+
+        body {
+            font-size: 14px;
+            background-color: #f8f9fa;
+        }
+
+        .section-header {
+            font-weight: bold;
+            padding: 8px;
+            color: white;
+            text-align: center;
+        }
+
+        .balance-header {
+            background-color: var(--balance-color);
+        }
+
+        .income-header {
+            background-color: var(--income-color);
+        }
+
+        .expense-header {
+            background-color: var(--expense-color);
+        }
+
+        .budget-table {
+            font-size: 13px;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .budget-table th {
+            background-color: #3b82f6;
+            color: white;
+            font-weight: 600;
+            padding: 10px 6px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .budget-table td {
+            padding: 6px;
+            text-align: right;
+            border: 1px solid #e5e7eb;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .budget-table td:hover {
+            background-color: #f3f4f6;
+        }
+
+        .category-cell {
+            text-align: left;
+            font-weight: 600;
+            background-color: #f9fafb;
+            cursor: default;
+        }
+
+        .category-cell:hover {
+            background-color: #f9fafb;
+        }
+
+        .subcategory-cell {
+            text-align: left;
+            padding-left: 20px;
+            background-color: #fefefe;
+            font-weight: normal;
+        }
+
+        .budget-row td {
+            background-color: #fef3c7;
+        }
+
+        .result-row td {
+            background-color: #dbeafe;
+        }
+
+        .difference-row td {
+            background-color: #f3e8ff;
+            font-weight: 600;
+        }
+
+        .positive {
+            color: #059669;
+        }
+
+        .negative {
+            color: #dc2626;
+        }
+
+        .total-column {
+            background-color: #fef9e7;
+            font-weight: bold;
+        }
+
+        .transaction-item {
+            border-left: 3px solid #3b82f6;
+            padding-left: 10px;
+            margin-bottom: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            padding: 10px;
+        }
+
+        .transaction-item:hover {
+            background-color: #e9ecef;
+        }
+
+        .transaction-date {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .transaction-amount {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .transaction-comment {
+            font-size: 13px;
+            color: #4b5563;
+            margin-top: 5px;
+        }
+
+        .no-transactions {
+            text-align: center;
+            padding: 40px;
+            color: #9ca3af;
+        }
+
+        .modal-header {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-add-transaction {
+            position: sticky;
+            bottom: 0;
+            background: white;
+            padding: 15px;
+            border-top: 2px solid #e5e7eb;
+        }
+
+        #transactionsList {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .empty-cell {
+            color: #9ca3af;
+            font-style: italic;
+        }
+
+        .has-transactions {
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row mb-4">
+            <div class="col">
+                <h2 class="mb-0">Budsjett og Resultat 2025 - Kontoplan</h2>
+                <p class="text-muted">Klikk på en celle for å legge til eller se transaksjoner</p>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-primary" onclick="saveData()">
+                    <i class="bi bi-save"></i> Lagre
+                </button>
+                <button class="btn btn-outline-secondary" onclick="exportData()">
+                    <i class="bi bi-download"></i> Eksporter
+                </button>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-bordered budget-table" id="budgetTable">
+                <!-- Table will be generated by JavaScript -->
+            </table>
+        </div>
+    </div>
+
+    <!-- Transaction Modal -->
+    <div class="modal fade" id="transactionModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Transaksjoner</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="transactionsList">
+                        <!-- Transactions will be listed here -->
+                    </div>
+                </div>
+                <div class="btn-add-transaction">
+                    <button class="btn btn-success w-100" onclick="showAddTransactionForm()">
+                        <i class="bi bi-plus-circle"></i> Legg til transaksjon
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Transaction Modal -->
+    <div class="modal fade" id="addTransactionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addTransactionTitle">Legg til transaksjon</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="transactionForm">
+                        <div class="mb-3">
+                            <label for="transactionDate" class="form-label">Dato</label>
+                            <input type="date" class="form-control" id="transactionDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="transactionAmount" class="form-label">Beløp (kr)</label>
+                            <input type="number" class="form-control" id="transactionAmount" step="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="transactionComment" class="form-label">Kommentar</label>
+                            <textarea class="form-control" id="transactionComment" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Avbryt</button>
+                    <button type="button" class="btn btn-primary" onclick="saveTransaction()">Lagre</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Data structure for budget categories
+        const categories = {
+            balance: [
+                { name: 'Bank', type: 'result' },
+                { name: 'Resultat', type: 'result' },
+                { name: 'Differanse', type: 'difference' }
+            ],
+            income: [
+                {
+                    name: 'Lønn',
+                    subcategories: [
+                        { name: 'Budsett', type: 'budget' },
+                        { name: 'Resultat', type: 'result' },
+                        { name: 'Differanse', type: 'difference' }
+                    ]
+                },
+                {
+                    name: 'Diverse inntekter',
+                    subcategories: [
+                        { name: 'Budsett', type: 'budget' },
+                        { name: 'Resultat', type: 'result' },
+                        { name: 'Differanse', type: 'difference' }
+                    ]
+                }
+            ],
+            expenses: [
+                { name: 'Strømghold', subcategories: [
+                    { name: 'Budsett', type: 'budget' },
+                    { name: 'Resultat', type: 'result' }
+                ]},
+                { name: 'Forsikring', subcategories: [
+                    { name: 'Budsett', type: 'budget' },
+                    { name: 'Resultat', type: 'result' }
+                ]},
+                { name: 'Digitale tjenester', subcategories: [
+                    { name: 'Budsett', type: 'budget' },
+                    { name: 'Resultat', type: 'result' }
+                ]},
+                { name: 'Autos', subcategories: [
+                    { name: 'Budsett', type: 'budget' },
+                    { name: 'Resultat', type: 'result' }
+                ]},
+                { name: 'Klær og reise', subcategories: [
+                    { name: 'Budsett', type: 'budget' },
+                    { name: 'Resultat', type: 'result' }
+                ]},
+                { name: 'Sport', subcategories: [
+                    { name: 'Budsett', type: 'budget' },
+                    { name: 'Resultat', type: 'result' }
+                ]},
+                { name: 'Reiser', subcategories: [
+                    { name: 'Budsett', type: 'budget' },
+                    { name: 'Resultat', type: 'result' }
+                ]},
+                { name: 'Sparebank', subcategories: [
+                    { name: 'Budsett', type: 'budget' },
+                    { name: 'Resultat', type: 'result' }
+                ]}
+            ]
+        };
+
+        const months = ['Januar', 'Februar', 'Mars', 'April', 'Mai', 'Juni', 
+                       'Juli', 'August', 'September', 'Oktober', 'November', 'Desember'];
+
+        // Data structure to store all transactions
+        let budgetData = {};
+
+        // Current cell being edited
+        let currentCell = null;
+        let currentTransactionIndex = null;
+
+        // Initialize budget data structure with mock data
+        function initializeBudgetData() {
+            const sections = ['balance', 'income', 'expenses'];
+            
+            sections.forEach(section => {
+                budgetData[section] = {};
+                const sectionCategories = categories[section];
+                
+                sectionCategories.forEach(category => {
+                    if (category.subcategories) {
+                        budgetData[section][category.name] = {};
+                        category.subcategories.forEach(sub => {
+                            budgetData[section][category.name][sub.name] = {};
+                            months.forEach((month, idx) => {
+                                budgetData[section][category.name][sub.name][month] = [];
+                            });
+                        });
+                    } else {
+                        budgetData[section][category.name] = {};
+                        months.forEach((month, idx) => {
+                            budgetData[section][category.name][month] = [];
+                        });
+                    }
+                });
+            });
+
+            // Add some mock transactions
+            addMockData();
+        }
+
+        function addMockData() {
+            // Mock salary data
+            budgetData.income['Lønn']['Budsett']['Januar'] = [
+                { date: '2025-01-01', amount: 53000, comment: 'Budsjettert månedslønn' }
+            ];
+            budgetData.income['Lønn']['Resultat']['Januar'] = [
+                { date: '2025-01-15', amount: 55920, comment: 'Lønn januar' }
+            ];
+
+            // Mock expense data
+            budgetData.expenses['Strømghold']['Budsett']['Januar'] = [
+                { date: '2025-01-01', amount: 20000, comment: 'Budsjett husleie + strøm' }
+            ];
+            budgetData.expenses['Strømghold']['Resultat']['Januar'] = [
+                { date: '2025-01-05', amount: 15000, comment: 'Husleie' },
+                { date: '2025-01-25', amount: 935, comment: 'Strømregning' }
+            ];
+
+            budgetData.expenses['Digitale tjenester']['Budsett']['Januar'] = [
+                { date: '2025-01-01', amount: 1100, comment: 'Budsjett' }
+            ];
+            budgetData.expenses['Digitale tjenester']['Resultat']['Januar'] = [
+                { date: '2025-01-10', amount: 149, comment: 'Netflix' },
+                { date: '2025-01-12', amount: 129, comment: 'Spotify' },
+                { date: '2025-01-15', amount: 99, comment: 'iCloud' },
+                { date: '2025-01-20', amount: 805, comment: 'Adobe Creative Cloud' }
+            ];
+
+            budgetData.expenses['Sport']['Budsett']['Februar'] = [
+                { date: '2025-02-01', amount: 8000, comment: 'Treningsutstyr budsjett' }
+            ];
+        }
+
+        // Generate the budget table
+        function generateTable() {
+            const table = document.getElementById('budgetTable');
+            let html = '<thead><tr><th></th>';
+            
+            // Month headers
+            months.forEach(month => {
+                html += `<th>${month}</th>`;
+            });
+            html += '<th>Totalt</th></tr></thead><tbody>';
+
+            // Balance section
+            html += `<tr><td colspan="${months.length + 2}" class="section-header balance-header">BALANSE</td></tr>`;
+            html += generateSectionRows('balance', categories.balance);
+
+            // Income section
+            html += `<tr><td colspan="${months.length + 2}" class="section-header income-header">INNTEKTER</td></tr>`;
+            html += generateSectionRows('income', categories.income);
+
+            // Expenses section
+            html += `<tr><td colspan="${months.length + 2}" class="section-header expense-header">UTGIFTER</td></tr>`;
+            html += generateSectionRows('expenses', categories.expenses);
+
+            html += '</tbody>';
+            table.innerHTML = html;
+        }
+
+        function generateSectionRows(section, sectionCategories) {
+            let html = '';
+            
+            sectionCategories.forEach(category => {
+                if (category.subcategories) {
+                    // Category header
+                    html += `<tr><td class="category-cell">${category.name}</td>`;
+                    for (let i = 0; i < months.length + 1; i++) {
+                        html += '<td class="category-cell"></td>';
+                    }
+                    html += '</tr>';
+
+                    // Subcategories
+                    category.subcategories.forEach(sub => {
+                        html += `<tr class="${sub.type}-row">`;
+                        html += `<td class="subcategory-cell">${sub.name}</td>`;
+                        
+                        months.forEach(month => {
+                            const total = calculateTotal(section, category.name, sub.name, month);
+                            const cellId = `${section}-${category.name}-${sub.name}-${month}`;
+                            const hasData = budgetData[section][category.name][sub.name][month].length > 0;
+                            const cellClass = hasData ? 'has-transactions' : '';
+                            html += `<td class="${cellClass}" onclick="openTransactionModal('${section}', '${category.name}', '${sub.name}', '${month}')" data-cell-id="${cellId}">`;
+                            html += total > 0 ? formatCurrency(total) : '<span class="empty-cell">0</span>';
+                            html += '</td>';
+                        });
+                        
+                        // Total column
+                        const yearTotal = calculateYearTotal(section, category.name, sub.name);
+                        html += `<td class="total-column">${formatCurrency(yearTotal)}</td>`;
+                        html += '</tr>';
+                    });
+                } else {
+                    // Simple category without subcategories
+                    html += `<tr class="${category.type}-row">`;
+                    html += `<td class="category-cell">${category.name}</td>`;
+                    
+                    months.forEach(month => {
+                        const total = calculateTotal(section, category.name, null, month);
+                        const cellId = `${section}-${category.name}-${month}`;
+                        const hasData = budgetData[section][category.name][month].length > 0;
+                        const cellClass = hasData ? 'has-transactions' : '';
+                        html += `<td class="${cellClass}" onclick="openTransactionModal('${section}', '${category.name}', null, '${month}')" data-cell-id="${cellId}">`;
+                        html += total > 0 ? formatCurrency(total) : '<span class="empty-cell">0</span>';
+                        html += '</td>';
+                    });
+                    
+                    // Total column
+                    const yearTotal = calculateYearTotal(section, category.name, null);
+                    html += `<td class="total-column">${formatCurrency(yearTotal)}</td>`;
+                    html += '</tr>';
+                }
+            });
+            
+            return html;
+        }
+
+        function calculateTotal(section, category, subcategory, month) {
+            let transactions;
+            if (subcategory) {
+                transactions = budgetData[section][category][subcategory][month];
+            } else {
+                transactions = budgetData[section][category][month];
+            }
+            
+            return transactions.reduce((sum, t) => sum + parseFloat(t.amount), 0);
+        }
+
+        function calculateYearTotal(section, category, subcategory) {
+            let total = 0;
+            months.forEach(month => {
+                total += calculateTotal(section, category, subcategory, month);
+            });
+            return total;
+        }
+
+        function formatCurrency(amount) {
+            return 'kr ' + Math.round(amount).toLocaleString('nb-NO');
+        }
+
+        function openTransactionModal(section, category, subcategory, month) {
+            currentCell = { section, category, subcategory, month };
+            
+            const modal = new bootstrap.Modal(document.getElementById('transactionModal'));
+            document.getElementById('modalTitle').textContent = 
+                `${category}${subcategory ? ' - ' + subcategory : ''} - ${month}`;
+            
+            displayTransactions();
+            modal.show();
+        }
+
+        function displayTransactions() {
+            const { section, category, subcategory, month } = currentCell;
+            let transactions;
+            
+            if (subcategory) {
+                transactions = budgetData[section][category][subcategory][month];
+            } else {
+                transactions = budgetData[section][category][month];
+            }
+
+            const listDiv = document.getElementById('transactionsList');
+            
+            if (transactions.length === 0) {
+                listDiv.innerHTML = '<div class="no-transactions"><i class="bi bi-inbox" style="font-size: 3rem;"></i><p>Ingen transaksjoner ennå</p></div>';
+                return;
+            }
+
+            let html = '';
+            transactions.forEach((t, index) => {
+                html += `
+                    <div class="transaction-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="transaction-date">
+                                    <i class="bi bi-calendar3"></i> ${formatDate(t.date)}
+                                </div>
+                                <div class="transaction-amount">${formatCurrency(t.amount)}</div>
+                                ${t.comment ? `<div class="transaction-comment">${t.comment}</div>` : ''}
+                            </div>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary" onclick="editTransaction(${index})">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="deleteTransaction(${index})">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Add total
+            const total = transactions.reduce((sum, t) => sum + parseFloat(t.amount), 0);
+            html += `
+                <div class="alert alert-info mt-3">
+                    <strong>Sum:</strong> ${formatCurrency(total)}
+                </div>
+            `;
+
+            listDiv.innerHTML = html;
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('nb-NO', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        function showAddTransactionForm() {
+            currentTransactionIndex = null;
+            document.getElementById('addTransactionTitle').textContent = 'Legg til transaksjon';
+            document.getElementById('transactionForm').reset();
+            
+            // Set default date to current month
+            const monthIndex = months.indexOf(currentCell.month);
+            const year = 2025;
+            const defaultDate = new Date(year, monthIndex, 1);
+            document.getElementById('transactionDate').value = defaultDate.toISOString().split('T')[0];
+            
+            const modal = new bootstrap.Modal(document.getElementById('addTransactionModal'));
+            modal.show();
+        }
+
+        function editTransaction(index) {
+            currentTransactionIndex = index;
+            const { section, category, subcategory, month } = currentCell;
+            let transaction;
+            
+            if (subcategory) {
+                transaction = budgetData[section][category][subcategory][month][index];
+            } else {
+                transaction = budgetData[section][category][month][index];
+            }
+
+            document.getElementById('addTransactionTitle').textContent = 'Rediger transaksjon';
+            document.getElementById('transactionDate').value = transaction.date;
+            document.getElementById('transactionAmount').value = transaction.amount;
+            document.getElementById('transactionComment').value = transaction.comment || '';
+            
+            // Close transaction list modal
+            bootstrap.Modal.getInstance(document.getElementById('transactionModal')).hide();
+            
+            // Open edit modal
+            const modal = new bootstrap.Modal(document.getElementById('addTransactionModal'));
+            modal.show();
+        }
+
+        function deleteTransaction(index) {
+            if (!confirm('Er du sikker på at du vil slette denne transaksjonen?')) {
+                return;
+            }
+
+            const { section, category, subcategory, month } = currentCell;
+            
+            if (subcategory) {
+                budgetData[section][category][subcategory][month].splice(index, 1);
+            } else {
+                budgetData[section][category][month].splice(index, 1);
+            }
+
+            displayTransactions();
+            generateTable(); // Refresh table to update totals
+        }
+
+        function saveTransaction() {
+            const date = document.getElementById('transactionDate').value;
+            const amount = parseFloat(document.getElementById('transactionAmount').value);
+            const comment = document.getElementById('transactionComment').value;
+
+            if (!date || isNaN(amount)) {
+                alert('Vennligst fyll ut alle påkrevde felt');
+                return;
+            }
+
+            const transaction = { date, amount, comment };
+            const { section, category, subcategory, month } = currentCell;
+
+            if (currentTransactionIndex !== null) {
+                // Edit existing transaction
+                if (subcategory) {
+                    budgetData[section][category][subcategory][month][currentTransactionIndex] = transaction;
+                } else {
+                    budgetData[section][category][month][currentTransactionIndex] = transaction;
+                }
+            } else {
+                // Add new transaction
+                if (subcategory) {
+                    budgetData[section][category][subcategory][month].push(transaction);
+                } else {
+                    budgetData[section][category][month].push(transaction);
+                }
+            }
+
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('addTransactionModal')).hide();
+            
+            // Refresh display
+            displayTransactions();
+            generateTable(); // Refresh table to update totals
+
+            // Reopen transaction list modal
+            setTimeout(() => {
+                const modal = new bootstrap.Modal(document.getElementById('transactionModal'));
+                modal.show();
+            }, 300);
+        }
+
+        function saveData() {
+            const dataStr = JSON.stringify(budgetData, null, 2);
+            localStorage.setItem('budgetData', dataStr);
+            alert('Data lagret!');
+        }
+
+        function exportData() {
+            const dataStr = JSON.stringify(budgetData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'budget_2025.json';
+            a.click();
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('budgetData');
+            if (saved) {
+                budgetData = JSON.parse(saved);
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeBudgetData();
+            // loadData(); // Uncomment to load from localStorage
+            generateTable();
+        });
+
+        // Handle modal close to refresh main modal
+        document.getElementById('addTransactionModal').addEventListener('hidden.bs.modal', function() {
+            if (currentCell) {
+                displayTransactions();
+            }
+        });
+    </script>
+</body>
+</html>

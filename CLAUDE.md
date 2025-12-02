@@ -16,8 +16,8 @@ Its an important thing here that the UX need to be supergood and smooth. This me
 - All CSS should be place in the same css file and referenced throughout the app
 - TomSelect should be used for advanced input boxes, and if thats not needed use standard bootstrap and html input boxes
 - Date and time picker should use Tempus Domino js library
-- Sqlite should be used as the database
-- PeeWee ORM should be used to interact with the sqlite database
+- MariaDB should be used as the database. The program must support configuring this database connection.
+- PeeWee ORM should be used to interact with the Mariadb database
 
 # Architectural constraints
 ## General constraints

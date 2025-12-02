@@ -1,15 +1,34 @@
-.worktrees/
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
-.Python
-*.db
-*.db-journal
-.env
-.venv
-env/
+
+# Virtual environment
+.venv/
 venv/
-.idea/
-.vscode/
+ENV/
+
+# Environment variables
+.env
+.envrc
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Type checking
+.mypy_cache/
+
+# Logs
 *.log
+
+# Git worktrees
+.worktrees/
+
+# Database
+data/
+
+# Playwright MCP
+.playwright-mcp/
