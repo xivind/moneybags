@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration - Moneybags{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <h1>Configuration</h1>
+        <p class="text-muted">Manage your preferences and settings</p>
+    </div>
+</div>
+
+<!-- Preferences Section -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Preferences</h5>
+
+                <div class="mb-3">
+                    <label class="form-label">Currency Notation</label>
+                    <select class="form-select"
+                            hx-post="/api/config/preference"
+                            hx-trigger="change"
+                            hx-vals='{"key": "currency_notation"}'
+                            name="value">
+                        <option value="USD" {{ 'selected' if currency.value == 'USD' else '' }}>USD</option>
+                        <option value="EUR" {{ 'selected' if currency.value == 'EUR' else '' }}>EUR</option>
+                        <option value="NOK" {{ 'selected' if currency.value == 'NOK' else '' }}>NOK</option>
+                        <option value="GBP" {{ 'selected' if currency.value == 'GBP' else '' }}>GBP</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Date Format</label>
+                    <select class="form-select"
+                            hx-post="/api/config/preference"
+                            hx-trigger="change"
+                            hx-vals='{"key": "date_format"}'
+                            name="value">
+                        <option value="YYYY-MM-DD" {{ 'selected' if date_format.value == 'YYYY-MM-DD' else '' }}>YYYY-MM-DD</option>
+                        <option value="DD/MM/YYYY" {{ 'selected' if date_format.value == 'DD/MM/YYYY' else '' }}>DD/MM/YYYY</option>
+                        <option value="MM/DD/YYYY" {{ 'selected' if date_format.value == 'MM/DD/YYYY' else '' }}>MM/DD/YYYY</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tags Management Section -->
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Tags</h5>
+
+                <table class="table" id="tags-table">
+                    <thead>
+                        <tr>
+                            <th>Tag Name</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tags-tbody">
+                        {% for tag in tags %}
+                            {% include "partials/_tag_row.html" with context %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <form hx-post="/api/tag/create" hx-target="#tags-tbody" hx-swap="beforeend">
+                    <div class="input-group">
+                        <input type="text" name="name" class="form-control"
+                               placeholder="New tag name"
+                               required maxlength="50" minlength="1" pattern=".*\S+.*">
+                        <button type="submit" class="btn btn-primary">
+                            <span class="htmx-indicator spinner-border spinner-border-sm me-2" role="status"></span>
+                            + Add Tag
+                        </button>
+                    </div>
+                    <small class="form-text text-muted">Tag name must be unique and not empty (max 50 characters)</small>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

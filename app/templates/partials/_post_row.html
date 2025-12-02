@@ -1,0 +1,27 @@
+<div class="post-row">
+    <h5>{{ item.post.name }}</h5>
+    <div class="row">
+        <!-- Monthly budget inputs -->
+        {% for month in range(1, 13) %}
+        <div class="col-1">
+            <label class="form-label small">{{ ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][month-1] }}</label>
+            {% set budget = (item.budgets | selectattr('month', '==', month) | list | first) if (item.budgets | selectattr('month', '==', month) | list) else None %}
+            {% set budget_amount = budget.amount if budget else 0 %}
+            {% set post_id = item.post.id %}
+            {% include "partials/_budget_input.html" %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Actual entries -->
+    <div class="mt-2">
+        <h6>Actual Entries</h6>
+        {% set post_id = item.post.id %}
+        {% set entries = item.entries | default([]) %}
+        {% include "partials/_actual_entries_list.html" %}
+        <button class="btn btn-sm btn-outline-primary mt-2" hx-get="/api/actual/create-form?post_id={{ item.post.id }}" hx-target="#modal-content">
+            <span class="htmx-indicator spinner-border spinner-border-sm me-2" role="status"></span>
+            + Add Entry
+        </button>
+    </div>
+</div>
