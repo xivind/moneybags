@@ -133,6 +133,17 @@ async def update_budget(
     })
 
 
+@app.get("/api/post/create-form")
+async def post_create_form(request: Request, type: str):
+    """Return form for creating a new post (income or expense)."""
+    tags = get_all_tags()
+    return templates.TemplateResponse("partials/_post_create_form.html", {
+        "request": request,
+        "post_type": type,
+        "tags": tags
+    })
+
+
 @app.get("/api/actual/create-form")
 async def actual_entry_form(request: Request, post_id: str):
     """Return the form for creating a new actual entry (htmx modal)."""
@@ -141,6 +152,23 @@ async def actual_entry_form(request: Request, post_id: str):
         "request": request,
         "post": post
     })
+
+
+@app.post("/api/post/create")
+async def create_new_post(
+    request: Request,
+    name: str = Form(...),
+    post_type: str = Form(...),
+    tag_ids: list = Form([])
+):
+    """Create a new post with tags."""
+    from app.business_logic import create_post_with_tags
+    from fastapi.responses import RedirectResponse
+
+    post = create_post_with_tags(name, post_type, tag_ids)
+
+    # Redirect to budget page (full page reload to show new post)
+    return RedirectResponse(url="/budget", status_code=303)
 
 
 @app.post("/api/actual/create")
