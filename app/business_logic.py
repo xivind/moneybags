@@ -292,3 +292,159 @@ def get_monthly_chart_data(year: int) -> Dict[str, List[float]]:
         'income': [float(v) for v in income_by_month],
         'expenses': [float(v) for v in expenses_by_month]
     }
+
+
+def get_yoy_comparison_data(years: List[int]) -> Dict[str, Any]:
+    """
+    Get year-over-year comparison data for multiple years.
+
+    Args:
+        years: List of years to compare (e.g., [2023, 2024, 2025])
+
+    Returns:
+        Dict with years, income_data, expense_data, and growth_rates
+    """
+    years_sorted = sorted(years)
+    income_totals = []
+    expense_totals = []
+    net_totals = []
+
+    for year in years_sorted:
+        overview = get_year_overview(year)
+        income_totals.append(float(overview['total_income']))
+        expense_totals.append(float(overview['total_expenses']))
+        net_totals.append(float(overview['net_savings']))
+
+    # Calculate growth rates (year-over-year change percentages)
+    income_growth = []
+    expense_growth = []
+    net_growth = []
+
+    for i in range(1, len(years_sorted)):
+        if income_totals[i-1] > 0:
+            income_growth.append(((income_totals[i] - income_totals[i-1]) / income_totals[i-1]) * 100)
+        else:
+            income_growth.append(0.0)
+
+        if expense_totals[i-1] > 0:
+            expense_growth.append(((expense_totals[i] - expense_totals[i-1]) / expense_totals[i-1]) * 100)
+        else:
+            expense_growth.append(0.0)
+
+        if abs(net_totals[i-1]) > 0:
+            net_growth.append(((net_totals[i] - net_totals[i-1]) / abs(net_totals[i-1])) * 100)
+        else:
+            net_growth.append(0.0)
+
+    return {
+        'years': years_sorted,
+        'income': income_totals,
+        'expenses': expense_totals,
+        'net': net_totals,
+        'income_growth': income_growth,
+        'expense_growth': expense_growth,
+        'net_growth': net_growth
+    }
+
+
+def get_tag_analysis_data() -> List[Dict[str, Any]]:
+    """
+    Aggregate all posts by tag across all years.
+
+    Returns:
+        List of dicts with tag_name, total_income, total_expense, post_count
+    """
+    from app.database_manager import get_all_tags, get_actual_entries
+    from app.database_model import PostTag
+
+    tags = get_all_tags()
+    results = []
+
+    for tag in tags:
+        # Find all posts with this tag using PostTag relationship
+        post_tags = PostTag.select().where(PostTag.tag == tag.id)
+        tagged_post_ids = [pt.post_id for pt in post_tags]
+
+        # Get the actual post objects
+        posts = get_all_posts()
+        tagged_posts = [p for p in posts if p.id in tagged_post_ids]
+
+        total_income = Decimal('0')
+        total_expense = Decimal('0')
+
+        for post in tagged_posts:
+            # Get all actuals across all time (no date filtering)
+            actuals = get_actual_entries(post.id, date(2000, 1, 1), date(2099, 12, 31))
+            total = sum(Decimal(str(a.amount)) for a in actuals)
+
+            if post.type == 'income':
+                total_income += total
+            else:
+                total_expense += total
+
+        results.append({
+            'tag_name': tag.name,
+            'total_income': float(total_income),
+            'total_expense': float(total_expense),
+            'post_count': len(tagged_posts)
+        })
+
+    # Sort by total expense (descending) for better visibility
+    results.sort(key=lambda x: x['total_expense'], reverse=True)
+    return results
+
+
+def get_time_series_data(year: int) -> Dict[str, Any]:
+    """
+    Get time-series data showing actual entries over time with patterns.
+
+    Args:
+        year: Year to analyze
+
+    Returns:
+        Dict with monthly_income, monthly_expenses, trends, and patterns
+    """
+    from calendar import monthrange
+
+    posts = get_all_posts()
+    income_by_month = [Decimal('0')] * 12
+    expenses_by_month = [Decimal('0')] * 12
+    monthly_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+    for post in posts:
+        for month in range(1, 13):
+            start_date = date(year, month, 1)
+            last_day = monthrange(year, month)[1]
+            end_date = date(year, month, last_day)
+
+            actuals = get_actual_entries(post.id, start_date, end_date)
+            total = sum(Decimal(str(a.amount)) for a in actuals)
+
+            if post.type == 'income':
+                income_by_month[month - 1] += total
+            else:
+                expenses_by_month[month - 1] += total
+
+    # Calculate simple trends (average per month, highest, lowest)
+    income_values = [float(v) for v in income_by_month]
+    expense_values = [float(v) for v in expenses_by_month]
+
+    income_avg = sum(income_values) / 12 if income_values else 0
+    expense_avg = sum(expense_values) / 12 if expense_values else 0
+
+    # Find peak months
+    max_income_month = monthly_labels[income_values.index(max(income_values))] if max(income_values) > 0 else 'N/A'
+    max_expense_month = monthly_labels[expense_values.index(max(expense_values))] if max(expense_values) > 0 else 'N/A'
+
+    return {
+        'labels': monthly_labels,
+        'income_data': income_values,
+        'expense_data': expense_values,
+        'income_avg': income_avg,
+        'expense_avg': expense_avg,
+        'max_income_month': max_income_month,
+        'max_expense_month': max_expense_month,
+        'max_income_value': max(income_values),
+        'max_expense_value': max(expense_values)
+    }

@@ -15,7 +15,10 @@ from app.business_logic import (
     get_budget_vs_actual_analysis,
     get_year_over_year_comparison,
     create_post_with_tags,
-    get_monthly_chart_data
+    get_monthly_chart_data,
+    get_yoy_comparison_data,
+    get_tag_analysis_data,
+    get_time_series_data
 )
 from app.database_manager import (
     get_budget_entries,
@@ -232,10 +235,23 @@ async def analysis_page(request: Request):
     # Get budget vs actual analysis
     budget_analysis = get_budget_vs_actual_analysis(current_year)
 
+    # Get year-over-year comparison data (last 3 years)
+    years_to_compare = [current_year - 2, current_year - 1, current_year]
+    yoy_data = get_yoy_comparison_data(years_to_compare)
+
+    # Get tag analysis data
+    tag_analysis = get_tag_analysis_data()
+
+    # Get time series data for current year
+    time_series = get_time_series_data(current_year)
+
     return templates.TemplateResponse("analysis.html", {
         "request": request,
         "year": current_year,
-        "budget_analysis": budget_analysis
+        "budget_analysis": budget_analysis,
+        "yoy_data": yoy_data,
+        "tag_analysis": tag_analysis,
+        "time_series": time_series
     })
 
 

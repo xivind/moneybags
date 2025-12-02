@@ -70,25 +70,152 @@
         </div>
     </div>
 
-    <!-- Other tabs (placeholders for now) -->
+    <!-- Year-over-Year Tab -->
     <div class="tab-pane fade" id="year-over-year">
         <h3>Year-over-Year Comparison</h3>
-        <div class="alert alert-info">
-            <p class="mb-0">Coming soon: Compare income and expenses across multiple years</p>
+        <p class="text-muted">Compare income and expenses across multiple years with growth trends</p>
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Year</th>
+                            <th class="text-end">Total Income</th>
+                            <th class="text-end">Total Expenses</th>
+                            <th class="text-end">Net Savings</th>
+                            <th class="text-end">Income Growth</th>
+                            <th class="text-end">Expense Growth</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(yoy_data.years|length) %}
+                        <tr>
+                            <td><strong>{{ yoy_data.years[i] }}</strong></td>
+                            <td class="text-end">{{ "%.2f"|format(yoy_data.income[i]) }}</td>
+                            <td class="text-end">{{ "%.2f"|format(yoy_data.expenses[i]) }}</td>
+                            <td class="text-end {% if yoy_data.net[i] > 0 %}text-success{% elif yoy_data.net[i] < 0 %}text-danger{% endif %}">
+                                {{ "%.2f"|format(yoy_data.net[i]) }}
+                            </td>
+                            <td class="text-end {% if i > 0 %}{% if yoy_data.income_growth[i-1] > 0 %}text-success{% elif yoy_data.income_growth[i-1] < 0 %}text-danger{% endif %}{% endif %}">
+                                {% if i > 0 %}
+                                    {{ "%.1f"|format(yoy_data.income_growth[i-1]) }}%
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="text-end {% if i > 0 %}{% if yoy_data.expense_growth[i-1] > 0 %}text-danger{% elif yoy_data.expense_growth[i-1] < 0 %}text-success{% endif %}{% endif %}">
+                                {% if i > 0 %}
+                                    {{ "%.1f"|format(yoy_data.expense_growth[i-1]) }}%
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- YoY Chart -->
+        <div class="chart-container">
+            <canvas id="yoyChart" style="max-height: 400px;"></canvas>
         </div>
     </div>
 
+    <!-- Tag Analysis Tab -->
     <div class="tab-pane fade" id="tag-analysis">
         <h3>Tag-based Analysis</h3>
-        <div class="alert alert-info">
-            <p class="mb-0">Coming soon: Analyze spending patterns by tags</p>
+        <p class="text-muted">Aggregate spending and income by tags across all time</p>
+
+        <div class="row">
+            <div class="col-12">
+                {% if tag_analysis %}
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Tag Name</th>
+                            <th class="text-end">Total Income</th>
+                            <th class="text-end">Total Expenses</th>
+                            <th class="text-end">Net</th>
+                            <th class="text-end">Post Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in tag_analysis %}
+                        <tr>
+                            <td><span class="badge bg-primary">{{ item.tag_name }}</span></td>
+                            <td class="text-end text-success">{{ "%.2f"|format(item.total_income) }}</td>
+                            <td class="text-end text-danger">{{ "%.2f"|format(item.total_expense) }}</td>
+                            <td class="text-end {% if (item.total_income - item.total_expense) > 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ "%.2f"|format(item.total_income - item.total_expense) }}
+                            </td>
+                            <td class="text-end">{{ item.post_count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <!-- Tag Chart -->
+                <div class="chart-container mt-4">
+                    <canvas id="tagChart" style="max-height: 400px;"></canvas>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <p class="mb-0">No tags created yet. Create tags in the Configuration page to see analysis here.</p>
+                </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 
+    <!-- Time Series Tab -->
     <div class="tab-pane fade" id="time-series">
-        <h3>Time Series Trends</h3>
-        <div class="alert alert-info">
-            <p class="mb-0">Coming soon: View trends over time with interactive charts</p>
+        <h3>Time Series Trends - {{ year }}</h3>
+        <p class="text-muted">View monthly trends with patterns and insights</p>
+
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card border-primary">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">Avg Monthly Income</h6>
+                        <h4 class="card-title text-primary">{{ "%.2f"|format(time_series.income_avg) }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-danger">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">Avg Monthly Expense</h6>
+                        <h4 class="card-title text-danger">{{ "%.2f"|format(time_series.expense_avg) }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-success">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">Peak Income Month</h6>
+                        <h4 class="card-title text-success">{{ time_series.max_income_month }}</h4>
+                        <small class="text-muted">{{ "%.2f"|format(time_series.max_income_value) }}</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-warning">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">Peak Expense Month</h6>
+                        <h4 class="card-title text-warning">{{ time_series.max_expense_month }}</h4>
+                        <small class="text-muted">{{ "%.2f"|format(time_series.max_expense_value) }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Time Series Chart -->
+        <div class="chart-container">
+            <canvas id="timeSeriesChart" style="max-height: 400px;"></canvas>
         </div>
     </div>
 </div>
@@ -109,4 +236,124 @@
         border-radius: 8px;
     }
 </style>
+
+<script>
+// Year-over-Year Chart
+const yoyCtx = document.getElementById('yoyChart');
+if (yoyCtx) {
+    new Chart(yoyCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ yoy_data.years | tojson }},
+            datasets: [{
+                label: 'Income',
+                data: {{ yoy_data.income | tojson }},
+                backgroundColor: 'rgba(40, 167, 69, 0.6)',
+                borderColor: 'rgba(40, 167, 69, 1)',
+                borderWidth: 1
+            }, {
+                label: 'Expenses',
+                data: {{ yoy_data.expenses | tojson }},
+                backgroundColor: 'rgba(220, 53, 69, 0.6)',
+                borderColor: 'rgba(220, 53, 69, 1)',
+                borderWidth: 1
+            }, {
+                label: 'Net Savings',
+                data: {{ yoy_data.net | tojson }},
+                backgroundColor: 'rgba(13, 110, 253, 0.6)',
+                borderColor: 'rgba(13, 110, 253, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+// Tag Analysis Chart
+const tagCtx = document.getElementById('tagChart');
+if (tagCtx) {
+    const tagData = {{ tag_analysis | tojson }};
+    if (tagData && tagData.length > 0) {
+        new Chart(tagCtx, {
+            type: 'bar',
+            data: {
+                labels: tagData.map(t => t.tag_name),
+                datasets: [{
+                    label: 'Income',
+                    data: tagData.map(t => t.total_income),
+                    backgroundColor: 'rgba(40, 167, 69, 0.6)',
+                    borderColor: 'rgba(40, 167, 69, 1)',
+                    borderWidth: 1
+                }, {
+                    label: 'Expenses',
+                    data: tagData.map(t => t.total_expense),
+                    backgroundColor: 'rgba(220, 53, 69, 0.6)',
+                    borderColor: 'rgba(220, 53, 69, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',  // Horizontal bar chart
+                scales: {
+                    x: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+}
+
+// Time Series Chart
+const timeSeriesCtx = document.getElementById('timeSeriesChart');
+if (timeSeriesCtx) {
+    const timeSeriesData = {{ time_series | tojson }};
+    new Chart(timeSeriesCtx, {
+        type: 'line',
+        data: {
+            labels: timeSeriesData.labels,
+            datasets: [{
+                label: 'Income',
+                data: timeSeriesData.income_data,
+                borderColor: 'rgba(40, 167, 69, 1)',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                fill: true,
+                tension: 0.4
+            }, {
+                label: 'Expenses',
+                data: timeSeriesData.expense_data,
+                borderColor: 'rgba(220, 53, 69, 1)',
+                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            }
+        }
+    });
+}
+</script>
 {% endblock %}
