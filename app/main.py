@@ -14,7 +14,8 @@ from app.business_logic import (
     get_posts_by_type,
     get_budget_vs_actual_analysis,
     get_year_over_year_comparison,
-    create_post_with_tags
+    create_post_with_tags,
+    get_monthly_chart_data
 )
 from app.database_manager import (
     get_budget_entries,
@@ -53,10 +54,12 @@ async def home(request: Request):
     current_month = datetime.now().month
 
     data = get_dashboard_data(current_year, current_month)
+    chart_data = get_monthly_chart_data(current_year)
 
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
-        **data
+        **data,
+        "chart_data": chart_data
     })
 
 

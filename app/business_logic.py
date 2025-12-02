@@ -257,3 +257,38 @@ def get_year_over_year_comparison(year1: int, year2: int) -> Dict[str, Any]:
         'income_change': income_change,
         'expense_change': expense_change
     }
+
+
+def get_monthly_chart_data(year: int) -> Dict[str, List[float]]:
+    """
+    Get monthly income and expense totals for chart.
+
+    Returns dict with 'income' and 'expenses' lists (12 values each).
+    """
+    posts = get_all_posts()
+
+    income_by_month = [Decimal('0')] * 12
+    expenses_by_month = [Decimal('0')] * 12
+
+    for post in posts:
+        for month in range(1, 13):
+            start_date = date(year, month, 1)
+            if month == 12:
+                end_date = date(year, 12, 31)
+            else:
+                from calendar import monthrange
+                last_day = monthrange(year, month)[1]
+                end_date = date(year, month, last_day)
+
+            actuals = get_actual_entries(post.id, start_date, end_date)
+            total = sum(Decimal(str(a.amount)) for a in actuals)
+
+            if post.type == 'income':
+                income_by_month[month - 1] += total
+            else:
+                expenses_by_month[month - 1] += total
+
+    return {
+        'income': [float(v) for v in income_by_month],
+        'expenses': [float(v) for v in expenses_by_month]
+    }

@@ -92,17 +92,22 @@ const monthlyChart = new Chart(ctx, {
         labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
         datasets: [{
             label: 'Income',
-            data: [],  // Will be populated later
+            data: {{ chart_data.income | tojson }},
             backgroundColor: 'rgba(40, 167, 69, 0.5)'
         }, {
             label: 'Expenses',
-            data: [],  // Will be populated later
+            data: {{ chart_data.expenses | tojson }},
             backgroundColor: 'rgba(220, 53, 69, 0.5)'
         }]
     },
     options: {
         responsive: true,
-        maintainAspectRatio: false
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
     }
 });
 </script>
