@@ -21,7 +21,11 @@ from app.database_manager import (
     update_budget_entry,
     get_post,
     create_actual_entry,
-    get_actual_entries
+    get_actual_entries,
+    get_or_create_preference,
+    update_preference,
+    get_all_tags,
+    create_tag
 )
 from app.utils import generate_uuid
 
@@ -184,6 +188,34 @@ async def analysis_page(request: Request):
         "year": current_year,
         "budget_analysis": budget_analysis
     })
+
+
+@app.get("/config", response_class=HTMLResponse)
+async def config_page(request: Request):
+    """Configuration page."""
+    # Get current preferences
+    currency = get_or_create_preference('currency_notation', 'USD')
+    date_format = get_or_create_preference('date_format', 'YYYY-MM-DD')
+
+    # Get all tags
+    tags = get_all_tags()
+
+    return templates.TemplateResponse("config.html", {
+        "request": request,
+        "currency": currency,
+        "date_format": date_format,
+        "tags": tags
+    })
+
+
+@app.post("/api/config/preference")
+async def update_user_preference(
+    key: str = Form(...),
+    value: str = Form(...)
+):
+    """Update user preference via htmx."""
+    update_preference(key, value)
+    return {"status": "success"}
 
 
 @app.get("/health")
