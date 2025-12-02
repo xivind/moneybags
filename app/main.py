@@ -9,7 +9,8 @@ from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
 
 from app.database_model import initialize_database
-from app.business_logic import get_dashboard_data
+from app.business_logic import get_dashboard_data, get_posts_by_type
+from app.database_manager import get_budget_entries
 
 # Load environment variables
 load_dotenv()
@@ -38,6 +39,39 @@ async def home(request: Request):
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         **data
+    })
+
+
+@app.get("/budget", response_class=HTMLResponse)
+async def budget_page(request: Request):
+    """Budget and actuals page."""
+    current_year = datetime.now().year
+
+    income_posts = get_posts_by_type('income')
+    expense_posts = get_posts_by_type('expense')
+
+    # Get budget entries for each post
+    income_data = []
+    for post in income_posts:
+        budgets = get_budget_entries(post.id, current_year)
+        income_data.append({
+            'post': post,
+            'budgets': budgets
+        })
+
+    expense_data = []
+    for post in expense_posts:
+        budgets = get_budget_entries(post.id, current_year)
+        expense_data.append({
+            'post': post,
+            'budgets': budgets
+        })
+
+    return templates.TemplateResponse("budget.html", {
+        "request": request,
+        "year": current_year,
+        "income_data": income_data,
+        "expense_data": expense_data
     })
 
 
