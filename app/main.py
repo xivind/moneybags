@@ -13,7 +13,10 @@ from app.business_logic import get_dashboard_data, get_posts_by_type
 from app.database_manager import (
     get_budget_entries,
     create_budget_entry,
-    update_budget_entry
+    update_budget_entry,
+    get_post,
+    create_actual_entry,
+    get_actual_entries
 )
 from app.utils import generate_uuid
 
@@ -50,26 +53,36 @@ async def home(request: Request):
 @app.get("/budget", response_class=HTMLResponse)
 async def budget_page(request: Request):
     """Budget and actuals page."""
+    from datetime import date as date_cls
+
     current_year = datetime.now().year
 
     income_posts = get_posts_by_type('income')
     expense_posts = get_posts_by_type('expense')
 
-    # Get budget entries for each post
+    # Date range for actual entries
+    start_date = date_cls(current_year, 1, 1)
+    end_date = date_cls(current_year, 12, 31)
+
+    # Get budget entries and actual entries for each post
     income_data = []
     for post in income_posts:
         budgets = get_budget_entries(post.id, current_year)
+        entries = get_actual_entries(post.id, start_date, end_date)
         income_data.append({
             'post': post,
-            'budgets': budgets
+            'budgets': budgets,
+            'entries': entries
         })
 
     expense_data = []
     for post in expense_posts:
         budgets = get_budget_entries(post.id, current_year)
+        entries = get_actual_entries(post.id, start_date, end_date)
         expense_data.append({
             'post': post,
-            'budgets': budgets
+            'budgets': budgets,
+            'entries': entries
         })
 
     return templates.TemplateResponse("budget.html", {
@@ -108,6 +121,48 @@ async def update_budget(
         "post_id": post_id,
         "year": year,
         "month": month
+    })
+
+
+@app.get("/api/actual/create-form")
+async def actual_entry_form(request: Request, post_id: str):
+    """Return the form for creating a new actual entry (htmx modal)."""
+    post = get_post(post_id)
+    return templates.TemplateResponse("partials/_actual_entry_form.html", {
+        "request": request,
+        "post": post
+    })
+
+
+@app.post("/api/actual/create")
+async def create_actual(
+    request: Request,
+    post_id: str = Form(...),
+    date: str = Form(...),
+    amount: float = Form(...),
+    comment: str = Form("")
+):
+    """Create a new actual entry via htmx."""
+    from datetime import date as date_cls
+
+    # Parse date string
+    entry_date = datetime.strptime(date, "%Y-%m-%d").date()
+
+    # Create entry
+    entry_id = generate_uuid()
+    create_actual_entry(entry_id, post_id, entry_date, amount, comment)
+
+    # Get all entries for this post (current year)
+    current_year = datetime.now().year
+    start_date = date_cls(current_year, 1, 1)
+    end_date = date_cls(current_year, 12, 31)
+    entries = get_actual_entries(post_id, start_date, end_date)
+
+    # Return updated list
+    return templates.TemplateResponse("partials/_actual_entries_list.html", {
+        "request": request,
+        "post_id": post_id,
+        "entries": entries
     })
 
 

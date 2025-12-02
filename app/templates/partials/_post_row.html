@@ -16,7 +16,10 @@
     <!-- Actual entries -->
     <div class="mt-2">
         <h6>Actual Entries</h6>
-        <button class="btn btn-sm btn-outline-primary" hx-get="/api/actual/create-form?post_id={{ item.post.id }}" hx-target="#modal-content">
+        {% set post_id = item.post.id %}
+        {% set entries = item.entries | default([]) %}
+        {% include "partials/_actual_entries_list.html" %}
+        <button class="btn btn-sm btn-outline-primary mt-2" hx-get="/api/actual/create-form?post_id={{ item.post.id }}" hx-target="#modal-content">
             + Add Entry
         </button>
     </div>

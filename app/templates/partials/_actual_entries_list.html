@@ -1,0 +1,33 @@
+<div id="actual-entries-{{ post_id }}">
+    {% if entries %}
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Amount</th>
+                <th>Comment</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in entries %}
+            <tr>
+                <td>{{ entry.date }}</td>
+                <td>{{ "%.2f"|format(entry.amount) }}</td>
+                <td>{{ entry.comment or '-' }}</td>
+                <td>
+                    <button class="btn btn-sm btn-danger"
+                            hx-delete="/api/actual/{{ entry.id }}"
+                            hx-target="closest tr"
+                            hx-swap="outerHTML swap:1s">
+                        Delete
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted">No entries yet</p>
+    {% endif %}
+</div>
