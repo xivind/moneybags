@@ -258,6 +258,31 @@ async def update_user_preference(
     return {"status": "success"}
 
 
+@app.post("/api/tag/create")
+async def create_new_tag(
+    request: Request,
+    name: str = Form(...)
+):
+    """Create a new tag."""
+    tag_id = generate_uuid()
+    tag = create_tag(tag_id, name)
+
+    # Return updated tag row
+    return templates.TemplateResponse("partials/_tag_row.html", {
+        "request": request,
+        "tag": tag
+    })
+
+
+@app.delete("/api/tag/{tag_id}")
+async def delete_tag_endpoint(tag_id: str):
+    """Delete a tag."""
+    from app.database_manager import delete_tag as db_delete_tag
+
+    db_delete_tag(tag_id)
+    return {"status": "success"}
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""

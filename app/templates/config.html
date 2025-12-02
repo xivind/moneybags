@@ -55,26 +55,27 @@
             <div class="card-body">
                 <h5 class="card-title">Tags</h5>
 
-                <table class="table">
+                <table class="table" id="tags-table">
                     <thead>
                         <tr>
                             <th>Tag Name</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="tags-tbody">
                         {% for tag in tags %}
-                        <tr>
-                            <td>{{ tag.name }}</td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-danger">Delete</button>
-                            </td>
-                        </tr>
+                            {% include "partials/_tag_row.html" with context %}
                         {% endfor %}
                     </tbody>
                 </table>
 
-                <button class="btn btn-primary mt-2">+ Add Tag</button>
+                <form hx-post="/api/tag/create" hx-target="#tags-tbody" hx-swap="beforeend">
+                    <div class="input-group">
+                        <input type="text" name="name" class="form-control"
+                               placeholder="New tag name" required>
+                        <button type="submit" class="btn btn-primary">+ Add Tag</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

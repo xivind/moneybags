@@ -140,6 +140,21 @@ def get_all_tags() -> List[Tag]:
     return list(Tag.select())
 
 
+def delete_tag(tag_id: str) -> None:
+    """
+    Delete a tag.
+
+    Args:
+        tag_id: Tag identifier
+    """
+    # Remove all post-tag relationships first
+    PostTag.delete().where(PostTag.tag == tag_id).execute()
+
+    # Then delete the tag
+    tag = Tag.get_by_id(tag_id)
+    tag.delete_instance()
+
+
 # ============================================================================
 # POST-TAG RELATIONSHIP OPERATIONS
 # ============================================================================
