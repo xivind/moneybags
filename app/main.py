@@ -10,7 +10,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
 
-from app.database_model import initialize_database
+from peewee import fn
+from app.database_model import initialize_database, Post, Tag
 from app.business_logic import (
     get_dashboard_data,
     get_posts_by_type,
@@ -232,9 +233,7 @@ async def create_new_post(
         raise HTTPException(status_code=400, detail="Post name cannot exceed 100 characters.")
 
     # Check for uniqueness - post names must be unique
-    from app.database_manager import get_all_posts
-    existing_posts = get_all_posts()
-    if any(p.name.lower() == name_stripped.lower() for p in existing_posts):
+    if Post.select().where(fn.Lower(Post.name) == name_stripped.lower()).exists():
         raise HTTPException(status_code=400, detail=f"A post with the name '{name_stripped}' already exists.")
 
     try:
@@ -398,8 +397,7 @@ async def create_new_tag(
             raise HTTPException(status_code=400, detail="Tag name cannot exceed 50 characters.")
 
         # Check for uniqueness - tag names must be unique (case-insensitive)
-        existing_tags = get_all_tags()
-        if any(t.name.lower() == name_stripped.lower() for t in existing_tags):
+        if Tag.select().where(fn.Lower(Tag.name) == name_stripped.lower()).exists():
             raise HTTPException(status_code=400, detail=f"A tag with the name '{name_stripped}' already exists.")
 
         tag_id = generate_uuid()
@@ -571,4 +569,7 @@ async def export_csv(
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy"}
+    try:
+        return {"status": "healthy"}
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Service unhealthy: {str(e)}")

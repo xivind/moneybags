@@ -18,7 +18,7 @@ class BaseModel(Model):
 class Post(BaseModel):
     """Master definition of budget line items."""
     id = CharField(primary_key=True, max_length=36)
-    name = CharField(max_length=255)
+    name = CharField(max_length=255, unique=True)
     type = CharField(max_length=10)  # 'income' or 'expense'
     created_at = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")])
     updated_at = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")])

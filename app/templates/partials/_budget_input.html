@@ -7,8 +7,9 @@
     hx-trigger="change delay:500ms"
     hx-vals='{"post_id": "{{ post_id }}", "year": {{ year }}, "month": {{ month }}}'
     hx-swap="outerHTML"
-    hx-indicator=".budget-spinner-{{ post_id }}"
+    hx-indicator=".budget-spinner-{{ post_id }}-{{ month }}"
     step="0.01"
     min="0"
     required
 >
+<span class="budget-spinner-{{ post_id }}-{{ month }} htmx-indicator spinner-border spinner-border-sm ms-1" role="status" aria-label="Loading"></span>

@@ -6,9 +6,7 @@ WORKDIR /app
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    DATABASE_PATH=/app/data/moneybags.db \
-    LOG_LEVEL=INFO
+    PYTHONUNBUFFERED=1
 
 # Install system dependencies
 RUN apt-get update && \
@@ -24,18 +22,17 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY app/ ./app/
-COPY uvicorn_log_config.ini .
+COPY . .
 
-# Create directory for database persistence
-RUN mkdir -p /app/data
+# Create directories for data persistence
+RUN mkdir -p /app/data/logs
 
 # Expose port
-EXPOSE 8000
+EXPOSE 8004
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+HEALTHCHECK --interval=600s --timeout=3s --start-period=5s --retries=3 \
+    CMD ["curl", "-f", "http://localhost:8004/health"]
 
 # Run uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-config", "uvicorn_log_config.ini"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8004", "--log-config", "uvicorn_log_config.ini"]
