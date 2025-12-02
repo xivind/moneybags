@@ -354,11 +354,14 @@ def get_tag_analysis_data() -> List[Dict[str, Any]]:
     Returns:
         List of dicts with tag_name, total_income, total_expense, post_count
     """
-    from app.database_manager import get_all_tags, get_actual_entries
-    from app.database_model import PostTag
+    from app.database_manager import get_all_tags
+    from app.database_model import PostTag, ActualEntry
 
     tags = get_all_tags()
     results = []
+
+    # Get all posts once before the loop for performance
+    posts = get_all_posts()
 
     for tag in tags:
         # Find all posts with this tag using PostTag relationship
@@ -366,7 +369,6 @@ def get_tag_analysis_data() -> List[Dict[str, Any]]:
         tagged_post_ids = [pt.post_id for pt in post_tags]
 
         # Get the actual post objects
-        posts = get_all_posts()
         tagged_posts = [p for p in posts if p.id in tagged_post_ids]
 
         total_income = Decimal('0')
@@ -374,7 +376,7 @@ def get_tag_analysis_data() -> List[Dict[str, Any]]:
 
         for post in tagged_posts:
             # Get all actuals across all time (no date filtering)
-            actuals = get_actual_entries(post.id, date(2000, 1, 1), date(2099, 12, 31))
+            actuals = ActualEntry.select().where(ActualEntry.post == post.id)
             total = sum(Decimal(str(a.amount)) for a in actuals)
 
             if post.type == 'income':
