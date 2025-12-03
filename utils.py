@@ -4,15 +4,14 @@ import uuid
 from datetime import datetime
 
 
-def generate_canister_id():
+def generate_uid():
     """
-    Generate unique canister ID using UUID + timestamp.
-    Format: GC-{uuid[:6]}{timestamp[-4:]}
-    Example: GC-a3f8e52468
+    Generate unique record ID using UUID + timestamp.
     """
     uuid_part = uuid.uuid4().hex[:6]
     timestamp_part = str(int(datetime.now().timestamp()))[-4:]
-    return f"GC-{uuid_part}{timestamp_part}"
+    return f"{uuid_part}{timestamp_part}"
+# Question for Claude, do we ensure unique IDs across multiple instances?
 
 def empty_to_none(value):
     """Convert empty string or whitespace-only string to None.

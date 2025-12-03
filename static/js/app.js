@@ -3,23 +3,23 @@
 // Data structure for budget categories
 const categories = {
     income: [
-        { name: 'Lønn' },
-        { name: 'Diverse inntekter' }
+        { name: 'Salary' },
+        { name: 'Other income' }
     ],
     expenses: [
-        { name: 'Strømghold' },
-        { name: 'Irsysettelse' },
-        { name: 'Digitale tjenester' },
-        { name: 'Autos' },
-        { name: 'Klær og reise' },
-        { name: 'Sport' },
-        { name: 'Reiser' },
-        { name: 'Sparebank' }
+        { name: 'Housing & utilities' },
+        { name: 'Repairs & maintenance' },
+        { name: 'Digital services' },
+        { name: 'Cars' },
+        { name: 'Clothing & travel' },
+        { name: 'Sports' },
+        { name: 'Travel' },
+        { name: 'Savings' }
     ]
 };
 
-const months = ['Januar', 'Februar', 'Mars', 'April', 'Mai', 'Juni',
-               'Juli', 'August', 'September', 'Oktober', 'November', 'Desember'];
+const months = ['January', 'February', 'March', 'April', 'May', 'June',
+               'July', 'August', 'September', 'October', 'November', 'December'];
 
 // Current month (0-11)
 const currentMonth = new Date().getMonth();
@@ -33,6 +33,15 @@ let budgetData = {
 // Current cell being edited
 let currentCell = null;
 let currentTransactionIndex = null;
+
+// Helper function to clean up modal backdrops
+function cleanupBackdrops() {
+    const backdrops = document.querySelectorAll('.modal-backdrop');
+    backdrops.forEach(backdrop => backdrop.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('padding-right');
+}
 
 // Initialize budget data structure with mock data
 function initializeBudgetData() {
@@ -60,54 +69,54 @@ function initializeBudgetData() {
 
 function addMockData() {
     // Mock salary budget and actuals
-    budgetData.income['Lønn'].budget['Januar'] = 53000;
-    budgetData.income['Lønn'].budget['Februar'] = 53000;
-    budgetData.income['Lønn'].budget['Mars'] = 53000;
+    budgetData.income['Salary'].budget['January'] = 53000;
+    budgetData.income['Salary'].budget['February'] = 53000;
+    budgetData.income['Salary'].budget['March'] = 53000;
 
-    budgetData.income['Lønn'].result['Januar'] = [
-        { date: '2025-01-15', amount: 55920, comment: 'Lønn januar' }
+    budgetData.income['Salary'].result['January'] = [
+        { date: '2025-01-15', amount: 55920, comment: 'Salary January' }
     ];
-    budgetData.income['Lønn'].result['Februar'] = [
-        { date: '2025-02-15', amount: 55501, comment: 'Lønn februar' }
+    budgetData.income['Salary'].result['February'] = [
+        { date: '2025-02-15', amount: 55501, comment: 'Salary February' }
     ];
-    budgetData.income['Lønn'].result['Mars'] = [
-        { date: '2025-03-15', amount: 72228, comment: 'Lønn mars med bonus' }
+    budgetData.income['Salary'].result['March'] = [
+        { date: '2025-03-15', amount: 72228, comment: 'Salary March with bonus' }
     ];
 
     // Mock expense budgets and actuals
-    budgetData.expenses['Strømghold'].budget['Januar'] = 20000;
-    budgetData.expenses['Strømghold'].budget['Februar'] = 20000;
-    budgetData.expenses['Strømghold'].budget['Mars'] = 20000;
+    budgetData.expenses['Housing & utilities'].budget['January'] = 20000;
+    budgetData.expenses['Housing & utilities'].budget['February'] = 20000;
+    budgetData.expenses['Housing & utilities'].budget['March'] = 20000;
 
-    budgetData.expenses['Strømghold'].result['Januar'] = [
-        { date: '2025-01-05', amount: 15000, comment: 'Husleie' },
-        { date: '2025-01-25', amount: 935, comment: 'Strømregning' }
+    budgetData.expenses['Housing & utilities'].result['January'] = [
+        { date: '2025-01-05', amount: 15000, comment: 'Rent' },
+        { date: '2025-01-25', amount: 935, comment: 'Electricity bill' }
     ];
-    budgetData.expenses['Strømghold'].result['Februar'] = [
-        { date: '2025-02-05', amount: 15000, comment: 'Husleie' },
-        { date: '2025-02-25', amount: 922, comment: 'Strømregning' }
+    budgetData.expenses['Housing & utilities'].result['February'] = [
+        { date: '2025-02-05', amount: 15000, comment: 'Rent' },
+        { date: '2025-02-25', amount: 922, comment: 'Electricity bill' }
     ];
 
-    budgetData.expenses['Digitale tjenester'].budget['Januar'] = 1100;
-    budgetData.expenses['Digitale tjenester'].budget['Februar'] = 1100;
-    budgetData.expenses['Digitale tjenester'].budget['Mars'] = 1100;
+    budgetData.expenses['Digital services'].budget['January'] = 1100;
+    budgetData.expenses['Digital services'].budget['February'] = 1100;
+    budgetData.expenses['Digital services'].budget['March'] = 1100;
 
-    budgetData.expenses['Digitale tjenester'].result['Januar'] = [
+    budgetData.expenses['Digital services'].result['January'] = [
         { date: '2025-01-10', amount: 149, comment: 'Netflix' },
         { date: '2025-01-12', amount: 129, comment: 'Spotify' },
         { date: '2025-01-15', amount: 99, comment: 'iCloud' },
         { date: '2025-01-20', amount: 805, comment: 'Adobe Creative Cloud' }
     ];
-    budgetData.expenses['Digitale tjenester'].result['Februar'] = [
+    budgetData.expenses['Digital services'].result['February'] = [
         { date: '2025-02-10', amount: 149, comment: 'Netflix' },
         { date: '2025-02-12', amount: 129, comment: 'Spotify' },
         { date: '2025-02-15', amount: 99, comment: 'iCloud' },
         { date: '2025-02-20', amount: 682, comment: 'Adobe Creative Cloud' }
     ];
 
-    budgetData.expenses['Sport'].budget['Mars'] = 30000;
-    budgetData.expenses['Sport'].result['Mars'] = [
-        { date: '2025-03-12', amount: 34418, comment: 'Nye ski' }
+    budgetData.expenses['Sports'].budget['March'] = 30000;
+    budgetData.expenses['Sports'].result['March'] = [
+        { date: '2025-03-12', amount: 34418, comment: 'New skis' }
     ];
 }
 
@@ -122,18 +131,18 @@ function generateTable() {
     months.forEach(month => {
         html += `<th>${month}</th>`;
     });
-    html += '<th>Totalt</th></tr></thead><tbody>';
+    html += '<th>Total</th></tr></thead><tbody>';
 
     // Balance section
-    html += `<tr><td colspan="${months.length + 2}" class="section-header balance-header">BALANSE</td></tr>`;
+    html += `<tr><td colspan="${months.length + 2}" class="section-header balance-header">BALANCE</td></tr>`;
     html += generateBalanceRows();
 
     // Income section
-    html += `<tr><td colspan="${months.length + 2}" class="section-header income-header">INNTEKTER</td></tr>`;
+    html += `<tr><td colspan="${months.length + 2}" class="section-header income-header">INCOME</td></tr>`;
     html += generateSectionRows('income', categories.income);
 
     // Expenses section
-    html += `<tr><td colspan="${months.length + 2}" class="section-header expense-header">UTGIFTER</td></tr>`;
+    html += `<tr><td colspan="${months.length + 2}" class="section-header expense-header">EXPENSES</td></tr>`;
     html += generateSectionRows('expenses', categories.expenses);
 
     html += '</tbody>';
@@ -144,7 +153,7 @@ function generateBalanceRows() {
     let html = '';
 
     // Bank row (calculated)
-    html += '<tr class="result-row"><td class="category-cell">Bank</td>';
+    html += '<tr class="result-row"><td class="category-cell">Bank Balance</td>';
     months.forEach((month, idx) => {
         const balance = calculateMonthlyBalance(idx);
         html += `<td>${formatCurrency(balance)}</td>`;
@@ -153,8 +162,8 @@ function generateBalanceRows() {
     html += `<td class="total-column">${formatCurrency(totalBalance)}</td>`;
     html += '</tr>';
 
-    // Resultat row (calculated)
-    html += '<tr class="result-row"><td class="category-cell">Resultat</td>';
+    // Net Result row (calculated)
+    html += '<tr class="result-row"><td class="category-cell">Net Result</td>';
     months.forEach((month, idx) => {
         const result = calculateMonthlyResult(idx);
         const cssClass = result >= 0 ? 'positive' : 'negative';
@@ -165,8 +174,8 @@ function generateBalanceRows() {
     html += `<td class="total-column"><span class="${totalCssClass}">${formatCurrency(totalResult)}</span></td>`;
     html += '</tr>';
 
-    // Differanse row (calculated)
-    html += '<tr class="difference-row"><td class="category-cell">Differanse</td>';
+    // Difference row (calculated)
+    html += '<tr class="difference-row"><td class="category-cell">Difference</td>';
     months.forEach((month, idx) => {
         const diff = calculateMonthlyDifference(idx);
         const cssClass = diff >= 0 ? 'positive' : 'negative';
@@ -252,7 +261,7 @@ function generateSectionRows(section, sectionCategories) {
 
         // Budget row
         html += `<tr class="budget-row">`;
-        html += `<td class="subcategory-cell">Budsett</td>`;
+        html += `<td class="subcategory-cell">Budget</td>`;
 
         months.forEach((month, idx) => {
             const budgetValue = budgetData[section][category.name].budget[month] || 0;
@@ -270,7 +279,7 @@ function generateSectionRows(section, sectionCategories) {
 
         // Result row
         html += `<tr class="result-row">`;
-        html += `<td class="subcategory-cell">Resultat</td>`;
+        html += `<td class="subcategory-cell">Actuals</td>`;
 
         months.forEach((month, idx) => {
             const transactions = budgetData[section][category.name].result[month];
@@ -350,7 +359,7 @@ function openBudgetModal(section, category, month) {
 
     const modal = new bootstrap.Modal(document.getElementById('budgetModal'));
     document.getElementById('budgetModalTitle').textContent =
-        `${category} - Budsett - ${month}`;
+        `${category} - Budget - ${month}`;
 
     const currentValue = budgetData[section][category].budget[month] || 0;
     document.getElementById('budgetAmount').value = currentValue;
@@ -382,8 +391,10 @@ function openTransactionModal(section, category, month) {
     currentCell = { section, category, month, type: 'result' };
 
     const modal = new bootstrap.Modal(document.getElementById('transactionModal'));
-    document.getElementById('modalTitle').textContent =
-        `${category} - Resultat - ${month}`;
+
+    // Set badges
+    document.getElementById('modalCategory').textContent = category;
+    document.getElementById('modalMonth').textContent = month;
 
     displayTransactions();
     modal.show();
@@ -396,7 +407,7 @@ function displayTransactions() {
     const listDiv = document.getElementById('transactionsList');
 
     if (transactions.length === 0) {
-        listDiv.innerHTML = '<div class="no-transactions"><i class="bi bi-inbox" style="font-size: 3rem;"></i><p>Ingen transaksjoner ennå</p></div>';
+        listDiv.innerHTML = '<div class="no-transactions"><i class="bi bi-inbox" style="font-size: 3rem;"></i><p>No transactions yet</p></div>';
         return;
     }
 
@@ -434,9 +445,9 @@ function displayTransactions() {
     html += `
         <div class="alert alert-info mt-3">
             <div class="d-flex justify-content-between">
-                <div><strong>Sum:</strong> ${formatCurrency(total)}</div>
-                <div><strong>Budsett:</strong> ${formatCurrency(budget)}</div>
-                <div><strong>Differanse:</strong> <span class="${diffClass}">${formatCurrency(Math.abs(diff))}</span></div>
+                <div><strong>Total:</strong> ${formatCurrency(total)}</div>
+                <div><strong>Budget:</strong> ${formatCurrency(budget)}</div>
+                <div><strong>Difference:</strong> <span class="${diffClass}">${formatCurrency(Math.abs(diff))}</span></div>
             </div>
         </div>
     `;
@@ -451,8 +462,12 @@ function formatDate(dateStr) {
 
 function showAddTransactionForm() {
     currentTransactionIndex = null;
-    document.getElementById('addTransactionTitle').textContent = 'Legg til transaksjon';
+    document.getElementById('addTransactionTitle').textContent = 'Add transaction';
     document.getElementById('transactionForm').reset();
+
+    // Set badges
+    document.getElementById('addModalCategory').textContent = currentCell.category;
+    document.getElementById('addModalMonth').textContent = currentCell.month;
 
     // Set default date to current month
     const monthIndex = months.indexOf(currentCell.month);
@@ -469,7 +484,12 @@ function editTransaction(index) {
     const { section, category, month } = currentCell;
     const transaction = budgetData[section][category].result[month][index];
 
-    document.getElementById('addTransactionTitle').textContent = 'Rediger transaksjon';
+    document.getElementById('addTransactionTitle').textContent = 'Edit transaction';
+
+    // Set badges
+    document.getElementById('addModalCategory').textContent = category;
+    document.getElementById('addModalMonth').textContent = month;
+
     document.getElementById('transactionDate').value = transaction.date;
     document.getElementById('transactionAmount').value = transaction.amount;
     document.getElementById('transactionComment').value = transaction.comment || '';
@@ -483,7 +503,7 @@ function editTransaction(index) {
 }
 
 function deleteTransaction(index) {
-    if (!confirm('Er du sikker på at du vil slette denne transaksjonen?')) {
+    if (!confirm('Are you sure you want to delete this transaction?')) {
         return;
     }
 
@@ -500,7 +520,7 @@ function saveTransaction() {
     const comment = document.getElementById('transactionComment').value;
 
     if (!date || isNaN(amount)) {
-        alert('Vennligst fyll ut alle påkrevde felt');
+        alert('Please fill in all required fields');
         return;
     }
 
@@ -515,8 +535,14 @@ function saveTransaction() {
         budgetData[section][category].result[month].push(transaction);
     }
 
-    // Close modal
-    bootstrap.Modal.getInstance(document.getElementById('addTransactionModal')).hide();
+    // Close add transaction modal
+    const addModal = bootstrap.Modal.getInstance(document.getElementById('addTransactionModal'));
+    addModal.hide();
+
+    // Clean up any stray backdrops
+    setTimeout(() => {
+        cleanupBackdrops();
+    }, 100);
 
     // Refresh display
     displayTransactions();
@@ -524,15 +550,20 @@ function saveTransaction() {
 
     // Reopen transaction list modal
     setTimeout(() => {
-        const modal = new bootstrap.Modal(document.getElementById('transactionModal'));
-        modal.show();
-    }, 300);
+        const listModal = bootstrap.Modal.getInstance(document.getElementById('transactionModal'));
+        if (listModal) {
+            listModal.show();
+        } else {
+            const modal = new bootstrap.Modal(document.getElementById('transactionModal'));
+            modal.show();
+        }
+    }, 350);
 }
 
 function saveData() {
     const dataStr = JSON.stringify(budgetData, null, 2);
     localStorage.setItem('budgetData', dataStr);
-    alert('Data lagret!');
+    alert('Data saved!');
 }
 
 function exportData() {

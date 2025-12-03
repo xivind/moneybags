@@ -1,20 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Budsjett og Resultat 2025 - Moneybags{% endblock %}
+{% block title %}Budget and Actuals 2025 - Moneybags{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
     <div class="col">
-        <h2 class="mb-0">Budsjett og Resultat 2025 - Kontoplan</h2>
-        <p class="text-muted">Klikk på en celle for å legge til eller endre verdier</p>
-    </div>
-    <div class="col-auto">
-        <button class="btn btn-primary" onclick="saveData()">
-            <i class="bi bi-save"></i> Lagre
-        </button>
-        <button class="btn btn-outline-secondary" onclick="exportData()">
-            <i class="bi bi-download"></i> Eksporter
-        </button>
+        <h2 class="mb-0">Budget and Actuals 2025 - Chart of Accounts</h2>
+        <p class="text-muted">Click on a cell to add or change values</p>
     </div>
 </div>
 
@@ -29,20 +21,20 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="budgetModalTitle">Endre budsjett</h5>
+                <h5 class="modal-title" id="budgetModalTitle">Edit budget</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <form id="budgetForm">
                     <div class="mb-3">
-                        <label for="budgetAmount" class="form-label">Budsjett (kr)</label>
+                        <label for="budgetAmount" class="form-label">Budget (kr)</label>
                         <input type="number" class="form-control" id="budgetAmount" step="1" required>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Avbryt</button>
-                <button type="button" class="btn btn-primary" onclick="saveBudget()">Lagre</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveBudget()">Save</button>
             </div>
         </div>
     </div>
@@ -53,7 +45,13 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="modalTitle">Transaksjoner</h5>
+                <div>
+                    <h5 class="modal-title mb-2">Transactions</h5>
+                    <div>
+                        <span class="badge bg-primary me-2" id="modalCategory"></span>
+                        <span class="badge bg-secondary" id="modalMonth"></span>
+                    </div>
+                </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -63,7 +61,7 @@
             </div>
             <div class="btn-add-transaction">
                 <button class="btn btn-success w-100" onclick="showAddTransactionForm()">
-                    <i class="bi bi-plus-circle"></i> Legg til transaksjon
+                    <i class="bi bi-plus-circle"></i> Add transaction
                 </button>
             </div>
         </div>
@@ -75,28 +73,34 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="addTransactionTitle">Legg til transaksjon</h5>
+                <div>
+                    <h5 class="modal-title mb-2" id="addTransactionTitle">Add transaction</h5>
+                    <div>
+                        <span class="badge bg-primary me-2" id="addModalCategory"></span>
+                        <span class="badge bg-secondary" id="addModalMonth"></span>
+                    </div>
+                </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <form id="transactionForm">
                     <div class="mb-3">
-                        <label for="transactionDate" class="form-label">Dato</label>
+                        <label for="transactionDate" class="form-label">Date</label>
                         <input type="date" class="form-control" id="transactionDate" required>
                     </div>
                     <div class="mb-3">
-                        <label for="transactionAmount" class="form-label">Beløp (kr)</label>
+                        <label for="transactionAmount" class="form-label">Amount (kr)</label>
                         <input type="number" class="form-control" id="transactionAmount" step="0.01" required>
                     </div>
                     <div class="mb-3">
-                        <label for="transactionComment" class="form-label">Kommentar</label>
+                        <label for="transactionComment" class="form-label">Comment</label>
                         <textarea class="form-control" id="transactionComment" rows="3"></textarea>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Avbryt</button>
-                <button type="button" class="btn btn-primary" onclick="saveTransaction()">Lagre</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveTransaction()">Save</button>
             </div>
         </div>
     </div>
