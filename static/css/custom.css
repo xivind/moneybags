@@ -13,67 +13,187 @@ body {
 
 .section-header {
     font-weight: bold;
-    padding: 8px;
+    padding: 14px 20px;
     color: white;
-    text-align: center;
+    text-align: left !important;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    border: none !important;
 }
 
 .balance-header {
-    background-color: var(--balance-color);
+    background: linear-gradient(90deg, #a5b4fc 0%, #667eea 50%, #764ba2 100%);
+    box-shadow: 0 4px 6px rgba(102, 126, 234, 0.25);
+    border-radius: 8px 8px 0 0 !important;
 }
 
 .income-header {
-    background-color: var(--income-color);
+    background: linear-gradient(90deg, #86efac 0%, #10b981 50%, #059669 100%);
+    box-shadow: 0 4px 6px rgba(16, 185, 129, 0.25);
+    border-radius: 8px 8px 0 0 !important;
 }
 
 .expense-header {
-    background-color: var(--expense-color);
+    background: linear-gradient(90deg, #fcd34d 0%, #f59e0b 50%, #d97706 100%);
+    box-shadow: 0 4px 6px rgba(245, 158, 11, 0.25);
+    border-radius: 8px 8px 0 0 !important;
+}
+
+.section-spacer {
+    height: 24px;
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    cursor: default !important;
+}
+
+/* Add borders to section rows to create tile effect */
+.budget-table tbody tr {
+    background: white;
+}
+
+.section-tile-row td {
+    border-left: 2px solid #e5e7eb;
+    border-right: 2px solid #e5e7eb;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.section-tile-row td:first-child {
+    border-left: 2px solid #e5e7eb;
+}
+
+.section-tile-row td:last-child {
+    border-right: 2px solid #e5e7eb;
+}
+
+/* Create card shadow effect for sections */
+.budget-table tbody tr.section-tile-row:last-child td {
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.budget-table tbody tr.section-tile-row:last-child td:first-child {
+    border-radius: 0 0 0 8px;
+}
+
+.budget-table tbody tr.section-tile-row:last-child td:last-child {
+    border-radius: 0 0 8px 0;
 }
 
 .budget-table {
     font-size: 13px;
-    background: white;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    background: transparent;
+    border-collapse: separate;
+    border-spacing: 0;
 }
 
-.budget-table th {
-    background-color: #3b82f6;
+.budget-table thead th {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: white;
     font-weight: 600;
-    padding: 10px 6px;
+    padding: 14px 8px;
     text-align: center;
     position: sticky;
     top: 0;
     z-index: 10;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.budget-table thead th:first-child {
+    border-radius: 8px 0 0 0;
+}
+
+.budget-table thead th:last-child {
+    border-radius: 0 8px 0 0;
+}
+
+/* Month header cells within sections - subtle styling */
+.month-header-row {
+    background-color: #f5f5f5;
+}
+
+.month-header-cell {
+    background-color: #f5f5f5 !important;
+    color: #000000 !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+    padding: 8px 6px !important;
+    text-align: center !important;
+    border-left: 2px solid #e5e7eb !important;
+    border-right: 2px solid #e5e7eb !important;
+    border-bottom: 2px solid #cbd5e1 !important;
+    border-top: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    position: static !important;
+}
+
+.month-header-cell:first-child {
+    text-align: left !important;
+    padding-left: 12px !important;
+}
+
+.month-header-cell:last-child {
+    background-color: #f5f5f5 !important;
+    color: #000000 !important;
+    border-left: 1px solid #6b7280 !important;
 }
 
 .budget-table td {
     padding: 6px;
     text-align: right;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #f3f4f6;
     cursor: pointer;
     transition: background-color 0.2s;
+}
+
+.budget-table td.section-header {
+    padding: 12px 20px;
+}
+
+/* Add drop shadow to create tile effect */
+.section-header + tr.section-tile-row {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
 .budget-table td:hover:not(.category-cell) {
     opacity: 0.8;
 }
 
-.category-cell {
+.budget-table .category-cell {
     text-align: left;
     font-weight: 600;
     background-color: #f9fafb;
     cursor: default;
+    padding: 6px 6px 6px 12px !important;
 }
 
-.category-cell:hover {
+.budget-table .category-cell:hover {
     background-color: #f9fafb;
     opacity: 1;
 }
 
-.subcategory-cell {
+/* Category header - full width with gradient */
+.category-header-cell {
+    background: linear-gradient(90deg, #f5f5f5 0%, #f0f9ff 50%, #e0f2fe 100%) !important;
+    color: #0c4a6e !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    padding: 10px 20px !important;
+    text-align: left !important;
+    border-left: 2px solid #e5e7eb !important;
+    border-right: 2px solid #e5e7eb !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    cursor: default !important;
+}
+
+.category-header-cell:hover {
+    opacity: 1 !important;
+}
+
+.budget-table .subcategory-cell {
     text-align: left;
-    padding-left: 20px;
+    padding: 6px 6px 6px 24px !important;
     background-color: #fefefe;
     font-weight: normal;
 }
@@ -82,8 +202,12 @@ body {
     background-color: #fef3c7;
 }
 
+.budget-row td.has-value {
+    background-color: #ffffff;
+}
+
 .result-row td {
-    background-color: #dbeafe;
+    background-color: #fef3c7;
 }
 
 /* Color coding for result cells */
@@ -100,7 +224,7 @@ body {
 }
 
 .result-no-data {
-    background-color: #fef9c3 !important; /* Yellow */
+    background-color: #fef3c7 !important; /* Same yellow as budget */
 }
 
 .result-future {
@@ -109,9 +233,25 @@ body {
     cursor: not-allowed;
 }
 
-.difference-row td {
-    background-color: #f3e8ff;
+.budget-balance-row td {
     font-weight: 600;
+}
+
+.result-balance-row td {
+    font-weight: 600;
+}
+
+.difference-row td {
+    font-weight: 600;
+}
+
+.difference-row .category-cell {
+    background-color: #f3f4f6;
+}
+
+.balance-white-cell {
+    background-color: #ffffff !important;
+    color: #000000;
 }
 
 .positive {
@@ -123,8 +263,30 @@ body {
 }
 
 .total-column {
-    background-color: #fef9e7;
+    background-color: #fef3c7;
     font-weight: bold;
+    border-left: 1px solid #6b7280 !important;
+}
+
+.total-column.has-value {
+    background-color: #ffffff;
+}
+
+.total-column.result-better {
+    background-color: #d1fae5 !important;
+}
+
+.total-column.result-worse {
+    background-color: #fee2e2 !important;
+}
+
+.total-column.result-no-data {
+    background-color: #fef3c7 !important;
+}
+
+.total-column.balance-white-cell {
+    background-color: #ffffff !important;
+    color: #000000;
 }
 
 .transaction-item {
@@ -145,22 +307,55 @@ body {
     color: #6b7280;
 }
 
+.transaction-payee {
+    font-size: 13px;
+    color: #059669;
+    font-weight: 600;
+    margin-top: 2px;
+}
+
 .transaction-amount {
     font-size: 16px;
     font-weight: 600;
     color: #1f2937;
+    margin-top: 4px;
 }
 
 .transaction-comment {
     font-size: 13px;
     color: #4b5563;
     margin-top: 5px;
+    font-style: italic;
 }
 
 .no-transactions {
     text-align: center;
     padding: 40px;
     color: #9ca3af;
+}
+
+/* Year selector styling */
+#yearSelector {
+    font-size: 14px;
+    font-weight: 600;
+    padding: 4px 8px;
+    min-width: 90px;
+    border: 1px solid #d1d5db;
+    background-color: #ffffff;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#yearSelector:hover {
+    border-color: #9ca3af;
+    background-color: #f9fafb;
+}
+
+#yearSelector:focus {
+    border-color: #3b82f6;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .modal-header {

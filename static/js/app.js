@@ -18,21 +18,30 @@ const categories = {
     ]
 };
 
-const months = ['January', 'February', 'March', 'April', 'May', 'June',
-               'July', 'August', 'September', 'October', 'November', 'December'];
+const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 // Current month (0-11)
 const currentMonth = new Date().getMonth();
 
-// Data structure to store all data
-let budgetData = {
-    income: {},
-    expenses: {}
-};
+// Current year
+let currentYear = new Date().getFullYear();
+
+// Available years (can be expanded)
+let availableYears = [2024, 2025, 2026];
+
+// Data structure to store all data by year
+let budgetData = {};
+
+// Store all payees
+let payees = [];
 
 // Current cell being edited
 let currentCell = null;
 let currentTransactionIndex = null;
+
+// Tom Select instance
+let payeeSelect = null;
 
 // Helper function to clean up modal backdrops
 function cleanupBackdrops() {
@@ -43,22 +52,29 @@ function cleanupBackdrops() {
     document.body.style.removeProperty('padding-right');
 }
 
-// Initialize budget data structure with mock data
+// Initialize budget data structure for all years
 function initializeBudgetData() {
-    const sections = ['income', 'expenses'];
+    availableYears.forEach(year => {
+        budgetData[year] = {
+            income: {},
+            expenses: {}
+        };
 
-    sections.forEach(section => {
-        const sectionCategories = categories[section];
+        const sections = ['income', 'expenses'];
 
-        sectionCategories.forEach(category => {
-            budgetData[section][category.name] = {
-                budget: {},
-                result: {}
-            };
+        sections.forEach(section => {
+            const sectionCategories = categories[section];
 
-            months.forEach(month => {
-                budgetData[section][category.name].budget[month] = 0;
-                budgetData[section][category.name].result[month] = [];
+            sectionCategories.forEach(category => {
+                budgetData[year][section][category.name] = {
+                    budget: {},
+                    result: {}
+                };
+
+                months.forEach(month => {
+                    budgetData[year][section][category.name].budget[month] = 0;
+                    budgetData[year][section][category.name].result[month] = [];
+                });
             });
         });
     });
@@ -68,56 +84,112 @@ function initializeBudgetData() {
 }
 
 function addMockData() {
-    // Mock salary budget and actuals
-    budgetData.income['Salary'].budget['January'] = 53000;
-    budgetData.income['Salary'].budget['February'] = 53000;
-    budgetData.income['Salary'].budget['March'] = 53000;
+    // Mock salary budget and actuals for 2025
+    const year2025 = budgetData[2025];
 
-    budgetData.income['Salary'].result['January'] = [
-        { date: '2025-01-15', amount: 55920, comment: 'Salary January' }
+    year2025.income['Salary'].budget['Jan'] = 53000;
+    year2025.income['Salary'].budget['Feb'] = 53000;
+    year2025.income['Salary'].budget['Mar'] = 53000;
+
+    year2025.income['Salary'].result['Jan'] = [
+        { date: '2025-01-15', amount: 55920, payee: 'Employer', comment: 'Salary January' }
     ];
-    budgetData.income['Salary'].result['February'] = [
-        { date: '2025-02-15', amount: 55501, comment: 'Salary February' }
+    year2025.income['Salary'].result['Feb'] = [
+        { date: '2025-02-15', amount: 55501, payee: 'Employer', comment: 'Salary February' }
     ];
-    budgetData.income['Salary'].result['March'] = [
-        { date: '2025-03-15', amount: 72228, comment: 'Salary March with bonus' }
+    year2025.income['Salary'].result['Mar'] = [
+        { date: '2025-03-15', amount: 72228, payee: 'Employer', comment: 'Salary March with bonus' }
     ];
 
     // Mock expense budgets and actuals
-    budgetData.expenses['Housing & utilities'].budget['January'] = 20000;
-    budgetData.expenses['Housing & utilities'].budget['February'] = 20000;
-    budgetData.expenses['Housing & utilities'].budget['March'] = 20000;
+    year2025.expenses['Housing & utilities'].budget['Jan'] = 20000;
+    year2025.expenses['Housing & utilities'].budget['Feb'] = 20000;
+    year2025.expenses['Housing & utilities'].budget['Mar'] = 20000;
 
-    budgetData.expenses['Housing & utilities'].result['January'] = [
-        { date: '2025-01-05', amount: 15000, comment: 'Rent' },
-        { date: '2025-01-25', amount: 935, comment: 'Electricity bill' }
+    year2025.expenses['Housing & utilities'].result['Jan'] = [
+        { date: '2025-01-05', amount: 15000, payee: 'Landlord', comment: 'Rent' },
+        { date: '2025-01-25', amount: 935, payee: 'Power Company', comment: 'Electricity bill' }
     ];
-    budgetData.expenses['Housing & utilities'].result['February'] = [
-        { date: '2025-02-05', amount: 15000, comment: 'Rent' },
-        { date: '2025-02-25', amount: 922, comment: 'Electricity bill' }
-    ];
-
-    budgetData.expenses['Digital services'].budget['January'] = 1100;
-    budgetData.expenses['Digital services'].budget['February'] = 1100;
-    budgetData.expenses['Digital services'].budget['March'] = 1100;
-
-    budgetData.expenses['Digital services'].result['January'] = [
-        { date: '2025-01-10', amount: 149, comment: 'Netflix' },
-        { date: '2025-01-12', amount: 129, comment: 'Spotify' },
-        { date: '2025-01-15', amount: 99, comment: 'iCloud' },
-        { date: '2025-01-20', amount: 805, comment: 'Adobe Creative Cloud' }
-    ];
-    budgetData.expenses['Digital services'].result['February'] = [
-        { date: '2025-02-10', amount: 149, comment: 'Netflix' },
-        { date: '2025-02-12', amount: 129, comment: 'Spotify' },
-        { date: '2025-02-15', amount: 99, comment: 'iCloud' },
-        { date: '2025-02-20', amount: 682, comment: 'Adobe Creative Cloud' }
+    year2025.expenses['Housing & utilities'].result['Feb'] = [
+        { date: '2025-02-05', amount: 15000, payee: 'Landlord', comment: 'Rent' },
+        { date: '2025-02-25', amount: 922, payee: 'Power Company', comment: 'Electricity bill' }
     ];
 
-    budgetData.expenses['Sports'].budget['March'] = 30000;
-    budgetData.expenses['Sports'].result['March'] = [
-        { date: '2025-03-12', amount: 34418, comment: 'New skis' }
+    year2025.expenses['Digital services'].budget['Jan'] = 1100;
+    year2025.expenses['Digital services'].budget['Feb'] = 1100;
+    year2025.expenses['Digital services'].budget['Mar'] = 1100;
+
+    year2025.expenses['Digital services'].result['Jan'] = [
+        { date: '2025-01-10', amount: 149, payee: 'Netflix', comment: 'Subscription' },
+        { date: '2025-01-12', amount: 129, payee: 'Spotify', comment: 'Subscription' },
+        { date: '2025-01-15', amount: 99, payee: 'Apple iCloud', comment: 'Storage subscription' },
+        { date: '2025-01-20', amount: 805, payee: 'Adobe', comment: 'Creative Cloud subscription' }
     ];
+    year2025.expenses['Digital services'].result['Feb'] = [
+        { date: '2025-02-10', amount: 149, payee: 'Netflix', comment: 'Subscription' },
+        { date: '2025-02-12', amount: 129, payee: 'Spotify', comment: 'Subscription' },
+        { date: '2025-02-15', amount: 99, payee: 'Apple iCloud', comment: 'Storage subscription' },
+        { date: '2025-02-20', amount: 682, payee: 'Adobe', comment: 'Creative Cloud subscription' }
+    ];
+
+    year2025.expenses['Sports'].budget['Mar'] = 30000;
+    year2025.expenses['Sports'].result['Mar'] = [
+        { date: '2025-03-12', amount: 34418, payee: 'Ski Shop', comment: 'New skis' }
+    ];
+
+    // Extract unique payees from mock data
+    extractPayeesFromData();
+}
+
+// Helper function to get current year's data
+function getCurrentYearData() {
+    return budgetData[currentYear];
+}
+
+// Extract all unique payees from budget data (all years)
+function extractPayeesFromData() {
+    const uniquePayees = new Set();
+
+    availableYears.forEach(year => {
+        ['income', 'expenses'].forEach(section => {
+            Object.keys(budgetData[year][section]).forEach(category => {
+                months.forEach(month => {
+                    const transactions = budgetData[year][section][category].result[month];
+                    transactions.forEach(t => {
+                        if (t.payee) {
+                            uniquePayees.add(t.payee);
+                        }
+                    });
+                });
+            });
+        });
+    });
+
+    payees = Array.from(uniquePayees).sort();
+}
+
+// Populate year selector dropdown
+function populateYearSelector() {
+    const selector = document.getElementById('yearSelector');
+    if (!selector) return;
+
+    selector.innerHTML = '';
+    availableYears.forEach(year => {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        if (year === currentYear) {
+            option.selected = true;
+        }
+        selector.appendChild(option);
+    });
+}
+
+// Change year and refresh table
+function changeYear() {
+    const selector = document.getElementById('yearSelector');
+    currentYear = parseInt(selector.value);
+    generateTable();
 }
 
 // Generate the budget table
@@ -125,100 +197,114 @@ function generateTable() {
     const table = document.getElementById('budgetTable');
     if (!table) return; // Guard for when table doesn't exist on page
 
-    let html = '<thead><tr><th></th>';
-
-    // Month headers
-    months.forEach(month => {
-        html += `<th>${month}</th>`;
-    });
-    html += '<th>Total</th></tr></thead><tbody>';
+    let html = '<tbody>';
 
     // Balance section
     html += `<tr><td colspan="${months.length + 2}" class="section-header balance-header">BALANCE</td></tr>`;
+    html += generateMonthHeaderRow();
     html += generateBalanceRows();
 
+    // Spacer before Income section
+    html += `<tr class="section-spacer"><td colspan="${months.length + 2}" class="section-spacer"></td></tr>`;
     // Income section
     html += `<tr><td colspan="${months.length + 2}" class="section-header income-header">INCOME</td></tr>`;
+    html += generateMonthHeaderRow();
     html += generateSectionRows('income', categories.income);
 
+    // Spacer before Expenses section
+    html += `<tr class="section-spacer"><td colspan="${months.length + 2}" class="section-spacer"></td></tr>`;
     // Expenses section
     html += `<tr><td colspan="${months.length + 2}" class="section-header expense-header">EXPENSES</td></tr>`;
+    html += generateMonthHeaderRow();
     html += generateSectionRows('expenses', categories.expenses);
 
     html += '</tbody>';
     table.innerHTML = html;
 }
 
+function generateMonthHeaderRow() {
+    let html = '<tr class="month-header-row section-tile-row"><th class="month-header-cell"></th>';
+    months.forEach(month => {
+        html += `<th class="month-header-cell">${month}</th>`;
+    });
+    html += '<th class="month-header-cell">Total</th></tr>';
+    return html;
+}
+
 function generateBalanceRows() {
     let html = '';
 
-    // Bank row (calculated)
-    html += '<tr class="result-row"><td class="category-cell">Bank Balance</td>';
+    // Budget Balance row - always white background
+    html += '<tr class="budget-balance-row section-tile-row"><td class="category-cell">Budget Balance</td>';
     months.forEach((month, idx) => {
-        const balance = calculateMonthlyBalance(idx);
-        html += `<td>${formatCurrency(balance)}</td>`;
+        const balance = calculateMonthlyBudgetBalance(idx);
+        html += `<td class="balance-white-cell">${formatCurrency(balance)}</td>`;
     });
-    const totalBalance = months.reduce((sum, month, idx) => sum + calculateMonthlyBalance(idx), 0);
-    html += `<td class="total-column">${formatCurrency(totalBalance)}</td>`;
+    const totalBalance = months.reduce((sum, month, idx) => sum + calculateMonthlyBudgetBalance(idx), 0);
+    html += `<td class="total-column balance-white-cell">${formatCurrency(totalBalance)}</td>`;
     html += '</tr>';
 
-    // Net Result row (calculated)
-    html += '<tr class="result-row"><td class="category-cell">Net Result</td>';
+    // Result Balance row - color coded like income actuals
+    html += '<tr class="result-balance-row section-tile-row"><td class="category-cell">Result Balance</td>';
     months.forEach((month, idx) => {
-        const result = calculateMonthlyResult(idx);
-        const cssClass = result >= 0 ? 'positive' : 'negative';
-        html += `<td><span class="${cssClass}">${formatCurrency(result)}</span></td>`;
+        const actualResult = calculateMonthlyResult(idx);
+        const budgetBalance = calculateMonthlyBudgetBalance(idx);
+        const colorClass = getBalanceColorClass(actualResult, budgetBalance);
+        html += `<td class="${colorClass}">${formatCurrency(actualResult)}</td>`;
     });
     const totalResult = months.reduce((sum, month, idx) => sum + calculateMonthlyResult(idx), 0);
-    const totalCssClass = totalResult >= 0 ? 'positive' : 'negative';
-    html += `<td class="total-column"><span class="${totalCssClass}">${formatCurrency(totalResult)}</span></td>`;
+    const totalBudget = months.reduce((sum, month, idx) => sum + calculateMonthlyBudgetBalance(idx), 0);
+    const totalColorClass = getBalanceColorClass(totalResult, totalBudget);
+    html += `<td class="total-column ${totalColorClass}">${formatCurrency(totalResult)}</td>`;
     html += '</tr>';
 
-    // Difference row (calculated)
-    html += '<tr class="difference-row"><td class="category-cell">Difference</td>';
+    // Difference row - color coded based on difference >= 0 (green) or < 0 (red)
+    html += '<tr class="difference-row section-tile-row"><td class="category-cell">Difference</td>';
     months.forEach((month, idx) => {
         const diff = calculateMonthlyDifference(idx);
-        const cssClass = diff >= 0 ? 'positive' : 'negative';
-        html += `<td><span class="${cssClass}">${formatCurrency(diff)}</span></td>`;
+        const colorClass = getDifferenceColorClass(diff);
+        html += `<td class="${colorClass}">${formatCurrency(diff)}</td>`;
     });
     const totalDiff = months.reduce((sum, month, idx) => sum + calculateMonthlyDifference(idx), 0);
-    const totalDiffCssClass = totalDiff >= 0 ? 'positive' : 'negative';
-    html += `<td class="total-column"><span class="${totalDiffCssClass}">${formatCurrency(totalDiff)}</span></td>`;
+    const totalDiffColorClass = getDifferenceColorClass(totalDiff);
+    html += `<td class="total-column ${totalDiffColorClass}">${formatCurrency(totalDiff)}</td>`;
     html += '</tr>';
 
     return html;
 }
 
-function calculateMonthlyBalance(monthIndex) {
+function calculateMonthlyBudgetBalance(monthIndex) {
     const month = months[monthIndex];
-    let income = 0;
-    let expenses = 0;
+    const yearData = getCurrentYearData();
+    let budgetIncome = 0;
+    let budgetExpenses = 0;
 
-    // Sum all actual income
+    // Sum all budget income
     categories.income.forEach(cat => {
-        income += calculateResultTotal(budgetData.income[cat.name].result[month]);
+        budgetIncome += yearData.income[cat.name].budget[month] || 0;
     });
 
-    // Sum all actual expenses
+    // Sum all budget expenses
     categories.expenses.forEach(cat => {
-        expenses += calculateResultTotal(budgetData.expenses[cat.name].result[month]);
+        budgetExpenses += yearData.expenses[cat.name].budget[month] || 0;
     });
 
-    return income - expenses;
+    return budgetIncome - budgetExpenses;
 }
 
 function calculateMonthlyResult(monthIndex) {
     // Result = Actual Income - Actual Expenses
     const month = months[monthIndex];
+    const yearData = getCurrentYearData();
     let income = 0;
     let expenses = 0;
 
     categories.income.forEach(cat => {
-        income += calculateResultTotal(budgetData.income[cat.name].result[month]);
+        income += calculateResultTotal(yearData.income[cat.name].result[month]);
     });
 
     categories.expenses.forEach(cat => {
-        expenses += calculateResultTotal(budgetData.expenses[cat.name].result[month]);
+        expenses += calculateResultTotal(yearData.expenses[cat.name].result[month]);
     });
 
     return income - expenses;
@@ -227,19 +313,20 @@ function calculateMonthlyResult(monthIndex) {
 function calculateMonthlyDifference(monthIndex) {
     // Difference = (Actual Income - Actual Expenses) - (Budget Income - Budget Expenses)
     const month = months[monthIndex];
+    const yearData = getCurrentYearData();
     let budgetIncome = 0;
     let budgetExpenses = 0;
     let actualIncome = 0;
     let actualExpenses = 0;
 
     categories.income.forEach(cat => {
-        budgetIncome += budgetData.income[cat.name].budget[month] || 0;
-        actualIncome += calculateResultTotal(budgetData.income[cat.name].result[month]);
+        budgetIncome += yearData.income[cat.name].budget[month] || 0;
+        actualIncome += calculateResultTotal(yearData.income[cat.name].result[month]);
     });
 
     categories.expenses.forEach(cat => {
-        budgetExpenses += budgetData.expenses[cat.name].budget[month] || 0;
-        actualExpenses += calculateResultTotal(budgetData.expenses[cat.name].result[month]);
+        budgetExpenses += yearData.expenses[cat.name].budget[month] || 0;
+        actualExpenses += calculateResultTotal(yearData.expenses[cat.name].result[month]);
     });
 
     const budgetResult = budgetIncome - budgetExpenses;
@@ -250,23 +337,21 @@ function calculateMonthlyDifference(monthIndex) {
 
 function generateSectionRows(section, sectionCategories) {
     let html = '';
+    const yearData = getCurrentYearData();
 
     sectionCategories.forEach(category => {
-        // Category header
-        html += `<tr><td class="category-cell">${category.name}</td>`;
-        for (let i = 0; i < months.length + 1; i++) {
-            html += '<td class="category-cell"></td>';
-        }
-        html += '</tr>';
+        // Category header - single cell spanning all columns
+        html += `<tr class="section-tile-row category-header-row"><td colspan="${months.length + 2}" class="category-header-cell">${category.name}</td></tr>`;
 
         // Budget row
-        html += `<tr class="budget-row">`;
+        html += `<tr class="budget-row section-tile-row">`;
         html += `<td class="subcategory-cell">Budget</td>`;
 
         months.forEach((month, idx) => {
-            const budgetValue = budgetData[section][category.name].budget[month] || 0;
+            const budgetValue = yearData[section][category.name].budget[month] || 0;
             const isFuture = idx > currentMonth;
-            const cellClass = isFuture ? 'result-future' : '';
+            const hasValue = budgetValue > 0 ? 'has-value' : '';
+            const cellClass = isFuture ? 'result-future' : hasValue;
             html += `<td class="${cellClass}" onclick="${isFuture ? '' : `openBudgetModal('${section}', '${category.name}', '${month}')`}">`;
             html += budgetValue > 0 ? formatCurrency(budgetValue) : '<span class="empty-cell">0</span>';
             html += '</td>';
@@ -274,17 +359,18 @@ function generateSectionRows(section, sectionCategories) {
 
         // Budget total
         const budgetTotal = calculateBudgetYearTotal(section, category.name);
-        html += `<td class="total-column">${formatCurrency(budgetTotal)}</td>`;
+        const budgetTotalClass = budgetTotal > 0 ? 'total-column has-value' : 'total-column';
+        html += `<td class="${budgetTotalClass}">${formatCurrency(budgetTotal)}</td>`;
         html += '</tr>';
 
         // Result row
-        html += `<tr class="result-row">`;
+        html += `<tr class="result-row section-tile-row">`;
         html += `<td class="subcategory-cell">Actuals</td>`;
 
         months.forEach((month, idx) => {
-            const transactions = budgetData[section][category.name].result[month];
+            const transactions = yearData[section][category.name].result[month];
             const resultTotal = calculateResultTotal(transactions);
-            const budgetValue = budgetData[section][category.name].budget[month] || 0;
+            const budgetValue = yearData[section][category.name].budget[month] || 0;
             const isFuture = idx > currentMonth;
 
             const colorClass = getResultColorClass(resultTotal, budgetValue, section, isFuture);
@@ -294,9 +380,10 @@ function generateSectionRows(section, sectionCategories) {
             html += '</td>';
         });
 
-        // Result total
-        const resultTotal = calculateResultYearTotal(section, category.name);
-        html += `<td class="total-column">${formatCurrency(resultTotal)}</td>`;
+        // Result total - apply same color logic
+        const resultYearTotal = calculateResultYearTotal(section, category.name);
+        const resultTotalColorClass = getTotalColorClass(resultYearTotal, budgetTotal, section);
+        html += `<td class="${resultTotalColorClass}">${formatCurrency(resultYearTotal)}</td>`;
         html += '</tr>';
     });
 
@@ -308,25 +395,60 @@ function getResultColorClass(result, budget, section, isFuture) {
         return 'result-future';
     }
 
-    if (result === 0 && budget > 0) {
-        return 'result-no-data';
-    }
-
-    if (budget === 0) {
+    // No data - show yellow
+    if (result === 0) {
         return 'result-no-data';
     }
 
     if (section === 'expenses') {
-        // For expenses: lower is better
-        if (result < budget) return 'result-better';
+        // For expenses: lower or equal is better (green), higher is worse (red)
+        if (result <= budget) return 'result-better';
         if (result > budget) return 'result-worse';
-        return 'result-equal';
     } else {
-        // For income: higher is better
-        if (result > budget) return 'result-better';
+        // For income: higher or equal is better (green), lower is worse (red)
+        if (result >= budget) return 'result-better';
         if (result < budget) return 'result-worse';
-        return 'result-equal';
     }
+}
+
+function getTotalColorClass(result, budget, section) {
+    // Total column always has computed values
+    // If no actual results, show yellow
+    if (result === 0) {
+        return 'total-column result-no-data';
+    }
+
+    if (section === 'expenses') {
+        // For expenses: lower or equal is better (green), higher is worse (red)
+        if (result <= budget) return 'total-column result-better';
+        if (result > budget) return 'total-column result-worse';
+    } else {
+        // For income: higher or equal is better (green), lower is worse (red)
+        if (result >= budget) return 'total-column result-better';
+        if (result < budget) return 'total-column result-worse';
+    }
+}
+
+function getBalanceColorClass(actualResult, budgetBalance) {
+    // White when no data to sum
+    if (actualResult === 0) {
+        return 'balance-white-cell';
+    }
+
+    // Follow income logic: higher or equal is better (green), lower is worse (red)
+    if (actualResult >= budgetBalance) return 'result-better';
+    if (actualResult < budgetBalance) return 'result-worse';
+}
+
+function getDifferenceColorClass(difference) {
+    // White when no data
+    if (difference === 0) {
+        return 'balance-white-cell';
+    }
+
+    // Green if >= 0 (at budget or better), red if < 0 (worse than budget)
+    if (difference >= 0) return 'result-better';
+    return 'result-worse';
 }
 
 function calculateResultTotal(transactions) {
@@ -334,17 +456,19 @@ function calculateResultTotal(transactions) {
 }
 
 function calculateBudgetYearTotal(section, category) {
+    const yearData = getCurrentYearData();
     let total = 0;
     months.forEach(month => {
-        total += budgetData[section][category].budget[month] || 0;
+        total += yearData[section][category].budget[month] || 0;
     });
     return total;
 }
 
 function calculateResultYearTotal(section, category) {
+    const yearData = getCurrentYearData();
     let total = 0;
     months.forEach(month => {
-        total += calculateResultTotal(budgetData[section][category].result[month]);
+        total += calculateResultTotal(yearData[section][category].result[month]);
     });
     return total;
 }
@@ -356,12 +480,13 @@ function formatCurrency(amount) {
 // Budget Modal Functions
 function openBudgetModal(section, category, month) {
     currentCell = { section, category, month, type: 'budget' };
+    const yearData = getCurrentYearData();
 
     const modal = new bootstrap.Modal(document.getElementById('budgetModal'));
     document.getElementById('budgetModalTitle').textContent =
         `${category} - Budget - ${month}`;
 
-    const currentValue = budgetData[section][category].budget[month] || 0;
+    const currentValue = yearData[section][category].budget[month] || 0;
     document.getElementById('budgetAmount').value = currentValue;
 
     modal.show();
@@ -376,8 +501,9 @@ function openBudgetModal(section, category, month) {
 function saveBudget() {
     const amount = parseFloat(document.getElementById('budgetAmount').value) || 0;
     const { section, category, month } = currentCell;
+    const yearData = getCurrentYearData();
 
-    budgetData[section][category].budget[month] = amount;
+    yearData[section][category].budget[month] = amount;
 
     // Close modal
     bootstrap.Modal.getInstance(document.getElementById('budgetModal')).hide();
@@ -402,7 +528,8 @@ function openTransactionModal(section, category, month) {
 
 function displayTransactions() {
     const { section, category, month } = currentCell;
-    const transactions = budgetData[section][category].result[month];
+    const yearData = getCurrentYearData();
+    const transactions = yearData[section][category].result[month];
 
     const listDiv = document.getElementById('transactionsList');
 
@@ -420,6 +547,7 @@ function displayTransactions() {
                         <div class="transaction-date">
                             <i class="bi bi-calendar3"></i> ${formatDate(t.date)}
                         </div>
+                        ${t.payee ? `<div class="transaction-payee"><i class="bi bi-person"></i> ${t.payee}</div>` : ''}
                         <div class="transaction-amount">${formatCurrency(t.amount)}</div>
                         ${t.comment ? `<div class="transaction-comment">${t.comment}</div>` : ''}
                     </div>
@@ -438,7 +566,7 @@ function displayTransactions() {
 
     // Add total
     const total = calculateResultTotal(transactions);
-    const budget = budgetData[section][category].budget[month] || 0;
+    const budget = yearData[section][category].budget[month] || 0;
     const diff = section === 'expenses' ? budget - total : total - budget;
     const diffClass = diff >= 0 ? 'positive' : 'negative';
 
@@ -469,11 +597,19 @@ function showAddTransactionForm() {
     document.getElementById('addModalCategory').textContent = currentCell.category;
     document.getElementById('addModalMonth').textContent = currentCell.month;
 
-    // Set default date to current month
+    // Set default date to current month of selected year
     const monthIndex = months.indexOf(currentCell.month);
-    const year = 2025;
-    const defaultDate = new Date(year, monthIndex, 1);
+    const defaultDate = new Date(currentYear, monthIndex, 1);
     document.getElementById('transactionDate').value = defaultDate.toISOString().split('T')[0];
+
+    // Reset and populate payee dropdown
+    if (payeeSelect) {
+        payeeSelect.clear();
+        payeeSelect.clearOptions();
+        payees.forEach(payee => {
+            payeeSelect.addOption({value: payee, text: payee});
+        });
+    }
 
     const modal = new bootstrap.Modal(document.getElementById('addTransactionModal'));
     modal.show();
@@ -482,7 +618,8 @@ function showAddTransactionForm() {
 function editTransaction(index) {
     currentTransactionIndex = index;
     const { section, category, month } = currentCell;
-    const transaction = budgetData[section][category].result[month][index];
+    const yearData = getCurrentYearData();
+    const transaction = yearData[section][category].result[month][index];
 
     document.getElementById('addTransactionTitle').textContent = 'Edit transaction';
 
@@ -493,6 +630,18 @@ function editTransaction(index) {
     document.getElementById('transactionDate').value = transaction.date;
     document.getElementById('transactionAmount').value = transaction.amount;
     document.getElementById('transactionComment').value = transaction.comment || '';
+
+    // Set payee dropdown
+    if (payeeSelect) {
+        payeeSelect.clear();
+        payeeSelect.clearOptions();
+        payees.forEach(payee => {
+            payeeSelect.addOption({value: payee, text: payee});
+        });
+        if (transaction.payee) {
+            payeeSelect.setValue(transaction.payee);
+        }
+    }
 
     // Close transaction list modal
     bootstrap.Modal.getInstance(document.getElementById('transactionModal')).hide();
@@ -508,7 +657,8 @@ function deleteTransaction(index) {
     }
 
     const { section, category, month } = currentCell;
-    budgetData[section][category].result[month].splice(index, 1);
+    const yearData = getCurrentYearData();
+    yearData[section][category].result[month].splice(index, 1);
 
     displayTransactions();
     generateTable(); // Refresh table to update totals
@@ -517,6 +667,7 @@ function deleteTransaction(index) {
 function saveTransaction() {
     const date = document.getElementById('transactionDate').value;
     const amount = parseFloat(document.getElementById('transactionAmount').value);
+    const payee = payeeSelect ? payeeSelect.getValue() : '';
     const comment = document.getElementById('transactionComment').value;
 
     if (!date || isNaN(amount)) {
@@ -524,15 +675,22 @@ function saveTransaction() {
         return;
     }
 
-    const transaction = { date, amount, comment };
+    const transaction = { date, amount, payee, comment };
     const { section, category, month } = currentCell;
+    const yearData = getCurrentYearData();
 
     if (currentTransactionIndex !== null) {
         // Edit existing transaction
-        budgetData[section][category].result[month][currentTransactionIndex] = transaction;
+        yearData[section][category].result[month][currentTransactionIndex] = transaction;
     } else {
         // Add new transaction
-        budgetData[section][category].result[month].push(transaction);
+        yearData[section][category].result[month].push(transaction);
+    }
+
+    // Update payees list if new payee was added
+    if (payee && !payees.includes(payee)) {
+        payees.push(payee);
+        payees.sort();
     }
 
     // Close add transaction modal
@@ -583,13 +741,40 @@ function loadData() {
     }
 }
 
+// Initialize Tom Select for payee field
+function initializePayeeSelect() {
+    const payeeElement = document.getElementById('transactionPayee');
+    if (payeeElement && !payeeSelect) {
+        payeeSelect = new TomSelect('#transactionPayee', {
+            create: true,
+            sortField: 'text',
+            placeholder: 'Select or add payee...',
+            maxOptions: 100,
+            onChange: function(value) {
+                // Add new payee to the list if not already there
+                if (value && !payees.includes(value)) {
+                    payees.push(value);
+                }
+            }
+        });
+    }
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     // Only initialize if we're on the budget page
     if (document.getElementById('budgetTable')) {
         initializeBudgetData();
         // loadData(); // Uncomment to load from localStorage
+
+        // Populate year selector
+        populateYearSelector();
+
+        // Generate table for current year
         generateTable();
+
+        // Initialize Tom Select for payee
+        initializePayeeSelect();
 
         // Handle modal close to refresh main modal
         const addTransactionModal = document.getElementById('addTransactionModal');

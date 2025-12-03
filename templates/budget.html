@@ -4,9 +4,15 @@
 
 {% block content %}
 <div class="row mb-4">
-    <div class="col">
-        <h2 class="mb-0">Budget and Actuals 2025 - Chart of Accounts</h2>
+    <div class="col-md-8">
+        <h2 class="mb-0">Budget and Actuals - Chart of Accounts</h2>
         <p class="text-muted">Click on a cell to add or change values</p>
+    </div>
+    <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
+        <label for="yearSelector" class="mb-0 me-2 fw-bold" style="font-size: 14px; color: #6b7280;">Year:</label>
+        <select id="yearSelector" class="form-select d-inline-block w-auto" onchange="changeYear()">
+            <!-- Will be populated by JavaScript -->
+        </select>
     </div>
 </div>
 
@@ -91,6 +97,12 @@
                     <div class="mb-3">
                         <label for="transactionAmount" class="form-label">Amount (kr)</label>
                         <input type="number" class="form-control" id="transactionAmount" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="transactionPayee" class="form-label">Payee</label>
+                        <select id="transactionPayee" class="form-control" placeholder="Select or add payee...">
+                            <option value="">Select or add payee...</option>
+                        </select>
                     </div>
                     <div class="mb-3">
                         <label for="transactionComment" class="form-label">Comment</label>
