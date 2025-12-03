@@ -1,0 +1,1 @@
+#All business logic goes here. Do NOT call DB directly from this file, use database_manager.py
