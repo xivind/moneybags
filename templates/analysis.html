@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Analyse - Moneybags{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col">
+        <h2 class="mb-4">Analyse</h2>
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            Analyseside med grafer og deep dives kommer her.
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-bar-chart-line me-2"></i>Budsjett vs Resultat</h5>
+            </div>
+            <div class="card-body">
+                <p>Graf som viser budsjett vs faktiske tall</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>År over år</h5>
+            </div>
+            <div class="card-body">
+                <p>Sammenligning mellom år</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

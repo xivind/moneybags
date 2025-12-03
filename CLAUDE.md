@@ -29,5 +29,11 @@ Its an important thing here that the UX need to be supergood and smooth. This me
 - utils.py contains helper methods, such as method to create UUIDs and other stuff that has the characteristics of being helper method
 - The app should be able to run both locally when testing and developing, as well as being deployed as a docker container. See Gas Gauge, Gear Calc and Wheel Builder (all one folder up) for what patterns to use for logging and docker container deploy
 
+## Frontend organization
+- ALL JavaScript must be in /static/js/app.js - NO inline scripts in HTML templates
+- ALL CSS must be in /static/css/custom.css - NO inline styles in HTML templates
+- HTML templates should only contain structure and template logic (Jinja2)
+- This keeps the codebase maintainable and makes it easy to find and modify styles or behavior
+
 ## Database configuration
 - The database configuration itself should be kept as simple as possible. Do not use backrefs or automatically generated IDs. Instead, always create uniue ids for records in the backend and submit that to the database. See 

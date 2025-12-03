@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Moneybags{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col">
+        <h2 class="mb-4">Dashboard</h2>
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            Dashboard med oversikt og interessant statistikk kommer her.
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-cash-stack me-2"></i>Inntekter</h5>
+                <p class="card-text">Totale inntekter for året</p>
+                <h3 class="text-success">kr 0</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-wallet2 me-2"></i>Utgifter</h5>
+                <p class="card-text">Totale utgifter for året</p>
+                <h3 class="text-danger">kr 0</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-piggy-bank me-2"></i>Balanse</h5>
+                <p class="card-text">Netto for året</p>
+                <h3 class="text-primary">kr 0</h3>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
