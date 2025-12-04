@@ -588,9 +588,10 @@ def get_budget_data_for_year(year: int) -> dict:
         budget_entries = db.get_budget_entries_by_year(year)
         budget_dict = {}
         for entry in budget_entries:
-            if entry.category_id not in budget_dict:
-                budget_dict[entry.category_id] = {}
-            budget_dict[entry.category_id][entry.month] = {
+            cat_id = entry.category_id if isinstance(entry.category_id, str) else entry.category_id.id
+            if cat_id not in budget_dict:
+                budget_dict[cat_id] = {}
+            budget_dict[cat_id][entry.month] = {
                 'amount': entry.amount,
                 'id': entry.id
             }
@@ -600,14 +601,15 @@ def get_budget_data_for_year(year: int) -> dict:
         transactions_dict = {}
         for t in transactions:
             month = t.date.month
-            if t.category_id not in transactions_dict:
-                transactions_dict[t.category_id] = {}
-            if month not in transactions_dict[t.category_id]:
-                transactions_dict[t.category_id][month] = []
-            transactions_dict[t.category_id][month].append({
+            cat_id = t.category_id if isinstance(t.category_id, str) else t.category_id.id
+            if cat_id not in transactions_dict:
+                transactions_dict[cat_id] = {}
+            if month not in transactions_dict[cat_id]:
+                transactions_dict[cat_id][month] = []
+            transactions_dict[cat_id][month].append({
                 'id': t.id,
-                'category_id': t.category_id,
-                'payee_id': t.payee_id if t.payee_id else None,
+                'category_id': cat_id,
+                'payee_id': t.payee_id.id if t.payee_id else None,
                 'payee_name': t.payee_id.name if t.payee_id else None,
                 'date': str(t.date),
                 'amount': t.amount,
