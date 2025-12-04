@@ -760,6 +760,383 @@ function initializePayeeSelect() {
     }
 }
 
+// ==================== CONFIG PAGE FUNCTIONS ====================
+
+let currentEditingCategory = null;
+let currentEditingPayee = null;
+
+// Populate categories table
+function populateCategoriesTable() {
+    const tbody = document.querySelector('#categoriesTable tbody');
+    if (!tbody) return;
+
+    let html = '';
+
+    // Get all unique categories across income and expenses
+    const allCategories = [];
+
+    ['income', 'expenses'].forEach(section => {
+        categories[section].forEach(cat => {
+            const yearsUsed = getCategoryYearsUsed(section, cat.name);
+            allCategories.push({
+                name: cat.name,
+                type: section,
+                yearsUsed: yearsUsed,
+                hasData: yearsUsed.length > 0
+            });
+        });
+    });
+
+    allCategories.forEach(cat => {
+        const typeBadge = cat.type === 'income'
+            ? '<span class="badge bg-success">Income</span>'
+            : '<span class="badge bg-warning">Expenses</span>';
+
+        const yearsText = cat.yearsUsed.length > 0
+            ? cat.yearsUsed.join(', ')
+            : '<span class="text-muted">Not used</span>';
+
+        const deleteBtn = cat.hasData
+            ? `<button class="btn btn-sm btn-outline-secondary" disabled title="Cannot delete - category is in use">
+                <i class="bi bi-trash"></i>
+               </button>`
+            : `<button class="btn btn-sm btn-outline-danger" onclick="deleteCategory('${cat.type}', '${cat.name}')">
+                <i class="bi bi-trash"></i>
+               </button>`;
+
+        html += `
+            <tr>
+                <td>${cat.name}</td>
+                <td>${typeBadge}</td>
+                <td>${yearsText}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editCategory('${cat.type}', '${cat.name}')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    ${deleteBtn}
+                </td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = html || '<tr><td colspan="4" class="text-center text-muted">No categories yet</td></tr>';
+}
+
+// Get years where category has data
+function getCategoryYearsUsed(section, categoryName) {
+    const yearsWithData = [];
+
+    availableYears.forEach(year => {
+        const yearData = budgetData[year];
+        if (!yearData || !yearData[section] || !yearData[section][categoryName]) return;
+
+        let hasData = false;
+
+        // Check if budget has non-zero values
+        months.forEach(month => {
+            if (yearData[section][categoryName].budget[month] > 0) {
+                hasData = true;
+            }
+        });
+
+        // Check if there are any transactions
+        months.forEach(month => {
+            if (yearData[section][categoryName].result[month].length > 0) {
+                hasData = true;
+            }
+        });
+
+        if (hasData) {
+            yearsWithData.push(year);
+        }
+    });
+
+    return yearsWithData;
+}
+
+// Populate payees table
+function populatePayeesTable() {
+    const tbody = document.querySelector('#payeesTable tbody');
+    if (!tbody) return;
+
+    let html = '';
+
+    // Get payee statistics
+    const payeeStats = getPayeeStatistics();
+
+    payeeStats.forEach(stat => {
+        const lastUsedText = stat.lastUsed
+            ? new Date(stat.lastUsed).toLocaleDateString('nb-NO')
+            : '<span class="text-muted">Never</span>';
+
+        const deleteBtn = stat.transactionCount > 0
+            ? `<button class="btn btn-sm btn-outline-secondary" disabled title="Cannot delete - payee is in use (${stat.transactionCount} transactions)">
+                <i class="bi bi-trash"></i>
+               </button>`
+            : `<button class="btn btn-sm btn-outline-danger" onclick="deletePayee('${stat.name}')">
+                <i class="bi bi-trash"></i>
+               </button>`;
+
+        html += `
+            <tr class="payee-row" data-payee="${stat.name.toLowerCase()}">
+                <td>${stat.name}</td>
+                <td>${stat.transactionCount}</td>
+                <td>${lastUsedText}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editPayee('${stat.name}')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    ${deleteBtn}
+                </td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = html || '<tr><td colspan="4" class="text-center text-muted">No payees yet</td></tr>';
+}
+
+// Get payee statistics across all years
+function getPayeeStatistics() {
+    const stats = {};
+
+    availableYears.forEach(year => {
+        const yearData = budgetData[year];
+        ['income', 'expenses'].forEach(section => {
+            Object.keys(yearData[section]).forEach(category => {
+                months.forEach(month => {
+                    const transactions = yearData[section][category].result[month];
+                    transactions.forEach(t => {
+                        if (t.payee) {
+                            if (!stats[t.payee]) {
+                                stats[t.payee] = {
+                                    name: t.payee,
+                                    transactionCount: 0,
+                                    lastUsed: null
+                                };
+                            }
+                            stats[t.payee].transactionCount++;
+                            if (!stats[t.payee].lastUsed || t.date > stats[t.payee].lastUsed) {
+                                stats[t.payee].lastUsed = t.date;
+                            }
+                        }
+                    });
+                });
+            });
+        });
+    });
+
+    return Object.values(stats).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// Filter payees based on search
+function filterPayees() {
+    const searchTerm = document.getElementById('payeeSearch').value.toLowerCase();
+    const rows = document.querySelectorAll('.payee-row');
+
+    rows.forEach(row => {
+        const payeeName = row.getAttribute('data-payee');
+        if (payeeName.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Modal functions for categories
+function openAddCategoryModal() {
+    currentEditingCategory = null;
+    document.getElementById('categoryModalTitle').textContent = 'Add Category';
+    document.getElementById('categoryName').value = '';
+    document.getElementById('categoryType').value = '';
+
+    const modal = new bootstrap.Modal(document.getElementById('categoryModal'));
+    modal.show();
+}
+
+function editCategory(type, name) {
+    currentEditingCategory = { type, name };
+    document.getElementById('categoryModalTitle').textContent = 'Edit Category';
+    document.getElementById('categoryName').value = name;
+    document.getElementById('categoryType').value = type;
+    document.getElementById('categoryType').disabled = true; // Can't change type when editing
+
+    const modal = new bootstrap.Modal(document.getElementById('categoryModal'));
+    modal.show();
+}
+
+function saveCategory() {
+    const name = document.getElementById('categoryName').value.trim();
+    const type = document.getElementById('categoryType').value;
+
+    if (!name || !type) {
+        alert('Please fill in all fields');
+        return;
+    }
+
+    if (currentEditingCategory) {
+        // Editing existing category - rename it across all years
+        const oldName = currentEditingCategory.name;
+
+        availableYears.forEach(year => {
+            const yearData = budgetData[year];
+            if (yearData[type][oldName]) {
+                yearData[type][name] = yearData[type][oldName];
+                if (name !== oldName) {
+                    delete yearData[type][oldName];
+                }
+            }
+        });
+
+        // Update in categories array
+        const catArray = categories[type];
+        const index = catArray.findIndex(c => c.name === oldName);
+        if (index !== -1) {
+            catArray[index].name = name;
+        }
+    } else {
+        // Adding new category
+        // Check if it already exists
+        if (categories[type].find(c => c.name === name)) {
+            alert('A category with this name already exists');
+            return;
+        }
+
+        // Add to categories array
+        categories[type].push({ name });
+
+        // Initialize in all years
+        availableYears.forEach(year => {
+            budgetData[year][type][name] = {
+                budget: {},
+                result: {}
+            };
+            months.forEach(month => {
+                budgetData[year][type][name].budget[month] = 0;
+                budgetData[year][type][name].result[month] = [];
+            });
+        });
+    }
+
+    // Re-enable type dropdown
+    document.getElementById('categoryType').disabled = false;
+
+    // Close modal and refresh
+    bootstrap.Modal.getInstance(document.getElementById('categoryModal')).hide();
+    populateCategoriesTable();
+
+    // Refresh budget table if we're on that page
+    if (document.getElementById('budgetTable')) {
+        generateTable();
+    }
+}
+
+function deleteCategory(type, name) {
+    if (!confirm(`Are you sure you want to delete the category "${name}"?`)) {
+        return;
+    }
+
+    // Remove from categories array
+    const index = categories[type].findIndex(c => c.name === name);
+    if (index !== -1) {
+        categories[type].splice(index, 1);
+    }
+
+    // Remove from all years
+    availableYears.forEach(year => {
+        if (budgetData[year][type][name]) {
+            delete budgetData[year][type][name];
+        }
+    });
+
+    populateCategoriesTable();
+
+    // Refresh budget table if we're on that page
+    if (document.getElementById('budgetTable')) {
+        generateTable();
+    }
+}
+
+// Modal functions for payees
+function openAddPayeeModal() {
+    currentEditingPayee = null;
+    document.getElementById('payeeModalTitle').textContent = 'Add Payee';
+    document.getElementById('payeeName').value = '';
+
+    const modal = new bootstrap.Modal(document.getElementById('payeeModal'));
+    modal.show();
+}
+
+function editPayee(name) {
+    currentEditingPayee = name;
+    document.getElementById('payeeModalTitle').textContent = 'Edit Payee';
+    document.getElementById('payeeName').value = name;
+
+    const modal = new bootstrap.Modal(document.getElementById('payeeModal'));
+    modal.show();
+}
+
+function savePayee() {
+    const name = document.getElementById('payeeName').value.trim();
+
+    if (!name) {
+        alert('Please enter a payee name');
+        return;
+    }
+
+    if (currentEditingPayee) {
+        // Editing - rename across all transactions
+        const oldName = currentEditingPayee;
+
+        availableYears.forEach(year => {
+            const yearData = budgetData[year];
+            ['income', 'expenses'].forEach(section => {
+                Object.keys(yearData[section]).forEach(category => {
+                    months.forEach(month => {
+                        yearData[section][category].result[month].forEach(t => {
+                            if (t.payee === oldName) {
+                                t.payee = name;
+                            }
+                        });
+                    });
+                });
+            });
+        });
+
+        // Update in payees list
+        const index = payees.indexOf(oldName);
+        if (index !== -1) {
+            payees[index] = name;
+            payees.sort();
+        }
+    } else {
+        // Adding new payee
+        if (payees.includes(name)) {
+            alert('This payee already exists');
+            return;
+        }
+
+        payees.push(name);
+        payees.sort();
+    }
+
+    bootstrap.Modal.getInstance(document.getElementById('payeeModal')).hide();
+    populatePayeesTable();
+}
+
+function deletePayee(name) {
+    if (!confirm(`Are you sure you want to delete the payee "${name}"?`)) {
+        return;
+    }
+
+    const index = payees.indexOf(name);
+    if (index !== -1) {
+        payees.splice(index, 1);
+    }
+
+    populatePayeesTable();
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     // Only initialize if we're on the budget page
@@ -796,5 +1173,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
+    }
+
+    // Initialize config page if present
+    if (document.getElementById('categoriesTable')) {
+        // Initialize budget data if not already done
+        if (Object.keys(budgetData).length === 0) {
+            initializeBudgetData();
+        }
+        populateCategoriesTable();
+        populatePayeesTable();
     }
 });
