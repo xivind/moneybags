@@ -14,7 +14,6 @@ See DATABASE_DESIGN.md for complete schema documentation.
 
 from peewee import (
     Model,
-    MySQLDatabase,
     CharField,
     IntegerField,
     SmallIntegerField,
@@ -23,11 +22,12 @@ from peewee import (
     TextField,
     ForeignKeyField,
 )
+from playhouse.pool import PooledMySQLDatabase
 
 
-# Database connection instance
+# Database connection instance (with connection pooling)
 # Will be initialized in database_manager.py with connection details from configuration
-database = MySQLDatabase(None)
+database = PooledMySQLDatabase(None)
 
 
 class BaseModel(Model):
@@ -65,7 +65,7 @@ class Category(BaseModel):
     type = CharField(max_length=10)  # 'income' or 'expenses'
 
     class Meta:
-        table_name = 'categories'
+        table_name = 'moneybags_categories'
 
 
 class Payee(BaseModel):
@@ -84,7 +84,7 @@ class Payee(BaseModel):
     type = CharField(max_length=10, default='Actual')  # 'Generic' or 'Actual'
 
     class Meta:
-        table_name = 'payees'
+        table_name = 'moneybags_payees'
 
 
 class BudgetTemplate(BaseModel):
@@ -103,7 +103,7 @@ class BudgetTemplate(BaseModel):
     category_id = ForeignKeyField(Category, column_name='category_id')
 
     class Meta:
-        table_name = 'budget_templates'
+        table_name = 'moneybags_budget_templates'
         indexes = (
             (('year', 'category_id'), False),  # Composite index for year/category lookups
         )
@@ -130,7 +130,7 @@ class BudgetEntry(BaseModel):
     updated_at = DateTimeField()
 
     class Meta:
-        table_name = 'budget_entries'
+        table_name = 'moneybags_budget_entries'
         indexes = (
             (('category_id', 'year', 'month'), False),  # Composite index for fast lookups
         )
@@ -158,7 +158,7 @@ class Transaction(BaseModel):
     updated_at = DateTimeField()
 
     class Meta:
-        table_name = 'transactions'
+        table_name = 'moneybags_transactions'
         indexes = (
             (('category_id',), False),
             (('payee_id',), False),
@@ -190,7 +190,7 @@ class Configuration(BaseModel):
     updated_at = DateTimeField()
 
     class Meta:
-        table_name = 'configuration'
+        table_name = 'moneybags_configuration'
 
 
 # List of all models for easy reference

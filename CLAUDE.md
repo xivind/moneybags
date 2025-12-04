@@ -1,39 +1,299 @@
 # Instructions for Claude Code to build the moneybags web application
-This file contains instructions for Claude Code to guide the building of the Moneybags web application.
 
-# Purpose of the Moneybags web application
-The purpose of the Moneybags web application is to help users to have control of their personal economty. The program will let users create yearly budgets (both for income and expenses), and then let uses register actual income and expenses as time passes by. The user should be able to attach comments to each value entered. The application should at least have four main parts: 1. Visually appealing dashbaord with interesting information, 2. Analysis where the user can deep dive into the data and query different things and drill. 3. Yearly budget (income and expensese) and yearly actual income and expenses (budget and actual income and expenses is in the same part). 4. Configuration options (where user can select Currency notation, and other typical user preferences)
+This file contains instructions for Claude Code to guide the development and maintenance of the Moneybags web application.
 
-The program needs to take into account that each year would have some of the same posts, which obviously need to be seen in relation to each other. But new posts may also exist, that has not been used in previous years. And posts that were used at some time, may no longer be used in future years. Ensuring data integrity, and the ability to analyse and see data across years is paramount.
+## Purpose of the Moneybags web application
 
-Its an important thing here that the UX need to be supergood and smooth. This means that we need to make use of htmx for example, so saving and reloading happens automatically, withouth the user being redirected to the top of the page or in other ways loose context. 
+The purpose of the Moneybags web application is to help users have control of their personal economy. The program lets users create yearly budgets (both for income and expenses), and then lets users register actual income and expenses as time passes by. Users can attach comments to each value entered.
 
-# Tech stack
-- The web application should be responsive design, so it also works on mobile phones, as well as on desktop
-- FastAPI should be used for the backend
-- Bootstrap with htmx should be used for the frontend. We should use a combination of base templates, partial templates and other templates
-- Vanilla js should be used whenever js is needed. All js should be placed in the same js file, not placed inline in different html pages
-- All CSS should be place in the same css file and referenced throughout the app
-- TomSelect should be used for advanced input boxes, and if thats not needed use standard bootstrap and html input boxes
-- Date and time picker should use Tempus Domino js library
-- MariaDB should be used as the database. The program must support configuring this database connection.
-- PeeWee ORM should be used to interact with the Mariadb database
+The application has four main parts:
+1. **Dashboard** - Visually appealing dashboard with interesting information
+2. **Budget & Actuals** - Yearly budget (income and expenses) and yearly actual income and expenses (budget and actual in the same view)
+3. **Analysis** - Deep dive into data, query different things, and drill down
+4. **Configuration** - User preferences (Currency notation, database connection settings, category/payee management, budget templates by year)
 
-# Architectural constraints
-## General constraints
-- main.py contains the router and should contain no business logic
-- business_logic.py contains all business logic, calculations etc. Whenever CRUD operations are needed in the database, methods should always call database_manager.py and use the methods defined there. CRUD operations shall never be called directly from the business_logic module
-- database_manager.py contains all methods necessary to do CRUD operations in the database
-- database_model.py contains the model for the sqlite database
-- The uvicorn_log_config.ini contains the logging configuration. All logging, both from fastapi and python, should be done in a uniform manner and logged to the docker container.
-- utils.py contains helper methods, such as method to create UUIDs and other stuff that has the characteristics of being helper method
-- The app should be able to run both locally when testing and developing, as well as being deployed as a docker container. See Gas Gauge, Gear Calc and Wheel Builder (all one folder up) for what patterns to use for logging and docker container deploy
+The program takes into account that each year has some of the same posts (which need to be seen in relation to each other), but new posts may also exist that have not been used in previous years. Posts that were used at some time may no longer be used in future years. Ensuring data integrity and the ability to analyze and see data across years is paramount.
 
-## Frontend organization
-- ALL JavaScript must be in /static/js/app.js - NO inline scripts in HTML templates
-- ALL CSS must be in /static/css/custom.css - NO inline styles in HTML templates
+**UX is critical**: The application uses htmx so saving and reloading happens automatically, without the user being redirected to the top of the page or losing context.
+
+## Tech Stack
+
+### Backend
+- **FastAPI** - Web framework for API routes
+- **uvicorn** - ASGI server to run FastAPI
+- **PeeWee ORM** - Database ORM for MariaDB
+- **pymysql** - Database driver for MySQL/MariaDB (required by PeeWee)
+- **playhouse.pool** - Connection pooling (part of PeeWee, provides PooledMySQLDatabase)
+- **python-dotenv** - Environment variable management (.env file support)
+- **MariaDB** - Database running in separate Docker container or separate host
+
+### Frontend
+- **Bootstrap** - Responsive design framework (works on mobile and desktop)
+- **htmx** - Automatic saving/reloading without page redirects
+- **Vanilla JavaScript** - All JS in single file (static/js/app.js)
+- **TomSelect** - Advanced input boxes for select elements
+- **Tempus Dominus** - Date and time picker
+- **Chart.js** - Visualizations for dashboard
+
+### CSS
+- All CSS in single file (static/css/custom.css)
+- No inline styles in HTML templates
+
+## Architectural Constraints
+
+### General Constraints
+- **main.py** - Contains router ONLY, no business logic
+- **business_logic.py** - All business logic, calculations, validation. Calls database_manager.py for CRUD operations. NEVER calls database directly.
+- **database_manager.py** - All CRUD operations, connection management, transaction handling
+- **database_model.py** - Pure data models (NO LOGIC, NO backrefs, NO defaults)
+- **utils.py** - Helper methods (UUID generation, date validation, NULL conversion)
+- **uvicorn_log_config.ini** - Logging configuration (uniform logging for FastAPI and Python)
+
+### Database Architecture (from DATABASE_DESIGN.md)
+
+**Connection Management:**
+- Uses `PooledMySQLDatabase` for connection pooling (htmx performance)
+- Pool size configurable (default: 10 connections)
+- Connection recycling (default: 3600 seconds)
+- Health checks and automatic reconnection
+- Retry logic for transient failures (3 retries, 1s delay)
+
+**Transaction Management:**
+- All write operations wrapped with `@with_transaction` decorator
+- Ensures atomicity (all or nothing)
+- Automatic rollback on errors
+- Explicit commit on success
+
+**Performance Features:**
+- Configuration caching (5-minute timeout, in-memory)
+- Query timing metrics (logs slow queries > 1 second)
+- Connection resilience (health checks, reconnection)
+
+**Data Principles:**
+- UUIDs generated in business_logic.py via `utils.generate_uid()`
+- Timestamps set in business_logic.py (YYYY-MM-DD HH:MM:SS format)
+- Empty strings converted to NULL via `utils.empty_to_none()`
+- All currency amounts stored as integers (no decimals)
+- Foreign keys use explicit `_id` suffix (category_id, payee_id)
+
+### Frontend Organization
+- **ALL JavaScript** must be in `/static/js/app.js` - NO inline scripts in HTML templates
+- **ALL CSS** must be in `/static/css/custom.css` - NO inline styles in HTML templates
 - HTML templates should only contain structure and template logic (Jinja2)
 - This keeps the codebase maintainable and makes it easy to find and modify styles or behavior
 
-## Database configuration
-- The database configuration itself should be kept as simple as possible. Do not use backrefs or automatically generated IDs. Instead, always create uniue ids for records in the backend and submit that to the database. See 
+### Database Configuration
+- Database configuration kept simple: no backrefs, no automatically generated IDs
+- Always create unique IDs in backend and submit to database
+- Connection settings stored in `.env` file (local dev) or environment variables (Docker)
+- Configuration caching in business_logic.py reduces database queries
+
+## Development Setup
+
+### Virtual Environment
+- **IMPORTANT**: Virtual environment is in `/home/xivind/code/moneybags-runtime/` (separate from repo)
+- This follows the pattern from gas-gauge and gear-calc projects
+- Never create venv inside the repo directory
+
+**Setup:**
+```bash
+# Create venv (if needed)
+python3 -m venv /home/xivind/code/moneybags-runtime
+
+# Activate venv
+source /home/xivind/code/moneybags-runtime/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### Database Connection (.env file)
+Create `/home/xivind/code/moneybags/.env` with database settings:
+
+```bash
+DB_HOST=sandbox          # Or IP address of MariaDB server
+DB_PORT=3306
+DB_NAME=MASTERDB
+DB_USER=root
+DB_PASSWORD=devpassword
+DB_POOL_SIZE=10
+```
+
+**Important**: The `.env` file is excluded from Git (in `.gitignore`) and Docker (in `.dockerignore`).
+
+### Running Locally
+
+```bash
+# 1. Activate venv
+source /home/xivind/code/moneybags-runtime/bin/activate
+
+# 2. Go to project directory
+cd /home/xivind/code/moneybags
+
+# 3. Run with uvicorn (recommended for development)
+uvicorn main:app --host 0.0.0.0 --port 8000 --log-config uvicorn_log_config.ini --reload
+
+# The --reload flag auto-restarts on code changes (useful for development)
+```
+
+**On first run**, the application automatically:
+1. Connects to MariaDB
+2. Creates all 6 tables if they don't exist
+3. Seeds initial data if database is empty (categories, payees, config, budget template for current year)
+
+### Docker Deployment
+
+**Edit** `create-container-moneybags.sh` to set correct DB_HOST, then run:
+
+```bash
+./create-container-moneybags.sh
+```
+
+**What the script does:**
+1. Stops and removes old container/image
+2. Builds fresh Docker image
+3. Creates data directories (~/code/container_data)
+4. Runs container with:
+   - Database environment variables (overrides .env)
+   - Port 8000→8003 mapping
+   - Volume mount for data persistence
+   - Auto-restart policy
+   - Europe/Stockholm timezone
+
+**Environment Variables in Container:**
+- Container uses environment variables from `create-container-moneybags.sh`
+- The `.env` file is NOT copied to container (excluded by `.dockerignore`)
+- This allows different settings for local dev vs production
+
+## Database Migrations
+
+Located in `/migrations/` directory:
+
+- **001_initial_schema.sql** - Reference SQL schema (PeeWee auto-creates tables, but this is useful for manual setup or documentation)
+- **migrate.py** - Python migration runner for applying schema changes
+- **README.md** - Migration documentation
+
+**When to use migrations:**
+- Schema changes (adding columns, indexes) after initial deployment
+- Data transformations
+- Manual database setup without running the app
+
+**Run migration:**
+```bash
+python migrations/migrate.py 001_initial_schema.sql
+```
+
+## API Structure
+
+All API routes in `main.py` follow this pattern:
+
+**Budget API (7 endpoints):**
+- GET `/api/budget/{year}` - Get complete budget data
+- POST `/api/budget/entry` - Save budget entry
+- GET `/api/transactions/{category_id}/{year}/{month}` - Get transactions
+- POST `/api/transaction` - Create transaction
+- PUT `/api/transaction/{transaction_id}` - Update transaction
+- DELETE `/api/transaction/{transaction_id}` - Delete transaction
+
+**Category API (4 endpoints):**
+- GET `/api/categories` - Get all categories
+- POST `/api/category` - Create category
+- PUT `/api/category/{category_id}` - Update category
+- DELETE `/api/category/{category_id}` - Delete category
+
+**Payee API (4 endpoints):**
+- GET `/api/payees` - Get all payees
+- POST `/api/payee` - Create payee
+- PUT `/api/payee/{payee_id}` - Update payee
+- DELETE `/api/payee/{payee_id}` - Delete payee
+
+**Budget Template API (5 endpoints):**
+- GET `/api/budget-template/{year}` - Get template for year
+- POST `/api/budget-template` - Add category to year template
+- DELETE `/api/budget-template/{year}/{category_id}` - Remove category from year
+- POST `/api/budget-template/copy` - Copy template from one year to another
+- GET `/api/years` - Get all years with budget templates
+
+**Configuration API (3 endpoints):**
+- GET `/api/config` - Get configuration settings
+- PUT `/api/config` - Update configuration
+- POST `/api/config/test-db-connection` - Test database connection
+
+**Response Format:**
+All API endpoints return JSON in format:
+```json
+{
+  "success": true,
+  "data": { ... }
+}
+```
+
+Or on error:
+```json
+{
+  "success": false,
+  "error": "Error message"
+}
+```
+
+## Key Implementation Details
+
+### Connection Pooling
+- Uses `PooledMySQLDatabase` (from playhouse.pool)
+- Initialized in `database_manager.initialize_connection()`
+- Configurable pool_size and stale_timeout
+
+### Transaction Wrapping
+- All write operations (create, update, delete) use `@with_transaction` decorator
+- Defined in `database_manager.py`
+- Ensures atomicity and automatic rollback
+
+### Configuration Caching
+- Implemented in `business_logic.py`
+- 5-minute cache timeout
+- Reduces database queries for config lookups
+- Cache invalidated on config updates
+
+### Query Performance
+- Optional query timing with `@log_query_time` decorator
+- Logs slow queries (> 1 second threshold)
+- Can be disabled in production via `ENABLE_QUERY_METRICS = False`
+
+### Error Handling
+- All business logic functions raise `ValueError` with descriptive messages
+- API routes catch exceptions and return appropriate HTTP status codes:
+  - 400 for validation errors
+  - 500 for server errors
+- All errors logged with context
+
+## Important Files
+
+- **DATABASE_DESIGN.md** - Complete database schema documentation
+- **BACKEND_IMPLEMENTATION.md** - Backend implementation blueprint (Phases 1-5)
+- **requirements.txt** - Python dependencies
+- **.env** - Local database connection settings (not in Git)
+- **.gitignore** - Excludes .env, venv files, data directories
+- **.dockerignore** - Excludes .env, tests, migrations, markdown files
+- **Dockerfile** - Container image definition
+- **create-container-moneybags.sh** - Deployment script
+- **migrations/** - Database migration scripts
+
+## Testing
+
+Run tests with:
+```bash
+pytest tests/ -v
+```
+
+## Notes for Future Development
+
+1. **Never commit .env file** - Contains database credentials
+2. **Use venv from moneybags-runtime** - Not inside repo
+3. **Follow clean architecture** - main.py → business_logic.py → database_manager.py → models → database
+4. **All JavaScript in one file** - static/js/app.js
+5. **All CSS in one file** - static/css/custom.css
+6. **PeeWee auto-creates tables** - Migrations only for schema changes
+7. **pymysql is required** - PeeWee needs this driver for MariaDB
+8. **Environment variables override .env** - Useful for Docker deployment
+9. **Connection pooling is critical** - For htmx performance requirements
+10. **Configuration is cached** - 5-minute timeout to reduce DB queries

@@ -1,22 +1,6 @@
-// Moneybags Application JavaScript
+// Moneybags Application JavaScript - Connected to Real API
 
-// Data structure for budget categories
-const categories = {
-    income: [
-        { name: 'Salary' },
-        { name: 'Other income' }
-    ],
-    expenses: [
-        { name: 'Housing & utilities' },
-        { name: 'Repairs & maintenance' },
-        { name: 'Digital services' },
-        { name: 'Cars' },
-        { name: 'Clothing & travel' },
-        { name: 'Sports' },
-        { name: 'Travel' },
-        { name: 'Savings' }
-    ]
-};
+// ==================== STATE ====================
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -27,13 +11,16 @@ const currentMonth = new Date().getMonth();
 // Current year
 let currentYear = new Date().getFullYear();
 
-// Available years (can be expanded)
-let availableYears = [2024, 2025, 2026];
+// Available years (loaded from API)
+let availableYears = [];
 
-// Data structure to store all data by year
-let budgetData = {};
+// All categories (loaded from API)
+let allCategories = [];
 
-// Store all payees
+// Budget data for current year
+let budgetData = null;
+
+// All payees (loaded from API)
 let payees = [];
 
 // Current cell being edited
@@ -43,7 +30,167 @@ let currentTransactionIndex = null;
 // Tom Select instance
 let payeeSelect = null;
 
-// Helper function to clean up modal backdrops
+// ==================== API FUNCTIONS ====================
+
+async function apiCall(url, options = {}) {
+    try {
+        const response = await fetch(url, {
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            },
+            ...options
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || 'API request failed');
+        }
+
+        return data.data;
+    } catch (error) {
+        console.error('API Error:', error);
+        showError(error.message || 'Network error occurred');
+        throw error;
+    }
+}
+
+async function loadCategories() {
+    allCategories = await apiCall('/api/categories');
+}
+
+async function loadPayees() {
+    const payeeData = await apiCall('/api/payees');
+    payees = payeeData.map(p => ({ id: p.id, name: p.name, type: p.type }));
+}
+
+async function loadAvailableYears() {
+    availableYears = await apiCall('/api/years');
+    if (availableYears.length === 0) {
+        availableYears = [currentYear];
+    }
+}
+
+async function loadBudgetData(year) {
+    budgetData = await apiCall(`/api/budget/${year}`);
+}
+
+async function saveBudgetEntry(categoryId, year, month, amount) {
+    return await apiCall('/api/budget/entry', {
+        method: 'POST',
+        body: JSON.stringify({
+            category_id: categoryId,
+            year: year,
+            month: month,
+            amount: amount
+        })
+    });
+}
+
+async function loadTransactions(categoryId, year, month) {
+    return await apiCall(`/api/transactions/${categoryId}/${year}/${month}`);
+}
+
+async function createTransaction(categoryId, date, amount, payeeId, comment) {
+    return await apiCall('/api/transaction', {
+        method: 'POST',
+        body: JSON.stringify({
+            category_id: categoryId,
+            date: date,
+            amount: amount,
+            payee_id: payeeId || null,
+            comment: comment || null
+        })
+    });
+}
+
+async function updateTransaction(transactionId, date, amount, payeeId, comment) {
+    return await apiCall(`/api/transaction/${transactionId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+            date: date,
+            amount: amount,
+            payee_id: payeeId || null,
+            comment: comment || null
+        })
+    });
+}
+
+async function deleteTransactionApi(transactionId) {
+    return await apiCall(`/api/transaction/${transactionId}`, {
+        method: 'DELETE'
+    });
+}
+
+async function createCategory(name, type) {
+    return await apiCall('/api/category', {
+        method: 'POST',
+        body: JSON.stringify({ name, type })
+    });
+}
+
+async function updateCategory(categoryId, name) {
+    return await apiCall(`/api/category/${categoryId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ name })
+    });
+}
+
+async function deleteCategoryApi(categoryId) {
+    return await apiCall(`/api/category/${categoryId}`, {
+        method: 'DELETE'
+    });
+}
+
+async function createPayee(name, type) {
+    return await apiCall('/api/payee', {
+        method: 'POST',
+        body: JSON.stringify({ name, type: type || 'Actual' })
+    });
+}
+
+async function updatePayee(payeeId, name, type) {
+    return await apiCall(`/api/payee/${payeeId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ name, type })
+    });
+}
+
+async function deletePayeeApi(payeeId) {
+    return await apiCall(`/api/payee/${payeeId}`, {
+        method: 'DELETE'
+    });
+}
+
+// ==================== UTILITY FUNCTIONS ====================
+
+function showLoading(message = 'Loading...') {
+    // Could show a loading spinner or toast
+    console.log(message);
+}
+
+function hideLoading() {
+    // Hide loading spinner
+}
+
+function showError(message) {
+    alert('Error: ' + message);
+}
+
+function showSuccess(message) {
+    console.log('Success:', message);
+}
+
+function formatCurrency(amount) {
+    return 'kr ' + Math.round(amount).toLocaleString('nb-NO');
+}
+
+function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('nb-NO', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
 function cleanupBackdrops() {
     const backdrops = document.querySelectorAll('.modal-backdrop');
     backdrops.forEach(backdrop => backdrop.remove());
@@ -52,123 +199,33 @@ function cleanupBackdrops() {
     document.body.style.removeProperty('padding-right');
 }
 
-// Initialize budget data structure for all years
-function initializeBudgetData() {
-    availableYears.forEach(year => {
-        budgetData[year] = {
-            income: {},
-            expenses: {}
-        };
-
-        const sections = ['income', 'expenses'];
-
-        sections.forEach(section => {
-            const sectionCategories = categories[section];
-
-            sectionCategories.forEach(category => {
-                budgetData[year][section][category.name] = {
-                    budget: {},
-                    result: {}
-                };
-
-                months.forEach(month => {
-                    budgetData[year][section][category.name].budget[month] = 0;
-                    budgetData[year][section][category.name].result[month] = [];
-                });
-            });
-        });
-    });
-
-    // Add some mock data
-    addMockData();
+function getCategoryById(categoryId) {
+    return allCategories.find(c => c.id === categoryId);
 }
 
-function addMockData() {
-    // Mock salary budget and actuals for 2025
-    const year2025 = budgetData[2025];
-
-    year2025.income['Salary'].budget['Jan'] = 53000;
-    year2025.income['Salary'].budget['Feb'] = 53000;
-    year2025.income['Salary'].budget['Mar'] = 53000;
-
-    year2025.income['Salary'].result['Jan'] = [
-        { date: '2025-01-15', amount: 55920, payee: 'Employer', comment: 'Salary January' }
-    ];
-    year2025.income['Salary'].result['Feb'] = [
-        { date: '2025-02-15', amount: 55501, payee: 'Employer', comment: 'Salary February' }
-    ];
-    year2025.income['Salary'].result['Mar'] = [
-        { date: '2025-03-15', amount: 72228, payee: 'Employer', comment: 'Salary March with bonus' }
-    ];
-
-    // Mock expense budgets and actuals
-    year2025.expenses['Housing & utilities'].budget['Jan'] = 20000;
-    year2025.expenses['Housing & utilities'].budget['Feb'] = 20000;
-    year2025.expenses['Housing & utilities'].budget['Mar'] = 20000;
-
-    year2025.expenses['Housing & utilities'].result['Jan'] = [
-        { date: '2025-01-05', amount: 15000, payee: 'Landlord', comment: 'Rent' },
-        { date: '2025-01-25', amount: 935, payee: 'Power Company', comment: 'Electricity bill' }
-    ];
-    year2025.expenses['Housing & utilities'].result['Feb'] = [
-        { date: '2025-02-05', amount: 15000, payee: 'Landlord', comment: 'Rent' },
-        { date: '2025-02-25', amount: 922, payee: 'Power Company', comment: 'Electricity bill' }
-    ];
-
-    year2025.expenses['Digital services'].budget['Jan'] = 1100;
-    year2025.expenses['Digital services'].budget['Feb'] = 1100;
-    year2025.expenses['Digital services'].budget['Mar'] = 1100;
-
-    year2025.expenses['Digital services'].result['Jan'] = [
-        { date: '2025-01-10', amount: 149, payee: 'Netflix', comment: 'Subscription' },
-        { date: '2025-01-12', amount: 129, payee: 'Spotify', comment: 'Subscription' },
-        { date: '2025-01-15', amount: 99, payee: 'Apple iCloud', comment: 'Storage subscription' },
-        { date: '2025-01-20', amount: 805, payee: 'Adobe', comment: 'Creative Cloud subscription' }
-    ];
-    year2025.expenses['Digital services'].result['Feb'] = [
-        { date: '2025-02-10', amount: 149, payee: 'Netflix', comment: 'Subscription' },
-        { date: '2025-02-12', amount: 129, payee: 'Spotify', comment: 'Subscription' },
-        { date: '2025-02-15', amount: 99, payee: 'Apple iCloud', comment: 'Storage subscription' },
-        { date: '2025-02-20', amount: 682, payee: 'Adobe', comment: 'Creative Cloud subscription' }
-    ];
-
-    year2025.expenses['Sports'].budget['Mar'] = 30000;
-    year2025.expenses['Sports'].result['Mar'] = [
-        { date: '2025-03-12', amount: 34418, payee: 'Ski Shop', comment: 'New skis' }
-    ];
-
-    // Extract unique payees from mock data
-    extractPayeesFromData();
+function getPayeeById(payeeId) {
+    return payees.find(p => p.id === payeeId);
 }
 
-// Helper function to get current year's data
-function getCurrentYearData() {
-    return budgetData[currentYear];
+// ==================== BUDGET TABLE FUNCTIONS ====================
+
+async function initializeBudgetPage() {
+    showLoading('Loading budget data...');
+
+    try {
+        await loadCategories();
+        await loadPayees();
+        await loadAvailableYears();
+        await populateYearSelector();
+        await loadBudgetData(currentYear);
+        generateTable();
+        hideLoading();
+    } catch (error) {
+        hideLoading();
+        showError('Failed to initialize budget page');
+    }
 }
 
-// Extract all unique payees from budget data (all years)
-function extractPayeesFromData() {
-    const uniquePayees = new Set();
-
-    availableYears.forEach(year => {
-        ['income', 'expenses'].forEach(section => {
-            Object.keys(budgetData[year][section]).forEach(category => {
-                months.forEach(month => {
-                    const transactions = budgetData[year][section][category].result[month];
-                    transactions.forEach(t => {
-                        if (t.payee) {
-                            uniquePayees.add(t.payee);
-                        }
-                    });
-                });
-            });
-        });
-    });
-
-    payees = Array.from(uniquePayees).sort();
-}
-
-// Populate year selector dropdown
 function populateYearSelector() {
     const selector = document.getElementById('yearSelector');
     if (!selector) return;
@@ -185,17 +242,18 @@ function populateYearSelector() {
     });
 }
 
-// Change year and refresh table
-function changeYear() {
+async function changeYear() {
     const selector = document.getElementById('yearSelector');
     currentYear = parseInt(selector.value);
+    showLoading('Loading year data...');
+    await loadBudgetData(currentYear);
     generateTable();
+    hideLoading();
 }
 
-// Generate the budget table
 function generateTable() {
     const table = document.getElementById('budgetTable');
-    if (!table) return; // Guard for when table doesn't exist on page
+    if (!table || !budgetData) return;
 
     let html = '<tbody>';
 
@@ -204,19 +262,17 @@ function generateTable() {
     html += generateMonthHeaderRow();
     html += generateBalanceRows();
 
-    // Spacer before Income section
-    html += `<tr class="section-spacer"><td colspan="${months.length + 2}" class="section-spacer"></td></tr>`;
     // Income section
+    html += `<tr class="section-spacer"><td colspan="${months.length + 2}" class="section-spacer"></td></tr>`;
     html += `<tr><td colspan="${months.length + 2}" class="section-header income-header">INCOME</td></tr>`;
     html += generateMonthHeaderRow();
-    html += generateSectionRows('income', categories.income);
+    html += generateSectionRows('income');
 
-    // Spacer before Expenses section
-    html += `<tr class="section-spacer"><td colspan="${months.length + 2}" class="section-spacer"></td></tr>`;
     // Expenses section
+    html += `<tr class="section-spacer"><td colspan="${months.length + 2}" class="section-spacer"></td></tr>`;
     html += `<tr><td colspan="${months.length + 2}" class="section-header expense-header">EXPENSES</td></tr>`;
     html += generateMonthHeaderRow();
-    html += generateSectionRows('expenses', categories.expenses);
+    html += generateSectionRows('expenses');
 
     html += '</tbody>';
     table.innerHTML = html;
@@ -234,7 +290,7 @@ function generateMonthHeaderRow() {
 function generateBalanceRows() {
     let html = '';
 
-    // Budget Balance row - always white background
+    // Budget Balance row
     html += '<tr class="budget-balance-row section-tile-row"><td class="category-cell">Budget Balance</td>';
     months.forEach((month, idx) => {
         const balance = calculateMonthlyBudgetBalance(idx);
@@ -244,7 +300,7 @@ function generateBalanceRows() {
     html += `<td class="total-column balance-white-cell">${formatCurrency(totalBalance)}</td>`;
     html += '</tr>';
 
-    // Result Balance row - color coded like income actuals
+    // Result Balance row
     html += '<tr class="result-balance-row section-tile-row"><td class="category-cell">Result Balance</td>';
     months.forEach((month, idx) => {
         const actualResult = calculateMonthlyResult(idx);
@@ -258,7 +314,7 @@ function generateBalanceRows() {
     html += `<td class="total-column ${totalColorClass}">${formatCurrency(totalResult)}</td>`;
     html += '</tr>';
 
-    // Difference row - color coded based on difference >= 0 (green) or < 0 (red)
+    // Difference row
     html += '<tr class="difference-row section-tile-row"><td class="category-cell">Difference</td>';
     months.forEach((month, idx) => {
         const diff = calculateMonthlyDifference(idx);
@@ -274,91 +330,80 @@ function generateBalanceRows() {
 }
 
 function calculateMonthlyBudgetBalance(monthIndex) {
-    const month = months[monthIndex];
-    const yearData = getCurrentYearData();
+    const monthNum = monthIndex + 1;
     let budgetIncome = 0;
     let budgetExpenses = 0;
 
-    // Sum all budget income
-    categories.income.forEach(cat => {
-        budgetIncome += yearData.income[cat.name].budget[month] || 0;
-    });
+    budgetData.categories.forEach(cat => {
+        const entries = budgetData.budget_entries[cat.id] || {};
+        const entry = entries[monthNum];
+        const amount = entry ? entry.amount : 0;
 
-    // Sum all budget expenses
-    categories.expenses.forEach(cat => {
-        budgetExpenses += yearData.expenses[cat.name].budget[month] || 0;
+        if (cat.type === 'income') {
+            budgetIncome += amount;
+        } else {
+            budgetExpenses += amount;
+        }
     });
 
     return budgetIncome - budgetExpenses;
 }
 
 function calculateMonthlyResult(monthIndex) {
-    // Result = Actual Income - Actual Expenses
-    const month = months[monthIndex];
-    const yearData = getCurrentYearData();
+    const monthNum = monthIndex + 1;
     let income = 0;
     let expenses = 0;
 
-    categories.income.forEach(cat => {
-        income += calculateResultTotal(yearData.income[cat.name].result[month]);
-    });
+    budgetData.categories.forEach(cat => {
+        const transactions = budgetData.transactions[cat.id] || {};
+        const monthTransactions = transactions[monthNum] || [];
+        const total = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
 
-    categories.expenses.forEach(cat => {
-        expenses += calculateResultTotal(yearData.expenses[cat.name].result[month]);
+        if (cat.type === 'income') {
+            income += total;
+        } else {
+            expenses += total;
+        }
     });
 
     return income - expenses;
 }
 
 function calculateMonthlyDifference(monthIndex) {
-    // Difference = (Actual Income - Actual Expenses) - (Budget Income - Budget Expenses)
-    const month = months[monthIndex];
-    const yearData = getCurrentYearData();
-    let budgetIncome = 0;
-    let budgetExpenses = 0;
-    let actualIncome = 0;
-    let actualExpenses = 0;
-
-    categories.income.forEach(cat => {
-        budgetIncome += yearData.income[cat.name].budget[month] || 0;
-        actualIncome += calculateResultTotal(yearData.income[cat.name].result[month]);
-    });
-
-    categories.expenses.forEach(cat => {
-        budgetExpenses += yearData.expenses[cat.name].budget[month] || 0;
-        actualExpenses += calculateResultTotal(yearData.expenses[cat.name].result[month]);
-    });
-
-    const budgetResult = budgetIncome - budgetExpenses;
-    const actualResult = actualIncome - actualExpenses;
-
-    return actualResult - budgetResult;
+    const budgetBalance = calculateMonthlyBudgetBalance(monthIndex);
+    const actualResult = calculateMonthlyResult(monthIndex);
+    return actualResult - budgetBalance;
 }
 
-function generateSectionRows(section, sectionCategories) {
+function generateSectionRows(sectionType) {
     let html = '';
-    const yearData = getCurrentYearData();
+    const sectionCategories = budgetData.categories.filter(c => c.type === sectionType);
 
     sectionCategories.forEach(category => {
-        // Category header - single cell spanning all columns
+        // Category header
         html += `<tr class="section-tile-row category-header-row"><td colspan="${months.length + 2}" class="category-header-cell">${category.name}</td></tr>`;
 
         // Budget row
         html += `<tr class="budget-row section-tile-row">`;
         html += `<td class="subcategory-cell">Budget</td>`;
 
+        const entries = budgetData.budget_entries[category.id] || {};
+
         months.forEach((month, idx) => {
-            const budgetValue = yearData[section][category.name].budget[month] || 0;
+            const monthNum = idx + 1;
+            const entry = entries[monthNum];
+            const budgetValue = entry ? entry.amount : 0;
             const isFuture = idx > currentMonth;
             const hasValue = budgetValue > 0 ? 'has-value' : '';
             const cellClass = isFuture ? 'result-future' : hasValue;
-            html += `<td class="${cellClass}" onclick="${isFuture ? '' : `openBudgetModal('${section}', '${category.name}', '${month}')`}">`;
+            const clickHandler = isFuture ? '' : `openBudgetModal('${category.id}', '${category.name}', ${monthNum})`;
+            html += `<td class="${cellClass}" onclick="${clickHandler}">`;
             html += budgetValue > 0 ? formatCurrency(budgetValue) : '<span class="empty-cell">0</span>';
             html += '</td>';
         });
 
         // Budget total
-        const budgetTotal = calculateBudgetYearTotal(section, category.name);
+        const budgetTotal = calculateBudgetYearTotal(category.id);
         const budgetTotalClass = budgetTotal > 0 ? 'total-column has-value' : 'total-column';
         html += `<td class="${budgetTotalClass}">${formatCurrency(budgetTotal)}</td>`;
         html += '</tr>';
@@ -367,22 +412,27 @@ function generateSectionRows(section, sectionCategories) {
         html += `<tr class="result-row section-tile-row">`;
         html += `<td class="subcategory-cell">Actuals</td>`;
 
+        const transactions = budgetData.transactions[category.id] || {};
+
         months.forEach((month, idx) => {
-            const transactions = yearData[section][category.name].result[month];
-            const resultTotal = calculateResultTotal(transactions);
-            const budgetValue = yearData[section][category.name].budget[month] || 0;
+            const monthNum = idx + 1;
+            const monthTransactions = transactions[monthNum] || [];
+            const resultTotal = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
+            const entry = entries[monthNum];
+            const budgetValue = entry ? entry.amount : 0;
             const isFuture = idx > currentMonth;
 
-            const colorClass = getResultColorClass(resultTotal, budgetValue, section, isFuture);
+            const colorClass = getResultColorClass(resultTotal, budgetValue, sectionType, isFuture);
+            const clickHandler = isFuture ? '' : `openTransactionModal('${category.id}', '${category.name}', ${monthNum})`;
 
-            html += `<td class="${colorClass}" onclick="${isFuture ? '' : `openTransactionModal('${section}', '${category.name}', '${month}')`}">`;
+            html += `<td class="${colorClass}" onclick="${clickHandler}">`;
             html += resultTotal > 0 ? formatCurrency(resultTotal) : '<span class="empty-cell">0</span>';
             html += '</td>';
         });
 
-        // Result total - apply same color logic
-        const resultYearTotal = calculateResultYearTotal(section, category.name);
-        const resultTotalColorClass = getTotalColorClass(resultYearTotal, budgetTotal, section);
+        // Result total
+        const resultYearTotal = calculateResultYearTotal(category.id);
+        const resultTotalColorClass = getTotalColorClass(resultYearTotal, budgetTotal, sectionType);
         html += `<td class="${resultTotalColorClass}">${formatCurrency(resultYearTotal)}</td>`;
         html += '</tr>';
     });
@@ -391,155 +441,134 @@ function generateSectionRows(section, sectionCategories) {
 }
 
 function getResultColorClass(result, budget, section, isFuture) {
-    if (isFuture) {
-        return 'result-future';
-    }
-
-    // No data - show yellow
-    if (result === 0) {
-        return 'result-no-data';
-    }
+    if (isFuture) return 'result-future';
+    if (result === 0) return 'result-no-data';
 
     if (section === 'expenses') {
-        // For expenses: lower or equal is better (green), higher is worse (red)
-        if (result <= budget) return 'result-better';
-        if (result > budget) return 'result-worse';
+        return result <= budget ? 'result-better' : 'result-worse';
     } else {
-        // For income: higher or equal is better (green), lower is worse (red)
-        if (result >= budget) return 'result-better';
-        if (result < budget) return 'result-worse';
+        return result >= budget ? 'result-better' : 'result-worse';
     }
 }
 
 function getTotalColorClass(result, budget, section) {
-    // Total column always has computed values
-    // If no actual results, show yellow
-    if (result === 0) {
-        return 'total-column result-no-data';
-    }
+    if (result === 0) return 'total-column result-no-data';
 
     if (section === 'expenses') {
-        // For expenses: lower or equal is better (green), higher is worse (red)
-        if (result <= budget) return 'total-column result-better';
-        if (result > budget) return 'total-column result-worse';
+        return result <= budget ? 'total-column result-better' : 'total-column result-worse';
     } else {
-        // For income: higher or equal is better (green), lower is worse (red)
-        if (result >= budget) return 'total-column result-better';
-        if (result < budget) return 'total-column result-worse';
+        return result >= budget ? 'total-column result-better' : 'total-column result-worse';
     }
 }
 
 function getBalanceColorClass(actualResult, budgetBalance) {
-    // White when no data to sum
-    if (actualResult === 0) {
-        return 'balance-white-cell';
-    }
-
-    // Follow income logic: higher or equal is better (green), lower is worse (red)
-    if (actualResult >= budgetBalance) return 'result-better';
-    if (actualResult < budgetBalance) return 'result-worse';
+    if (actualResult === 0) return 'balance-white-cell';
+    return actualResult >= budgetBalance ? 'result-better' : 'result-worse';
 }
 
 function getDifferenceColorClass(difference) {
-    // White when no data
-    if (difference === 0) {
-        return 'balance-white-cell';
+    if (difference === 0) return 'balance-white-cell';
+    return difference >= 0 ? 'result-better' : 'result-worse';
+}
+
+function calculateBudgetYearTotal(categoryId) {
+    const entries = budgetData.budget_entries[categoryId] || {};
+    let total = 0;
+    for (let month = 1; month <= 12; month++) {
+        const entry = entries[month];
+        total += entry ? entry.amount : 0;
     }
-
-    // Green if >= 0 (at budget or better), red if < 0 (worse than budget)
-    if (difference >= 0) return 'result-better';
-    return 'result-worse';
-}
-
-function calculateResultTotal(transactions) {
-    return transactions.reduce((sum, t) => sum + parseFloat(t.amount), 0);
-}
-
-function calculateBudgetYearTotal(section, category) {
-    const yearData = getCurrentYearData();
-    let total = 0;
-    months.forEach(month => {
-        total += yearData[section][category].budget[month] || 0;
-    });
     return total;
 }
 
-function calculateResultYearTotal(section, category) {
-    const yearData = getCurrentYearData();
+function calculateResultYearTotal(categoryId) {
+    const transactions = budgetData.transactions[categoryId] || {};
     let total = 0;
-    months.forEach(month => {
-        total += calculateResultTotal(yearData[section][category].result[month]);
-    });
+    for (let month = 1; month <= 12; month++) {
+        const monthTransactions = transactions[month] || [];
+        total += monthTransactions.reduce((sum, t) => sum + t.amount, 0);
+    }
     return total;
 }
 
-function formatCurrency(amount) {
-    return 'kr ' + Math.round(amount).toLocaleString('nb-NO');
-}
+// ==================== BUDGET MODAL FUNCTIONS ====================
 
-// Budget Modal Functions
-function openBudgetModal(section, category, month) {
-    currentCell = { section, category, month, type: 'budget' };
-    const yearData = getCurrentYearData();
+function openBudgetModal(categoryId, categoryName, month) {
+    currentCell = { categoryId, categoryName, month, type: 'budget' };
 
     const modal = new bootstrap.Modal(document.getElementById('budgetModal'));
     document.getElementById('budgetModalTitle').textContent =
-        `${category} - Budget - ${month}`;
+        `${categoryName} - Budget - ${months[month - 1]}`;
 
-    const currentValue = yearData[section][category].budget[month] || 0;
+    const entries = budgetData.budget_entries[categoryId] || {};
+    const entry = entries[month];
+    const currentValue = entry ? entry.amount : 0;
     document.getElementById('budgetAmount').value = currentValue;
 
     modal.show();
 
-    // Focus the input field
     setTimeout(() => {
         document.getElementById('budgetAmount').focus();
         document.getElementById('budgetAmount').select();
     }, 500);
 }
 
-function saveBudget() {
-    const amount = parseFloat(document.getElementById('budgetAmount').value) || 0;
-    const { section, category, month } = currentCell;
-    const yearData = getCurrentYearData();
+async function saveBudget() {
+    const amount = parseInt(document.getElementById('budgetAmount').value) || 0;
+    const { categoryId, month } = currentCell;
 
-    yearData[section][category].budget[month] = amount;
+    try {
+        showLoading('Saving budget...');
+        await saveBudgetEntry(categoryId, currentYear, month, amount);
 
-    // Close modal
-    bootstrap.Modal.getInstance(document.getElementById('budgetModal')).hide();
+        // Reload budget data
+        await loadBudgetData(currentYear);
 
-    // Refresh table
-    generateTable();
+        // Close modal
+        bootstrap.Modal.getInstance(document.getElementById('budgetModal')).hide();
+
+        // Refresh table
+        generateTable();
+        hideLoading();
+        showSuccess('Budget saved');
+    } catch (error) {
+        hideLoading();
+        // Error already shown by apiCall
+    }
 }
 
-// Transaction Modal Functions
-function openTransactionModal(section, category, month) {
-    currentCell = { section, category, month, type: 'result' };
+// ==================== TRANSACTION MODAL FUNCTIONS ====================
+
+async function openTransactionModal(categoryId, categoryName, month) {
+    currentCell = { categoryId, categoryName, month, type: 'result' };
 
     const modal = new bootstrap.Modal(document.getElementById('transactionModal'));
 
     // Set badges
-    document.getElementById('modalCategory').textContent = category;
-    document.getElementById('modalMonth').textContent = month;
+    document.getElementById('modalCategory').textContent = categoryName;
+    document.getElementById('modalMonth').textContent = months[month - 1];
 
-    displayTransactions();
+    await displayTransactions();
     modal.show();
 }
 
-function displayTransactions() {
-    const { section, category, month } = currentCell;
-    const yearData = getCurrentYearData();
-    const transactions = yearData[section][category].result[month];
+async function displayTransactions() {
+    const { categoryId, categoryName, month } = currentCell;
+    const transactions = budgetData.transactions[categoryId] || {};
+    const monthTransactions = transactions[month] || [];
 
     const listDiv = document.getElementById('transactionsList');
 
-    if (transactions.length === 0) {
+    if (monthTransactions.length === 0) {
         listDiv.innerHTML = '<div class="no-transactions"><i class="bi bi-inbox" style="font-size: 3rem;"></i><p>No transactions yet</p></div>';
         return;
     }
 
     let html = '';
-    transactions.forEach((t, index) => {
+    monthTransactions.forEach((t, index) => {
+        const payee = t.payee_id ? getPayeeById(t.payee_id) : null;
+        const payeeName = payee ? payee.name : '';
+
         html += `
             <div class="transaction-item">
                 <div class="d-flex justify-content-between align-items-start">
@@ -547,15 +576,15 @@ function displayTransactions() {
                         <div class="transaction-date">
                             <i class="bi bi-calendar3"></i> ${formatDate(t.date)}
                         </div>
-                        ${t.payee ? `<div class="transaction-payee"><i class="bi bi-person"></i> ${t.payee}</div>` : ''}
+                        ${payeeName ? `<div class="transaction-payee"><i class="bi bi-person"></i> ${payeeName}</div>` : ''}
                         <div class="transaction-amount">${formatCurrency(t.amount)}</div>
                         ${t.comment ? `<div class="transaction-comment">${t.comment}</div>` : ''}
                     </div>
                     <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-primary" onclick="editTransaction(${index})">
+                        <button class="btn btn-outline-primary" onclick="editTransaction('${t.id}')">
                             <i class="bi bi-pencil"></i>
                         </button>
-                        <button class="btn btn-outline-danger" onclick="deleteTransaction(${index})">
+                        <button class="btn btn-outline-danger" onclick="deleteTransaction('${t.id}')">
                             <i class="bi bi-trash"></i>
                         </button>
                     </div>
@@ -564,10 +593,13 @@ function displayTransactions() {
         `;
     });
 
-    // Add total
-    const total = calculateResultTotal(transactions);
-    const budget = yearData[section][category].budget[month] || 0;
-    const diff = section === 'expenses' ? budget - total : total - budget;
+    // Add summary
+    const total = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
+    const category = getCategoryById(categoryId);
+    const entries = budgetData.budget_entries[categoryId] || {};
+    const entry = entries[month];
+    const budget = entry ? entry.amount : 0;
+    const diff = category.type === 'expenses' ? budget - total : total - budget;
     const diffClass = diff >= 0 ? 'positive' : 'negative';
 
     html += `
@@ -583,31 +615,25 @@ function displayTransactions() {
     listDiv.innerHTML = html;
 }
 
-function formatDate(dateStr) {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('nb-NO', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
 function showAddTransactionForm() {
     currentTransactionIndex = null;
     document.getElementById('addTransactionTitle').textContent = 'Add transaction';
     document.getElementById('transactionForm').reset();
 
     // Set badges
-    document.getElementById('addModalCategory').textContent = currentCell.category;
-    document.getElementById('addModalMonth').textContent = currentCell.month;
+    document.getElementById('addModalCategory').textContent = currentCell.categoryName;
+    document.getElementById('addModalMonth').textContent = months[currentCell.month - 1];
 
-    // Set default date to current month of selected year
-    const monthIndex = months.indexOf(currentCell.month);
-    const defaultDate = new Date(currentYear, monthIndex, 1);
+    // Set default date
+    const defaultDate = new Date(currentYear, currentCell.month - 1, 1);
     document.getElementById('transactionDate').value = defaultDate.toISOString().split('T')[0];
 
-    // Reset and populate payee dropdown
+    // Reset payee dropdown
     if (payeeSelect) {
         payeeSelect.clear();
         payeeSelect.clearOptions();
         payees.forEach(payee => {
-            payeeSelect.addOption({value: payee, text: payee});
+            payeeSelect.addOption({value: payee.id, text: payee.name});
         });
     }
 
@@ -615,17 +641,20 @@ function showAddTransactionForm() {
     modal.show();
 }
 
-function editTransaction(index) {
-    currentTransactionIndex = index;
-    const { section, category, month } = currentCell;
-    const yearData = getCurrentYearData();
-    const transaction = yearData[section][category].result[month][index];
+async function editTransaction(transactionId) {
+    const { categoryId, month } = currentCell;
+    const transactions = budgetData.transactions[categoryId] || {};
+    const monthTransactions = transactions[month] || [];
+    const transaction = monthTransactions.find(t => t.id === transactionId);
 
+    if (!transaction) return;
+
+    currentTransactionIndex = transactionId;
     document.getElementById('addTransactionTitle').textContent = 'Edit transaction';
 
     // Set badges
-    document.getElementById('addModalCategory').textContent = category;
-    document.getElementById('addModalMonth').textContent = month;
+    document.getElementById('addModalCategory').textContent = currentCell.categoryName;
+    document.getElementById('addModalMonth').textContent = months[currentCell.month - 1];
 
     document.getElementById('transactionDate').value = transaction.date;
     document.getElementById('transactionAmount').value = transaction.amount;
@@ -636,10 +665,10 @@ function editTransaction(index) {
         payeeSelect.clear();
         payeeSelect.clearOptions();
         payees.forEach(payee => {
-            payeeSelect.addOption({value: payee, text: payee});
+            payeeSelect.addOption({value: payee.id, text: payee.name});
         });
-        if (transaction.payee) {
-            payeeSelect.setValue(transaction.payee);
+        if (transaction.payee_id) {
+            payeeSelect.setValue(transaction.payee_id);
         }
     }
 
@@ -651,23 +680,31 @@ function editTransaction(index) {
     modal.show();
 }
 
-function deleteTransaction(index) {
+async function deleteTransaction(transactionId) {
     if (!confirm('Are you sure you want to delete this transaction?')) {
         return;
     }
 
-    const { section, category, month } = currentCell;
-    const yearData = getCurrentYearData();
-    yearData[section][category].result[month].splice(index, 1);
+    try {
+        showLoading('Deleting transaction...');
+        await deleteTransactionApi(transactionId);
 
-    displayTransactions();
-    generateTable(); // Refresh table to update totals
+        // Reload budget data
+        await loadBudgetData(currentYear);
+
+        await displayTransactions();
+        generateTable();
+        hideLoading();
+        showSuccess('Transaction deleted');
+    } catch (error) {
+        hideLoading();
+    }
 }
 
-function saveTransaction() {
+async function saveTransaction() {
     const date = document.getElementById('transactionDate').value;
-    const amount = parseFloat(document.getElementById('transactionAmount').value);
-    const payee = payeeSelect ? payeeSelect.getValue() : '';
+    const amount = parseInt(document.getElementById('transactionAmount').value);
+    const payeeId = payeeSelect ? payeeSelect.getValue() : '';
     const comment = document.getElementById('transactionComment').value;
 
     if (!date || isNaN(amount)) {
@@ -675,88 +712,41 @@ function saveTransaction() {
         return;
     }
 
-    const transaction = { date, amount, payee, comment };
-    const { section, category, month } = currentCell;
-    const yearData = getCurrentYearData();
+    try {
+        showLoading('Saving transaction...');
 
-    if (currentTransactionIndex !== null) {
-        // Edit existing transaction
-        yearData[section][category].result[month][currentTransactionIndex] = transaction;
-    } else {
-        // Add new transaction
-        yearData[section][category].result[month].push(transaction);
-    }
-
-    // Update payees list if new payee was added
-    if (payee && !payees.includes(payee)) {
-        payees.push(payee);
-        payees.sort();
-    }
-
-    // Close add transaction modal
-    const addModal = bootstrap.Modal.getInstance(document.getElementById('addTransactionModal'));
-    addModal.hide();
-
-    // Clean up any stray backdrops
-    setTimeout(() => {
-        cleanupBackdrops();
-    }, 100);
-
-    // Refresh display
-    displayTransactions();
-    generateTable(); // Refresh table to update totals
-
-    // Reopen transaction list modal
-    setTimeout(() => {
-        const listModal = bootstrap.Modal.getInstance(document.getElementById('transactionModal'));
-        if (listModal) {
-            listModal.show();
+        if (currentTransactionIndex) {
+            // Edit existing
+            await updateTransaction(currentTransactionIndex, date, amount, payeeId, comment);
         } else {
-            const modal = new bootstrap.Modal(document.getElementById('transactionModal'));
-            modal.show();
+            // Create new
+            await createTransaction(currentCell.categoryId, date, amount, payeeId, comment);
         }
-    }, 350);
-}
 
-function saveData() {
-    const dataStr = JSON.stringify(budgetData, null, 2);
-    localStorage.setItem('budgetData', dataStr);
-    alert('Data saved!');
-}
+        // Reload budget data
+        await loadBudgetData(currentYear);
 
-function exportData() {
-    const dataStr = JSON.stringify(budgetData, null, 2);
-    const blob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'budget_2025.json';
-    a.click();
-}
+        // Close add modal
+        const addModal = bootstrap.Modal.getInstance(document.getElementById('addTransactionModal'));
+        addModal.hide();
 
-function loadData() {
-    const saved = localStorage.getItem('budgetData');
-    if (saved) {
-        budgetData = JSON.parse(saved);
-    }
-}
+        setTimeout(() => {
+            cleanupBackdrops();
+        }, 100);
 
-// Initialize Tom Select for payee field
-function initializePayeeSelect() {
-    const payeeElement = document.getElementById('transactionPayee');
-    if (payeeElement && !payeeSelect) {
-        payeeSelect = new TomSelect('#transactionPayee', {
-            create: true,
-            sortField: 'text',
-            placeholder: 'Select or add payee...',
-            maxOptions: 100,
-            onChange: function(value) {
-                // Add new payee to the list if not already there
-                if (value && !payees.includes(value)) {
-                    payees.push(value);
-                }
-            }
-        });
+        // Refresh display
+        await displayTransactions();
+        generateTable();
+        hideLoading();
+        showSuccess('Transaction saved');
+
+        // Reopen transaction list modal
+        setTimeout(() => {
+            const listModal = new bootstrap.Modal(document.getElementById('transactionModal'));
+            listModal.show();
+        }, 350);
+    } catch (error) {
+        hideLoading();
     }
 }
 
@@ -765,42 +755,26 @@ function initializePayeeSelect() {
 let currentEditingCategory = null;
 let currentEditingPayee = null;
 
-// Populate categories table
-function populateCategoriesTable() {
+async function populateCategoriesTable() {
     const tbody = document.querySelector('#categoriesTable tbody');
     if (!tbody) return;
 
     let html = '';
-
-    // Get all unique categories across income and expenses
-    const allCategories = [];
-
-    ['income', 'expenses'].forEach(section => {
-        categories[section].forEach(cat => {
-            const yearsUsed = getCategoryYearsUsed(section, cat.name);
-            allCategories.push({
-                name: cat.name,
-                type: section,
-                yearsUsed: yearsUsed,
-                hasData: yearsUsed.length > 0
-            });
-        });
-    });
 
     allCategories.forEach(cat => {
         const typeBadge = cat.type === 'income'
             ? '<span class="badge bg-success">Income</span>'
             : '<span class="badge bg-warning">Expenses</span>';
 
-        const yearsText = cat.yearsUsed.length > 0
-            ? cat.yearsUsed.join(', ')
+        const yearsText = cat.years_used && cat.years_used.length > 0
+            ? cat.years_used.join(', ')
             : '<span class="text-muted">Not used</span>';
 
-        const deleteBtn = cat.hasData
+        const deleteBtn = cat.has_data
             ? `<button class="btn btn-sm btn-outline-secondary" disabled title="Cannot delete - category is in use">
                 <i class="bi bi-trash"></i>
                </button>`
-            : `<button class="btn btn-sm btn-outline-danger" onclick="deleteCategory('${cat.type}', '${cat.name}')">
+            : `<button class="btn btn-sm btn-outline-danger" onclick="deleteCategory('${cat.id}')">
                 <i class="bi bi-trash"></i>
                </button>`;
 
@@ -810,7 +784,7 @@ function populateCategoriesTable() {
                 <td>${typeBadge}</td>
                 <td>${yearsText}</td>
                 <td class="text-end">
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editCategory('${cat.type}', '${cat.name}')">
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editCategory('${cat.id}', '${cat.name}', '${cat.type}')">
                         <i class="bi bi-pencil"></i>
                     </button>
                     ${deleteBtn}
@@ -822,68 +796,32 @@ function populateCategoriesTable() {
     tbody.innerHTML = html || '<tr><td colspan="4" class="text-center text-muted">No categories yet</td></tr>';
 }
 
-// Get years where category has data
-function getCategoryYearsUsed(section, categoryName) {
-    const yearsWithData = [];
-
-    availableYears.forEach(year => {
-        const yearData = budgetData[year];
-        if (!yearData || !yearData[section] || !yearData[section][categoryName]) return;
-
-        let hasData = false;
-
-        // Check if budget has non-zero values
-        months.forEach(month => {
-            if (yearData[section][categoryName].budget[month] > 0) {
-                hasData = true;
-            }
-        });
-
-        // Check if there are any transactions
-        months.forEach(month => {
-            if (yearData[section][categoryName].result[month].length > 0) {
-                hasData = true;
-            }
-        });
-
-        if (hasData) {
-            yearsWithData.push(year);
-        }
-    });
-
-    return yearsWithData;
-}
-
-// Populate payees table
-function populatePayeesTable() {
+async function populatePayeesTable() {
     const tbody = document.querySelector('#payeesTable tbody');
     if (!tbody) return;
 
     let html = '';
 
-    // Get payee statistics
-    const payeeStats = getPayeeStatistics();
-
-    payeeStats.forEach(stat => {
-        const lastUsedText = stat.lastUsed
-            ? new Date(stat.lastUsed).toLocaleDateString('nb-NO')
+    payees.forEach(payee => {
+        const lastUsedText = payee.last_used
+            ? new Date(payee.last_used).toLocaleDateString('nb-NO')
             : '<span class="text-muted">Never</span>';
 
-        const deleteBtn = stat.transactionCount > 0
-            ? `<button class="btn btn-sm btn-outline-secondary" disabled title="Cannot delete - payee is in use (${stat.transactionCount} transactions)">
+        const deleteBtn = payee.transaction_count > 0
+            ? `<button class="btn btn-sm btn-outline-secondary" disabled title="Cannot delete - payee is in use (${payee.transaction_count} transactions)">
                 <i class="bi bi-trash"></i>
                </button>`
-            : `<button class="btn btn-sm btn-outline-danger" onclick="deletePayee('${stat.name}')">
+            : `<button class="btn btn-sm btn-outline-danger" onclick="deletePayee('${payee.id}')">
                 <i class="bi bi-trash"></i>
                </button>`;
 
         html += `
-            <tr class="payee-row" data-payee="${stat.name.toLowerCase()}">
-                <td>${stat.name}</td>
-                <td>${stat.transactionCount}</td>
+            <tr class="payee-row" data-payee="${payee.name.toLowerCase()}">
+                <td>${payee.name}</td>
+                <td>${payee.transaction_count || 0}</td>
                 <td>${lastUsedText}</td>
                 <td class="text-end">
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editPayee('${stat.name}')">
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editPayee('${payee.id}', '${payee.name}', '${payee.type}')">
                         <i class="bi bi-pencil"></i>
                     </button>
                     ${deleteBtn}
@@ -895,77 +833,39 @@ function populatePayeesTable() {
     tbody.innerHTML = html || '<tr><td colspan="4" class="text-center text-muted">No payees yet</td></tr>';
 }
 
-// Get payee statistics across all years
-function getPayeeStatistics() {
-    const stats = {};
-
-    availableYears.forEach(year => {
-        const yearData = budgetData[year];
-        ['income', 'expenses'].forEach(section => {
-            Object.keys(yearData[section]).forEach(category => {
-                months.forEach(month => {
-                    const transactions = yearData[section][category].result[month];
-                    transactions.forEach(t => {
-                        if (t.payee) {
-                            if (!stats[t.payee]) {
-                                stats[t.payee] = {
-                                    name: t.payee,
-                                    transactionCount: 0,
-                                    lastUsed: null
-                                };
-                            }
-                            stats[t.payee].transactionCount++;
-                            if (!stats[t.payee].lastUsed || t.date > stats[t.payee].lastUsed) {
-                                stats[t.payee].lastUsed = t.date;
-                            }
-                        }
-                    });
-                });
-            });
-        });
-    });
-
-    return Object.values(stats).sort((a, b) => a.name.localeCompare(b.name));
-}
-
-// Filter payees based on search
 function filterPayees() {
     const searchTerm = document.getElementById('payeeSearch').value.toLowerCase();
     const rows = document.querySelectorAll('.payee-row');
 
     rows.forEach(row => {
         const payeeName = row.getAttribute('data-payee');
-        if (payeeName.includes(searchTerm)) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
+        row.style.display = payeeName.includes(searchTerm) ? '' : 'none';
     });
 }
 
-// Modal functions for categories
 function openAddCategoryModal() {
     currentEditingCategory = null;
     document.getElementById('categoryModalTitle').textContent = 'Add Category';
     document.getElementById('categoryName').value = '';
     document.getElementById('categoryType').value = '';
+    document.getElementById('categoryType').disabled = false;
 
     const modal = new bootstrap.Modal(document.getElementById('categoryModal'));
     modal.show();
 }
 
-function editCategory(type, name) {
-    currentEditingCategory = { type, name };
+function editCategory(id, name, type) {
+    currentEditingCategory = { id, name, type };
     document.getElementById('categoryModalTitle').textContent = 'Edit Category';
     document.getElementById('categoryName').value = name;
     document.getElementById('categoryType').value = type;
-    document.getElementById('categoryType').disabled = true; // Can't change type when editing
+    document.getElementById('categoryType').disabled = true;
 
     const modal = new bootstrap.Modal(document.getElementById('categoryModal'));
     modal.show();
 }
 
-function saveCategory() {
+async function saveCategory() {
     const name = document.getElementById('categoryName').value.trim();
     const type = document.getElementById('categoryType').value;
 
@@ -974,90 +874,57 @@ function saveCategory() {
         return;
     }
 
-    if (currentEditingCategory) {
-        // Editing existing category - rename it across all years
-        const oldName = currentEditingCategory.name;
+    try {
+        showLoading('Saving category...');
 
-        availableYears.forEach(year => {
-            const yearData = budgetData[year];
-            if (yearData[type][oldName]) {
-                yearData[type][name] = yearData[type][oldName];
-                if (name !== oldName) {
-                    delete yearData[type][oldName];
-                }
-            }
-        });
-
-        // Update in categories array
-        const catArray = categories[type];
-        const index = catArray.findIndex(c => c.name === oldName);
-        if (index !== -1) {
-            catArray[index].name = name;
-        }
-    } else {
-        // Adding new category
-        // Check if it already exists
-        if (categories[type].find(c => c.name === name)) {
-            alert('A category with this name already exists');
-            return;
+        if (currentEditingCategory) {
+            await updateCategory(currentEditingCategory.id, name);
+        } else {
+            await createCategory(name, type);
         }
 
-        // Add to categories array
-        categories[type].push({ name });
+        await loadCategories();
 
-        // Initialize in all years
-        availableYears.forEach(year => {
-            budgetData[year][type][name] = {
-                budget: {},
-                result: {}
-            };
-            months.forEach(month => {
-                budgetData[year][type][name].budget[month] = 0;
-                budgetData[year][type][name].result[month] = [];
-            });
-        });
-    }
+        document.getElementById('categoryType').disabled = false;
+        bootstrap.Modal.getInstance(document.getElementById('categoryModal')).hide();
+        await populateCategoriesTable();
+        hideLoading();
+        showSuccess('Category saved');
 
-    // Re-enable type dropdown
-    document.getElementById('categoryType').disabled = false;
-
-    // Close modal and refresh
-    bootstrap.Modal.getInstance(document.getElementById('categoryModal')).hide();
-    populateCategoriesTable();
-
-    // Refresh budget table if we're on that page
-    if (document.getElementById('budgetTable')) {
-        generateTable();
+        // Refresh budget table if on that page
+        if (document.getElementById('budgetTable')) {
+            await loadBudgetData(currentYear);
+            generateTable();
+        }
+    } catch (error) {
+        hideLoading();
     }
 }
 
-function deleteCategory(type, name) {
-    if (!confirm(`Are you sure you want to delete the category "${name}"?`)) {
+async function deleteCategory(categoryId) {
+    const category = allCategories.find(c => c.id === categoryId);
+    if (!confirm(`Are you sure you want to delete the category "${category.name}"?`)) {
         return;
     }
 
-    // Remove from categories array
-    const index = categories[type].findIndex(c => c.name === name);
-    if (index !== -1) {
-        categories[type].splice(index, 1);
-    }
+    try {
+        showLoading('Deleting category...');
+        await deleteCategoryApi(categoryId);
+        await loadCategories();
+        await populateCategoriesTable();
+        hideLoading();
+        showSuccess('Category deleted');
 
-    // Remove from all years
-    availableYears.forEach(year => {
-        if (budgetData[year][type][name]) {
-            delete budgetData[year][type][name];
+        // Refresh budget table if on that page
+        if (document.getElementById('budgetTable')) {
+            await loadBudgetData(currentYear);
+            generateTable();
         }
-    });
-
-    populateCategoriesTable();
-
-    // Refresh budget table if we're on that page
-    if (document.getElementById('budgetTable')) {
-        generateTable();
+    } catch (error) {
+        hideLoading();
     }
 }
 
-// Modal functions for payees
 function openAddPayeeModal() {
     currentEditingPayee = null;
     document.getElementById('payeeModalTitle').textContent = 'Add Payee';
@@ -1067,8 +934,8 @@ function openAddPayeeModal() {
     modal.show();
 }
 
-function editPayee(name) {
-    currentEditingPayee = name;
+function editPayee(id, name, type) {
+    currentEditingPayee = { id, name, type };
     document.getElementById('payeeModalTitle').textContent = 'Edit Payee';
     document.getElementById('payeeName').value = name;
 
@@ -1076,7 +943,7 @@ function editPayee(name) {
     modal.show();
 }
 
-function savePayee() {
+async function savePayee() {
     const name = document.getElementById('payeeName').value.trim();
 
     if (!name) {
@@ -1084,84 +951,62 @@ function savePayee() {
         return;
     }
 
-    if (currentEditingPayee) {
-        // Editing - rename across all transactions
-        const oldName = currentEditingPayee;
+    try {
+        showLoading('Saving payee...');
 
-        availableYears.forEach(year => {
-            const yearData = budgetData[year];
-            ['income', 'expenses'].forEach(section => {
-                Object.keys(yearData[section]).forEach(category => {
-                    months.forEach(month => {
-                        yearData[section][category].result[month].forEach(t => {
-                            if (t.payee === oldName) {
-                                t.payee = name;
-                            }
-                        });
-                    });
-                });
-            });
-        });
-
-        // Update in payees list
-        const index = payees.indexOf(oldName);
-        if (index !== -1) {
-            payees[index] = name;
-            payees.sort();
-        }
-    } else {
-        // Adding new payee
-        if (payees.includes(name)) {
-            alert('This payee already exists');
-            return;
+        if (currentEditingPayee) {
+            await updatePayee(currentEditingPayee.id, name, currentEditingPayee.type);
+        } else {
+            await createPayee(name, 'Actual');
         }
 
-        payees.push(name);
-        payees.sort();
+        await loadPayees();
+        bootstrap.Modal.getInstance(document.getElementById('payeeModal')).hide();
+        await populatePayeesTable();
+        hideLoading();
+        showSuccess('Payee saved');
+    } catch (error) {
+        hideLoading();
     }
-
-    bootstrap.Modal.getInstance(document.getElementById('payeeModal')).hide();
-    populatePayeesTable();
 }
 
-function deletePayee(name) {
-    if (!confirm(`Are you sure you want to delete the payee "${name}"?`)) {
+async function deletePayee(payeeId) {
+    const payee = payees.find(p => p.id === payeeId);
+    if (!confirm(`Are you sure you want to delete the payee "${payee.name}"?`)) {
         return;
     }
 
-    const index = payees.indexOf(name);
-    if (index !== -1) {
-        payees.splice(index, 1);
+    try {
+        showLoading('Deleting payee...');
+        await deletePayeeApi(payeeId);
+        await loadPayees();
+        await populatePayeesTable();
+        hideLoading();
+        showSuccess('Payee deleted');
+    } catch (error) {
+        hideLoading();
     }
-
-    populatePayeesTable();
 }
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-    // Only initialize if we're on the budget page
+// ==================== INITIALIZATION ====================
+
+function initializePayeeSelect() {
+    const payeeElement = document.getElementById('transactionPayee');
+    if (payeeElement && !payeeSelect) {
+        payeeSelect = new TomSelect('#transactionPayee', {
+            create: false,
+            sortField: 'text',
+            placeholder: 'Select payee...',
+            maxOptions: 100
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async function() {
+    // Initialize budget page
     if (document.getElementById('budgetTable')) {
-        initializeBudgetData();
-        // loadData(); // Uncomment to load from localStorage
-
-        // Populate year selector
-        populateYearSelector();
-
-        // Generate table for current year
-        generateTable();
-
-        // Initialize Tom Select for payee
+        await initializeBudgetPage();
         initializePayeeSelect();
-
-        // Handle modal close to refresh main modal
-        const addTransactionModal = document.getElementById('addTransactionModal');
-        if (addTransactionModal) {
-            addTransactionModal.addEventListener('hidden.bs.modal', function() {
-                if (currentCell) {
-                    displayTransactions();
-                }
-            });
-        }
 
         // Enter key support for budget modal
         const budgetAmount = document.getElementById('budgetAmount');
@@ -1175,13 +1020,268 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Initialize config page if present
+    // Initialize config page
     if (document.getElementById('categoriesTable')) {
-        // Initialize budget data if not already done
-        if (Object.keys(budgetData).length === 0) {
-            initializeBudgetData();
-        }
-        populateCategoriesTable();
-        populatePayeesTable();
+        showLoading('Loading configuration...');
+        await loadCategories();
+        await loadPayees();
+        await populateCategoriesTable();
+        await populatePayeesTable();
+        await loadDatabaseSettings();
+        await loadBudgetTemplates();
+        hideLoading();
     }
 });
+
+// ==================== DATABASE CONNECTION FUNCTIONS ====================
+
+async function loadDatabaseSettings() {
+    try {
+        const config = await apiCall('/api/config');
+
+        // Populate form fields
+        if (config.db_host) document.getElementById('dbHost').value = config.db_host;
+        if (config.db_port) document.getElementById('dbPort').value = config.db_port;
+        if (config.db_name) document.getElementById('dbName').value = config.db_name;
+        if (config.db_user) document.getElementById('dbUser').value = config.db_user;
+        if (config.db_pool_size) document.getElementById('dbPoolSize').value = config.db_pool_size;
+    } catch (error) {
+        console.error('Failed to load database settings:', error);
+    }
+}
+
+async function testDatabaseConnection() {
+    const statusEl = document.getElementById('connectionStatus');
+    statusEl.classList.remove('d-none', 'alert-success', 'alert-danger');
+
+    const data = {
+        host: document.getElementById('dbHost').value,
+        port: parseInt(document.getElementById('dbPort').value),
+        database: document.getElementById('dbName').value,
+        user: document.getElementById('dbUser').value,
+        password: document.getElementById('dbPassword').value
+    };
+
+    try {
+        showLoading('Testing connection...');
+        const result = await apiCall('/api/config/test-db-connection', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+
+        statusEl.classList.add('alert-success');
+        statusEl.innerHTML = '<i class="bi bi-check-circle me-2"></i>Connection successful!';
+        hideLoading();
+    } catch (error) {
+        statusEl.classList.add('alert-danger');
+        statusEl.innerHTML = '<i class="bi bi-x-circle me-2"></i>Connection failed: ' + error.message;
+        hideLoading();
+    }
+}
+
+async function saveDatabaseConnection() {
+    if (!confirm('Changing database settings requires an application restart. Continue?')) {
+        return;
+    }
+
+    const data = {
+        db_host: document.getElementById('dbHost').value,
+        db_port: document.getElementById('dbPort').value,
+        db_name: document.getElementById('dbName').value,
+        db_user: document.getElementById('dbUser').value,
+        db_pool_size: document.getElementById('dbPoolSize').value
+    };
+
+    const password = document.getElementById('dbPassword').value;
+    if (password) {
+        data.db_password = password;
+    }
+
+    try {
+        showLoading('Saving settings...');
+        await apiCall('/api/config', {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+
+        alert('Database settings saved. Please restart the application for changes to take effect.');
+        hideLoading();
+    } catch (error) {
+        hideLoading();
+    }
+}
+
+// ==================== BUDGET TEMPLATES FUNCTIONS ====================
+
+async function loadBudgetTemplates() {
+    try {
+        const years = await apiCall('/api/years');
+
+        if (years.length === 0) {
+            document.getElementById('noYearsMessage').style.display = 'block';
+            document.getElementById('budgetTemplatesAccordion').style.display = 'none';
+            return;
+        }
+
+        document.getElementById('noYearsMessage').style.display = 'none';
+        document.getElementById('budgetTemplatesAccordion').style.display = 'block';
+
+        // Load templates for each year
+        const accordion = document.getElementById('budgetTemplatesAccordion');
+        accordion.innerHTML = '';
+
+        for (const year of years) {
+            const template = await apiCall(`/api/budget-template/${year}`);
+            accordion.innerHTML += generateYearAccordionItem(year, template);
+        }
+    } catch (error) {
+        console.error('Failed to load budget templates:', error);
+    }
+}
+
+function generateYearAccordionItem(year, categories) {
+    const isFirst = document.getElementById('budgetTemplatesAccordion').children.length === 0;
+    const collapseId = `collapse${year}`;
+
+    let html = `
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button ${!isFirst ? 'collapsed' : ''}" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+                    <strong>${year}</strong>
+                    <span class="badge bg-primary ms-2">${categories.length} categories</span>
+                </button>
+            </h2>
+            <div id="${collapseId}" class="accordion-collapse collapse ${isFirst ? 'show' : ''}" data-bs-parent="#budgetTemplatesAccordion">
+                <div class="accordion-body">
+                    <div class="mb-3">
+                        <label class="form-label">Active Categories for ${year}</label>
+                        <div class="d-flex flex-wrap gap-2" id="categories${year}">
+    `;
+
+    categories.forEach(cat => {
+        html += `
+            <div class="badge bg-${cat.type === 'income' ? 'success' : 'warning'} d-flex align-items-center gap-2">
+                ${cat.name}
+                <button type="button" class="btn-close btn-close-white" style="font-size: 0.7rem;" onclick="removeCategoryFromYear(${year}, '${cat.id}')" ${cat.has_data ? 'disabled title="Cannot remove - has budget data"' : ''}></button>
+            </div>
+        `;
+    });
+
+    html += `
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="addCategory${year}" class="form-label">Add Category</label>
+                        <select class="form-select" id="addCategory${year}">
+                            <option value="">Select category to add...</option>
+    `;
+
+    // Add all categories not yet in this year
+    const activeIds = categories.map(c => c.id);
+    allCategories.forEach(cat => {
+        if (!activeIds.includes(cat.id)) {
+            html += `<option value="${cat.id}">${cat.name} (${cat.type})</option>`;
+        }
+    });
+
+    html += `
+                        </select>
+                        <button type="button" class="btn btn-sm btn-primary mt-2" onclick="addCategoryToYear(${year})">
+                            <i class="bi bi-plus-circle me-1"></i>Add
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    return html;
+}
+
+function openAddYearModal() {
+    const currentYear = new Date().getFullYear();
+    document.getElementById('newYear').value = currentYear + 1;
+
+    const modal = new bootstrap.Modal(document.getElementById('addYearModal'));
+    modal.show();
+}
+
+async function saveNewYear() {
+    const year = parseInt(document.getElementById('newYear').value);
+    const copyFromPrevious = document.getElementById('copyFromPreviousYear').checked;
+
+    if (!year || year < 2020 || year > 2100) {
+        alert('Please enter a valid year between 2020 and 2100');
+        return;
+    }
+
+    try {
+        showLoading('Creating year...');
+
+        if (copyFromPrevious) {
+            // Get most recent year
+            const years = await apiCall('/api/years');
+            if (years.length > 0) {
+                const fromYear = Math.max(...years);
+                await apiCall('/api/budget-template/copy', {
+                    method: 'POST',
+                    body: JSON.stringify({ from_year: fromYear, to_year: year })
+                });
+            }
+        }
+
+        // Reload templates
+        await loadBudgetTemplates();
+
+        bootstrap.Modal.getInstance(document.getElementById('addYearModal')).hide();
+        hideLoading();
+        showSuccess(`Year ${year} created`);
+    } catch (error) {
+        hideLoading();
+    }
+}
+
+async function addCategoryToYear(year) {
+    const selectId = `addCategory${year}`;
+    const categoryId = document.getElementById(selectId).value;
+
+    if (!categoryId) {
+        alert('Please select a category');
+        return;
+    }
+
+    try {
+        showLoading('Adding category...');
+        await apiCall('/api/budget-template', {
+            method: 'POST',
+            body: JSON.stringify({ year: year, category_id: categoryId })
+        });
+
+        await loadBudgetTemplates();
+        hideLoading();
+        showSuccess('Category added to year');
+    } catch (error) {
+        hideLoading();
+    }
+}
+
+async function removeCategoryFromYear(year, categoryId) {
+    const category = allCategories.find(c => c.id === categoryId);
+
+    if (!confirm(`Remove "${category.name}" from ${year}? This is only possible if no budget data exists for this category in ${year}.`)) {
+        return;
+    }
+
+    try {
+        showLoading('Removing category...');
+        await apiCall(`/api/budget-template/${year}/${categoryId}`, {
+            method: 'DELETE'
+        });
+
+        await loadBudgetTemplates();
+        hideLoading();
+        showSuccess('Category removed from year');
+    } catch (error) {
+        hideLoading();
+    }
+}

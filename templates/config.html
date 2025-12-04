@@ -79,6 +79,86 @@
                 </div>
             </div>
         </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-database me-2"></i>Database Connection</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">Configure MariaDB database connection settings.</p>
+
+                <div class="alert alert-warning" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Note:</strong> Changing these settings requires application restart.
+                </div>
+
+                <div id="connectionStatus" class="alert d-none" role="alert"></div>
+
+                <form id="dbConnectionForm">
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="dbHost" class="form-label">Database Host</label>
+                            <input type="text" class="form-control" id="dbHost" placeholder="localhost or mariadb" value="localhost">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="dbPort" class="form-label">Port</label>
+                            <input type="number" class="form-control" id="dbPort" value="3306">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="dbName" class="form-label">Database Name</label>
+                        <input type="text" class="form-control" id="dbName" value="moneybags">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="dbUser" class="form-label">Database User</label>
+                        <input type="text" class="form-control" id="dbUser" value="moneybags_user">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="dbPassword" class="form-label">Database Password</label>
+                        <input type="password" class="form-control" id="dbPassword" placeholder="Enter password">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="dbPoolSize" class="form-label">Connection Pool Size</label>
+                        <input type="number" class="form-control" id="dbPoolSize" value="10" min="1" max="50">
+                        <div class="form-text">Number of connections to maintain in pool (default: 10)</div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-primary" onclick="testDatabaseConnection()">
+                            <i class="bi bi-check-circle me-1"></i>Test Connection
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="saveDatabaseConnection()">
+                            <i class="bi bi-save me-1"></i>Save Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-calendar-range me-2"></i>Budget Templates by Year</h5>
+                <button class="btn btn-sm btn-success" onclick="openAddYearModal()">
+                    <i class="bi bi-plus-circle me-1"></i>Add New Year
+                </button>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">Manage which categories are active for each year's budget. Only active categories appear in the budget table for that year.</p>
+
+                <div class="accordion" id="budgetTemplatesAccordion">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+
+                <div id="noYearsMessage" class="text-center text-muted py-5" style="display: none;">
+                    <i class="bi bi-calendar-x" style="font-size: 3rem;"></i>
+                    <p class="mt-3">No budget template years configured yet.<br>Click "Add New Year" to get started.</p>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -133,6 +213,39 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" onclick="savePayee()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Year Modal -->
+<div class="modal fade" id="addYearModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Budget Year</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addYearForm">
+                    <div class="mb-3">
+                        <label for="newYear" class="form-label">Year</label>
+                        <input type="number" class="form-control" id="newYear" min="2020" max="2100" required>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="copyFromPreviousYear" checked>
+                            <label class="form-check-label" for="copyFromPreviousYear">
+                                Copy categories from previous year
+                            </label>
+                        </div>
+                        <div class="form-text">If checked, all categories from the most recent year will be copied to the new year</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="saveNewYear()">Create Year</button>
             </div>
         </div>
     </div>

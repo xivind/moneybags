@@ -1184,7 +1184,6 @@ def decrypt_value(encrypted: str) -> str:
 ### Phase 1: Database Setup
 - [ ] Implement `database_manager.py` initialization functions
 - [ ] Implement connection pooling
-- [ ] Test database connection
 - [ ] Create tables
 - [ ] Add seed data (initial categories, config)
 
@@ -1223,6 +1222,7 @@ def decrypt_value(encrypted: str) -> str:
 
 ### Phase 6: Testing & Deployment - ASK FOR CONFIRMATION BEFORE ENTERING THIS PART
 - [ ] Unit tests for business_logic functions
+- [ ] Test database connection
 - [ ] Integration tests for API routes
 - [ ] Test all CRUD operations end-to-end
 - [ ] Database migration scripts

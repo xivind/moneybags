@@ -7,6 +7,9 @@ __pycache__/
 .venv/
 venv/
 ENV/
+bin/
+include/
+pyvenv.cfg
 
 # Environment variables
 .env
