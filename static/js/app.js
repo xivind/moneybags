@@ -704,7 +704,7 @@ async function deleteTransaction(transactionId) {
 async function saveTransaction() {
     const date = document.getElementById('transactionDate').value;
     const amount = parseInt(document.getElementById('transactionAmount').value);
-    const payeeId = payeeSelect ? payeeSelect.getValue() : '';
+    let payeeValue = payeeSelect ? payeeSelect.getValue() : '';
     const comment = document.getElementById('transactionComment').value;
 
     if (!date || isNaN(amount)) {
@@ -714,6 +714,24 @@ async function saveTransaction() {
 
     try {
         showLoading('Saving transaction...');
+
+        // Check if payee is a new value (not an existing ID)
+        let payeeId = payeeValue;
+        if (payeeValue && !payees.find(p => p.id === payeeValue)) {
+            // Create new payee
+            const newPayee = await apiCall('/api/payee', {
+                method: 'POST',
+                body: JSON.stringify({
+                    name: payeeValue,
+                    type: 'Actual'
+                })
+            });
+            payeeId = newPayee.id;
+
+            // Reload payees list
+            await loadPayees();
+            updatePayeeSelect();
+        }
 
         if (currentTransactionIndex) {
             // Edit existing
@@ -994,10 +1012,15 @@ function initializePayeeSelect() {
     const payeeElement = document.getElementById('transactionPayee');
     if (payeeElement && !payeeSelect) {
         payeeSelect = new TomSelect('#transactionPayee', {
-            create: false,
+            create: true,
+            createOnBlur: true,
             sortField: 'text',
-            placeholder: 'Select payee...',
-            maxOptions: 100
+            placeholder: 'Select or type new payee...',
+            maxOptions: 100,
+            createFilter: function(input) {
+                // Allow creating new payees (any non-empty string)
+                return input.length > 0;
+            }
         });
     }
 }

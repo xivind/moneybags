@@ -584,21 +584,31 @@ def get_budget_data_for_year(year: int) -> dict:
         # Get categories for this year
         categories = get_budget_template(year)
 
-        # Get budget entries
+        # Get budget entries - organized by category and month
         budget_entries = db.get_budget_entries_by_year(year)
         budget_dict = {}
         for entry in budget_entries:
-            key = f"{entry.category_id}_{entry.month}"
-            budget_dict[key] = entry.amount
+            if entry.category_id not in budget_dict:
+                budget_dict[entry.category_id] = {}
+            budget_dict[entry.category_id][entry.month] = {
+                'amount': entry.amount,
+                'id': entry.id
+            }
 
-        # Get transactions
+        # Get transactions - organized by category and month (nested structure)
         transactions = db.get_transactions_by_year(year)
-        transactions_list = []
+        transactions_dict = {}
         for t in transactions:
-            transactions_list.append({
+            month = t.date.month
+            if t.category_id not in transactions_dict:
+                transactions_dict[t.category_id] = {}
+            if month not in transactions_dict[t.category_id]:
+                transactions_dict[t.category_id][month] = []
+            transactions_dict[t.category_id][month].append({
                 'id': t.id,
                 'category_id': t.category_id,
                 'payee_id': t.payee_id if t.payee_id else None,
+                'payee_name': t.payee_id.name if t.payee_id else None,
                 'date': str(t.date),
                 'amount': t.amount,
                 'comment': t.comment
@@ -608,7 +618,7 @@ def get_budget_data_for_year(year: int) -> dict:
             'year': year,
             'categories': categories,
             'budget_entries': budget_dict,
-            'transactions': transactions_list
+            'transactions': transactions_dict
         }
     except Exception as e:
         logger.error(f"Failed to get budget data for year: {e}")
