@@ -384,3 +384,122 @@ body {
 .has-transactions {
     font-weight: 600;
 }
+
+/* Custom badge colors matching budget page gradients */
+.badge-income {
+    background-color: #059669 !important;
+    color: white !important;
+}
+
+.badge-expense {
+    background-color: #d97706 !important;
+    color: white !important;
+}
+
+/* ==================== TOAST NOTIFICATIONS ==================== */
+.toast-container {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 350px;
+}
+
+.toast-notification {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    animation: fadeIn 0.3s ease-out;
+    border-left: 4px solid #059669;
+}
+
+.toast-notification.toast-loading {
+    border-left-color: #3b82f6;
+}
+
+.toast-notification.toast-error {
+    border-left-color: #dc2626;
+}
+
+.toast-message {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1f2937;
+    margin: 0;
+    padding-right: 24px;
+}
+
+.toast-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 4px 8px;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.toast-close:hover {
+    color: #1f2937;
+}
+
+.toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background-color: #059669;
+    width: 100%;
+    animation: progressBar 3s linear forwards;
+}
+
+.toast-notification.toast-loading .toast-progress {
+    background-color: #3b82f6;
+    animation: none;
+    width: 100%;
+}
+
+.toast-notification.toast-error .toast-progress {
+    background-color: #dc2626;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes progressBar {
+    from {
+        width: 100%;
+    }
+    to {
+        width: 0%;
+    }
+}
+
+.toast-notification.toast-removing {
+    animation: fadeOut 0.3s ease-in forwards;
+}

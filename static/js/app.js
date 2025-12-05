@@ -62,7 +62,13 @@ async function loadCategories() {
 
 async function loadPayees() {
     const payeeData = await apiCall('/api/payees');
-    payees = payeeData.map(p => ({ id: p.id, name: p.name, type: p.type }));
+    payees = payeeData.map(p => ({
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        transaction_count: p.transaction_count,
+        last_used: p.last_used
+    }));
 }
 
 async function loadAvailableYears() {
@@ -165,21 +171,110 @@ async function deletePayeeApi(payeeId) {
 
 // ==================== UTILITY FUNCTIONS ====================
 
+let currentLoadingToast = null;
+
 function showLoading(message = 'Loading...') {
-    // Could show a loading spinner or toast
-    console.log(message);
+    // Show loading toast (doesn't auto-dismiss)
+    currentLoadingToast = showToast(message, 'loading');
 }
 
 function hideLoading() {
-    // Hide loading spinner
+    // Hide the loading toast
+    if (currentLoadingToast) {
+        removeToast(currentLoadingToast);
+        currentLoadingToast = null;
+    }
 }
 
 function showError(message) {
-    alert('Error: ' + message);
+    // Show error modal instead of alert
+    showErrorModal(message);
 }
 
 function showSuccess(message) {
-    console.log('Success:', message);
+    // Show success toast
+    showToast(message, 'success');
+}
+
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toastContainer');
+
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast-notification toast-${type}`;
+
+    toast.innerHTML = `
+        <p class="toast-message">${message}</p>
+        <button class="toast-close" onclick="removeToast(this.parentElement)">&times;</button>
+        <div class="toast-progress"></div>
+    `;
+
+    container.appendChild(toast);
+
+    // Auto-dismiss after 3 seconds (only for success/error, not loading)
+    if (type !== 'loading') {
+        setTimeout(() => {
+            removeToast(toast);
+        }, 3000);
+    }
+
+    return toast;
+}
+
+function removeToast(toast) {
+    if (!toast || !toast.parentElement) return;
+
+    toast.classList.add('toast-removing');
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.parentElement.removeChild(toast);
+        }
+    }, 300);
+}
+
+function showErrorModal(message) {
+    document.getElementById('errorModalMessage').textContent = message;
+    const modal = new bootstrap.Modal(document.getElementById('errorModal'));
+    modal.show();
+}
+
+function showConfirmModal(title, message, confirmText = 'Confirm') {
+    return new Promise((resolve) => {
+        document.getElementById('confirmModalTitle').textContent = title;
+        document.getElementById('confirmModalMessage').textContent = message;
+        document.getElementById('confirmActionBtn').textContent = confirmText;
+
+        const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+        const confirmBtn = document.getElementById('confirmActionBtn');
+        const cancelBtn = document.getElementById('confirmCancelBtn');
+
+        // Remove any existing event listeners by cloning buttons
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        const newCancelBtn = cancelBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+        // Add new event listeners
+        newConfirmBtn.addEventListener('click', () => {
+            modal.hide();
+            resolve(true);
+        });
+
+        newCancelBtn.addEventListener('click', () => {
+            modal.hide();
+            resolve(false);
+        });
+
+        // Handle modal close (X button or backdrop)
+        const modalElement = document.getElementById('confirmModal');
+        const handleClose = () => {
+            resolve(false);
+            modalElement.removeEventListener('hidden.bs.modal', handleClose);
+        };
+        modalElement.addEventListener('hidden.bs.modal', handleClose);
+
+        modal.show();
+    });
 }
 
 function formatCurrency(amount) {
@@ -231,7 +326,11 @@ function populateYearSelector() {
     if (!selector) return;
 
     selector.innerHTML = '';
-    availableYears.forEach(year => {
+
+    // Sort years in descending order (most recent on top)
+    const sortedYears = [...availableYears].sort((a, b) => b - a);
+
+    sortedYears.forEach(year => {
         const option = document.createElement('option');
         option.value = year;
         option.textContent = year;
@@ -624,9 +723,11 @@ function showAddTransactionForm() {
     document.getElementById('addModalCategory').textContent = currentCell.categoryName;
     document.getElementById('addModalMonth').textContent = months[currentCell.month - 1];
 
-    // Set default date
-    const defaultDate = new Date(currentYear, currentCell.month - 1, 1);
-    document.getElementById('transactionDate').value = defaultDate.toISOString().split('T')[0];
+    // Set default date to 1st of the selected month (avoid timezone issues with toISOString)
+    const year = currentYear;
+    const month = String(currentCell.month).padStart(2, '0');
+    const day = '01';
+    document.getElementById('transactionDate').value = `${year}-${month}-${day}`;
 
     // Reset payee dropdown
     if (payeeSelect) {
@@ -681,7 +782,12 @@ async function editTransaction(transactionId) {
 }
 
 async function deleteTransaction(transactionId) {
-    if (!confirm('Are you sure you want to delete this transaction?')) {
+    const confirmed = await showConfirmModal(
+        'Delete Transaction',
+        'Are you sure you want to delete this transaction?',
+        'Delete'
+    );
+    if (!confirmed) {
         return;
     }
 
@@ -702,22 +808,34 @@ async function deleteTransaction(transactionId) {
 }
 
 async function saveTransaction() {
+    // Force TomSelect to create option from typed input before getting value
+    // This prevents the double-click issue when user types a new payee
+    if (payeeSelect) {
+        payeeSelect.blur();
+        // Give TomSelect a moment to process the blur and create the option
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
     const date = document.getElementById('transactionDate').value;
     const amount = parseInt(document.getElementById('transactionAmount').value);
     let payeeValue = payeeSelect ? payeeSelect.getValue() : '';
     const comment = document.getElementById('transactionComment').value;
 
     if (!date || isNaN(amount)) {
-        alert('Please fill in all required fields');
+        showErrorModal('Please fill in all required fields');
         return;
     }
 
     try {
         showLoading('Saving transaction...');
 
-        // Check if payee is a new value (not an existing ID)
+        // Check if payee is a new value (not an existing ID or name)
         let payeeId = payeeValue;
-        if (payeeValue && !payees.find(p => p.id === payeeValue)) {
+        const existingPayee = payees.find(p =>
+            p.id === payeeValue || p.name.toLowerCase() === payeeValue.toLowerCase()
+        );
+
+        if (payeeValue && !existingPayee) {
             // Create new payee
             const newPayee = await apiCall('/api/payee', {
                 method: 'POST',
@@ -731,6 +849,9 @@ async function saveTransaction() {
             // Reload payees list
             await loadPayees();
             updatePayeeSelect();
+        } else if (existingPayee && existingPayee.name.toLowerCase() === payeeValue.toLowerCase()) {
+            // User typed existing payee name - use existing payee's ID
+            payeeId = existingPayee.id;
         }
 
         if (currentTransactionIndex) {
@@ -747,10 +868,6 @@ async function saveTransaction() {
         // Close add modal
         const addModal = bootstrap.Modal.getInstance(document.getElementById('addTransactionModal'));
         addModal.hide();
-
-        setTimeout(() => {
-            cleanupBackdrops();
-        }, 100);
 
         // Refresh display
         await displayTransactions();
@@ -779,10 +896,13 @@ async function populateCategoriesTable() {
 
     let html = '';
 
-    allCategories.forEach(cat => {
+    // Sort categories alphabetically by name
+    const sortedCategories = [...allCategories].sort((a, b) => a.name.localeCompare(b.name));
+
+    sortedCategories.forEach(cat => {
         const typeBadge = cat.type === 'income'
-            ? '<span class="badge bg-success">Income</span>'
-            : '<span class="badge bg-warning">Expenses</span>';
+            ? '<span class="badge badge-income">Income</span>'
+            : '<span class="badge badge-expense">Expenses</span>';
 
         const yearsText = cat.years_used && cat.years_used.length > 0
             ? cat.years_used.join(', ')
@@ -820,7 +940,10 @@ async function populatePayeesTable() {
 
     let html = '';
 
-    payees.forEach(payee => {
+    // Sort payees alphabetically by name
+    const sortedPayees = [...payees].sort((a, b) => a.name.localeCompare(b.name));
+
+    sortedPayees.forEach(payee => {
         const lastUsedText = payee.last_used
             ? new Date(payee.last_used).toLocaleDateString('nb-NO')
             : '<span class="text-muted">Never</span>';
@@ -888,7 +1011,7 @@ async function saveCategory() {
     const type = document.getElementById('categoryType').value;
 
     if (!name || !type) {
-        alert('Please fill in all fields');
+        showErrorModal('Please fill in all fields');
         return;
     }
 
@@ -921,7 +1044,12 @@ async function saveCategory() {
 
 async function deleteCategory(categoryId) {
     const category = allCategories.find(c => c.id === categoryId);
-    if (!confirm(`Are you sure you want to delete the category "${category.name}"?`)) {
+    const confirmed = await showConfirmModal(
+        'Delete Category',
+        `Are you sure you want to delete the category "${category.name}"?`,
+        'Delete'
+    );
+    if (!confirmed) {
         return;
     }
 
@@ -965,7 +1093,7 @@ async function savePayee() {
     const name = document.getElementById('payeeName').value.trim();
 
     if (!name) {
-        alert('Please enter a payee name');
+        showErrorModal('Please enter a payee name');
         return;
     }
 
@@ -990,7 +1118,12 @@ async function savePayee() {
 
 async function deletePayee(payeeId) {
     const payee = payees.find(p => p.id === payeeId);
-    if (!confirm(`Are you sure you want to delete the payee "${payee.name}"?`)) {
+    const confirmed = await showConfirmModal(
+        'Delete Payee',
+        `Are you sure you want to delete the payee "${payee.name}"?`,
+        'Delete'
+    );
+    if (!confirmed) {
         return;
     }
 
@@ -1026,6 +1159,11 @@ function initializePayeeSelect() {
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
+    // Global modal cleanup on hide - ensures scroll is always restored
+    document.addEventListener('hidden.bs.modal', function() {
+        cleanupBackdrops();
+    });
+
     // Initialize budget page
     if (document.getElementById('budgetTable')) {
         await initializeBudgetPage();
@@ -1103,7 +1241,12 @@ async function testDatabaseConnection() {
 }
 
 async function saveDatabaseConnection() {
-    if (!confirm('Changing database settings requires an application restart. Continue?')) {
+    const confirmed = await showConfirmModal(
+        'Restart Required',
+        'Changing database settings requires an application restart. Continue?',
+        'Continue'
+    );
+    if (!confirmed) {
         return;
     }
 
@@ -1127,8 +1270,8 @@ async function saveDatabaseConnection() {
             body: JSON.stringify(data)
         });
 
-        alert('Database settings saved. Please restart the application for changes to take effect.');
         hideLoading();
+        showToast('Database settings saved. Please restart the application for changes to take effect.', 'success');
     } catch (error) {
         hideLoading();
     }
@@ -1149,11 +1292,14 @@ async function loadBudgetTemplates() {
         document.getElementById('noYearsMessage').style.display = 'none';
         document.getElementById('budgetTemplatesAccordion').style.display = 'block';
 
+        // Sort years in descending order (most recent on top)
+        const sortedYears = [...years].sort((a, b) => b - a);
+
         // Load templates for each year
         const accordion = document.getElementById('budgetTemplatesAccordion');
         accordion.innerHTML = '';
 
-        for (const year of years) {
+        for (const year of sortedYears) {
             const template = await apiCall(`/api/budget-template/${year}`);
             accordion.innerHTML += generateYearAccordionItem(year, template);
         }
@@ -1163,18 +1309,19 @@ async function loadBudgetTemplates() {
 }
 
 function generateYearAccordionItem(year, categories) {
-    const isFirst = document.getElementById('budgetTemplatesAccordion').children.length === 0;
+    const thisYear = new Date().getFullYear();
+    const isCurrentYear = year === thisYear;
     const collapseId = `collapse${year}`;
 
     let html = `
         <div class="accordion-item">
             <h2 class="accordion-header">
-                <button class="accordion-button ${!isFirst ? 'collapsed' : ''}" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+                <button class="accordion-button ${!isCurrentYear ? 'collapsed' : ''}" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
                     <strong>${year}</strong>
                     <span class="badge bg-primary ms-2">${categories.length} categories</span>
                 </button>
             </h2>
-            <div id="${collapseId}" class="accordion-collapse collapse ${isFirst ? 'show' : ''}" data-bs-parent="#budgetTemplatesAccordion">
+            <div id="${collapseId}" class="accordion-collapse collapse ${isCurrentYear ? 'show' : ''}" data-bs-parent="#budgetTemplatesAccordion">
                 <div class="accordion-body">
                     <div class="mb-3">
                         <label class="form-label">Active Categories for ${year}</label>
@@ -1183,7 +1330,7 @@ function generateYearAccordionItem(year, categories) {
 
     categories.forEach(cat => {
         html += `
-            <div class="badge bg-${cat.type === 'income' ? 'success' : 'warning'} d-flex align-items-center gap-2">
+            <div class="badge badge-${cat.type === 'income' ? 'income' : 'expense'} d-flex align-items-center gap-2">
                 ${cat.name}
                 <button type="button" class="btn-close btn-close-white" style="font-size: 0.7rem;" onclick="removeCategoryFromYear(${year}, '${cat.id}')" ${cat.has_data ? 'disabled title="Cannot remove - has budget data"' : ''}></button>
             </div>
@@ -1234,7 +1381,7 @@ async function saveNewYear() {
     const copyFromPrevious = document.getElementById('copyFromPreviousYear').checked;
 
     if (!year || year < 2020 || year > 2100) {
-        alert('Please enter a valid year between 2020 and 2100');
+        showErrorModal('Please enter a valid year between 2020 and 2100');
         return;
     }
 
@@ -1269,7 +1416,7 @@ async function addCategoryToYear(year) {
     const categoryId = document.getElementById(selectId).value;
 
     if (!categoryId) {
-        alert('Please select a category');
+        showErrorModal('Please select a category');
         return;
     }
 
@@ -1291,7 +1438,12 @@ async function addCategoryToYear(year) {
 async function removeCategoryFromYear(year, categoryId) {
     const category = allCategories.find(c => c.id === categoryId);
 
-    if (!confirm(`Remove "${category.name}" from ${year}? This is only possible if no budget data exists for this category in ${year}.`)) {
+    const confirmed = await showConfirmModal(
+        'Remove Category',
+        `Remove "${category.name}" from ${year}? This is only possible if no budget data exists for this category in ${year}.`,
+        'Remove'
+    );
+    if (!confirmed) {
         return;
     }
 
