@@ -15,6 +15,9 @@ pyvenv.cfg
 .env
 .envrc
 
+# Database configuration (contains credentials)
+db_config.json
+
 # Testing
 .pytest_cache/
 .coverage

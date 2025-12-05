@@ -12,14 +12,11 @@ See BACKEND_IMPLEMENTATION.md for complete documentation.
 
 import logging
 import os
+import json
 from datetime import datetime
 from typing import Optional
-from dotenv import load_dotenv
 from utils import generate_uid, empty_to_none, validate_date_format, validate_month, validate_year
 import database_manager as db
-
-# Load environment variables from .env file
-load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -29,19 +26,70 @@ _config_cache = {}
 _cache_timestamp = None
 CACHE_TIMEOUT = 300  # 5 minutes
 
+# Database configuration state
+DATABASE_CONFIGURED = False
+DB_CONFIG_FILE = "db_config.json"
+
 
 # ==================== INITIALIZATION ====================
 
+def load_database_config() -> dict:
+    """
+    Load database configuration from db_config.json file.
+
+    Returns:
+        dict: Database configuration with keys: db_host, db_port, db_name, db_user, db_password, db_pool_size
+        None if file doesn't exist
+    """
+    if not os.path.exists(DB_CONFIG_FILE):
+        return None
+
+    try:
+        with open(DB_CONFIG_FILE, 'r') as f:
+            config = json.load(f)
+            logger.info("Database configuration loaded from db_config.json")
+            return config
+    except Exception as e:
+        logger.error(f"Failed to read db_config.json: {e}")
+        return None
+
+
+def save_database_config(config: dict) -> None:
+    """
+    Save database configuration to db_config.json file.
+
+    Args:
+        config: Dictionary with keys: db_host, db_port, db_name, db_user, db_password, db_pool_size
+    """
+    try:
+        with open(DB_CONFIG_FILE, 'w') as f:
+            json.dump(config, f, indent=2)
+        logger.info("Database configuration saved to db_config.json")
+    except Exception as e:
+        logger.error(f"Failed to write db_config.json: {e}")
+        raise ValueError(f"Failed to save database configuration: {e}")
+
+
 def initialize_database():
     """Initialize database connection and create tables if needed."""
+    global DATABASE_CONFIGURED
+
     try:
-        # Load connection settings from environment variables or use defaults
-        host = os.getenv('DB_HOST', 'localhost')
-        port = int(os.getenv('DB_PORT', '3306'))
-        database = os.getenv('DB_NAME', 'moneybags')
-        user = os.getenv('DB_USER', 'moneybags_user')
-        password = os.getenv('DB_PASSWORD', 'moneybags_pass')
-        pool_size = int(os.getenv('DB_POOL_SIZE', '10'))
+        # Load connection settings from db_config.json
+        config = load_database_config()
+
+        if config is None:
+            logger.warning("Database not configured - db_config.json not found")
+            DATABASE_CONFIGURED = False
+            return
+
+        # Extract connection parameters
+        host = config.get('db_host', 'localhost')
+        port = int(config.get('db_port', 3306))
+        database = config.get('db_name', 'moneybags')
+        user = config.get('db_user', 'moneybags_user')
+        password = config.get('db_password', 'moneybags_pass')
+        pool_size = int(config.get('db_pool_size', 10))
 
         logger.info(f"Connecting to database: {host}:{port}/{database}")
 
@@ -55,6 +103,7 @@ def initialize_database():
         )
         db.create_tables_if_not_exist()
         logger.info("Database initialized successfully")
+        DATABASE_CONFIGURED = True
 
         # Seed initial data if not already seeded
         try:
@@ -78,7 +127,8 @@ def initialize_database():
             logger.info("Database seeded with initial data")
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}")
-        raise
+        DATABASE_CONFIGURED = False
+        # Don't raise - allow app to start so user can fix configuration
 
 
 # ==================== CATEGORY BUSINESS LOGIC ====================
@@ -1018,7 +1068,7 @@ def test_database_connection(host: str, port: int, database: str,
     Business logic:
     - Validate all parameters provided
     - Test connection
-    - Return success/failure with message
+    - Return success/failure with message in standard API format
     """
     try:
         if not all([host, port, database, user, password]):
@@ -1029,16 +1079,18 @@ def test_database_connection(host: str, port: int, database: str,
         if success:
             return {
                 'success': True,
-                'message': f'Successfully connected to {host}:{port}/{database}'
+                'data': {
+                    'message': f'Successfully connected to {host}:{port}/{database}'
+                }
             }
         else:
             return {
                 'success': False,
-                'message': 'Failed to connect to database'
+                'error': 'Failed to connect to database'
             }
     except Exception as e:
         logger.error(f"Failed to test database connection: {e}")
         return {
             'success': False,
-            'message': str(e)
+            'error': str(e)
         }

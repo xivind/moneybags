@@ -167,15 +167,25 @@ def test_connection(host: str, port: int, database_name: str,
     Returns True if connection successful, False otherwise.
     """
     try:
+        # Create test database connection with timeout
+        # Use connect_timeout in connect_params for pymysql
         test_db = MySQLDatabase(
             database_name,
             host=host,
             port=port,
             user=user,
-            password=password
+            password=password,
+            charset='utf8mb4'
         )
+
+        # Set connection timeout via connect_params
+        test_db.connect_params['connect_timeout'] = 5
+
+        # Connect and execute test query
         test_db.connect()
+        test_db.execute_sql('SELECT 1')
         test_db.close()
+
         logger.info(f"Test connection successful: {host}:{port}/{database_name}")
         return True
     except Exception as e:
@@ -184,10 +194,23 @@ def test_connection(host: str, port: int, database_name: str,
 
 
 def create_tables_if_not_exist() -> None:
-    """Create all tables if they don't exist."""
+    """
+    Create all tables if they don't exist.
+
+    Note: PeeWee's safe=True checks if tables exist, but may still try to
+    add indexes. We catch duplicate key errors which can happen if tables
+    already exist with indexes from a previous run.
+    """
     try:
         database.create_tables(ALL_MODELS, safe=True)
         logger.info("Database tables created/verified")
+    except OperationalError as e:
+        # Ignore duplicate key/index errors (happens if tables already exist with indexes)
+        if "Duplicate key name" in str(e) or "Duplicate entry" in str(e):
+            logger.info("Database tables already exist with indexes - skipping creation")
+        else:
+            logger.error(f"Failed to create tables: {e}")
+            raise
     except Exception as e:
         logger.error(f"Failed to create tables: {e}")
         raise
@@ -661,14 +684,9 @@ def seed_initial_data():
             logger.info(f"Seeded payee: {payee_data['name']}")
 
     # Initial configuration
+    # Note: Database connection settings are stored in db_config.json, not in Configuration table
     initial_config = [
         {'id': generate_uid(), 'key': 'currency_format', 'value': 'nok',
-         'created_at': datetime.now(), 'updated_at': datetime.now()},
-        {'id': generate_uid(), 'key': 'db_host', 'value': 'localhost',
-         'created_at': datetime.now(), 'updated_at': datetime.now()},
-        {'id': generate_uid(), 'key': 'db_port', 'value': '3306',
-         'created_at': datetime.now(), 'updated_at': datetime.now()},
-        {'id': generate_uid(), 'key': 'db_name', 'value': 'moneybags',
          'created_at': datetime.now(), 'updated_at': datetime.now()},
     ]
 

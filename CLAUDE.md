@@ -24,7 +24,6 @@ The program takes into account that each year has some of the same posts (which 
 - **PeeWee ORM** - Database ORM for MariaDB
 - **pymysql** - Database driver for MySQL/MariaDB (required by PeeWee)
 - **playhouse.pool** - Connection pooling (part of PeeWee, provides PooledMySQLDatabase)
-- **python-dotenv** - Environment variable management (.env file support)
 - **MariaDB** - Database running in separate Docker container or separate host
 
 ### Frontend
@@ -85,7 +84,7 @@ The program takes into account that each year has some of the same posts (which 
 ### Database Configuration
 - Database configuration kept simple: no backrefs, no automatically generated IDs
 - Always create unique IDs in backend and submit to database
-- Connection settings stored in `.env` file (local dev) or environment variables (Docker)
+- Connection settings stored in `db_config.json` file (persisted via Docker volume mount)
 - Configuration caching in business_logic.py reduces database queries
 
 ## Development Setup
@@ -107,19 +106,33 @@ source /home/xivind/code/moneybags-runtime/bin/activate
 pip install -r requirements.txt
 ```
 
-### Database Connection (.env file)
-Create `/home/xivind/code/moneybags/.env` with database settings:
+### Database Connection (db_config.json)
 
-```bash
-DB_HOST=sandbox          # Or IP address of MariaDB server
-DB_PORT=3306
-DB_NAME=MASTERDB
-DB_USER=root
-DB_PASSWORD=devpassword
-DB_POOL_SIZE=10
+**First-time setup:**
+1. Start the application: `uvicorn main:app --host 0.0.0.0 --port 8000 --log-config uvicorn_log_config.ini --reload`
+2. Open browser to http://localhost:8000
+3. You'll see a banner prompting you to configure the database
+4. Click "Go to Configuration" and enter your database connection details:
+   - Database Host (e.g., `sandbox` or IP address)
+   - Port (default: `3306`)
+   - Database Name (e.g., `MASTERDB`)
+   - Username and Password
+   - Connection Pool Size (default: `10`)
+5. Click "Save Settings" and restart the application
+
+The configuration is saved to `db_config.json` (excluded from Git in `.gitignore`):
+```json
+{
+  "db_host": "sandbox",
+  "db_port": 3306,
+  "db_name": "MASTERDB",
+  "db_user": "root",
+  "db_password": "devpassword",
+  "db_pool_size": 10
+}
 ```
 
-**Important**: The `.env` file is excluded from Git (in `.gitignore`) and Docker (in `.dockerignore`).
+**Important**: The `db_config.json` file is excluded from Git (in `.gitignore`) and Docker (in `.dockerignore`).
 
 ### Running Locally
 
@@ -143,27 +156,55 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --log-config uvicorn_log_config.ini 
 
 ### Docker Deployment
 
-**Edit** `create-container-moneybags.sh` to set correct DB_HOST, then run:
+**IMPORTANT: Database configuration file is required BEFORE running the container.**
 
-```bash
-./create-container-moneybags.sh
-```
+**Setup:**
+
+1. **Create database configuration file:**
+   ```bash
+   mkdir -p ~/code/container_data/moneybags
+   ```
+
+   Create `~/code/container_data/moneybags/db_config.json` with your MariaDB connection settings:
+   ```json
+   {
+     "db_host": "your-mariadb-host",
+     "db_port": 3306,
+     "db_name": "MASTERDB",
+     "db_user": "your-username",
+     "db_password": "your-password",
+     "db_pool_size": 10
+   }
+   ```
+
+   **This file MUST exist before running the container**, or the container will fail to start.
+
+2. **Run deployment script:**
+   ```bash
+   ./create-container-moneybags.sh
+   ```
+
+3. **Access the application:**
+   - Open browser to http://localhost:8003
+   - Application will automatically connect to MariaDB using settings from `db_config.json`
 
 **What the script does:**
 1. Stops and removes old container/image
 2. Builds fresh Docker image
-3. Creates data directories (~/code/container_data)
+3. Creates data directories (~/code/container_data/moneybags)
 4. Runs container with:
-   - Database environment variables (overrides .env)
-   - Port 8000→8003 mapping
+   - Volume mount for `db_config.json` (persists database configuration)
    - Volume mount for data persistence
+   - Port 8003→8000 mapping (access at http://localhost:8003)
    - Auto-restart policy
    - Europe/Stockholm timezone
 
-**Environment Variables in Container:**
-- Container uses environment variables from `create-container-moneybags.sh`
-- The `.env` file is NOT copied to container (excluded by `.dockerignore`)
-- This allows different settings for local dev vs production
+**Database Configuration in Container:**
+- Container mounts `db_config.json` from host: `~/code/container_data/moneybags/db_config.json`
+- File MUST be manually created before first container run
+- Settings persist across container rebuilds via volume mount
+- Can be updated via Configuration page in the UI (requires restart)
+- No environment variables needed for database connection
 
 ## Database Migrations
 
@@ -214,10 +255,20 @@ All API routes in `main.py` follow this pattern:
 - POST `/api/budget-template/copy` - Copy template from one year to another
 - GET `/api/years` - Get all years with budget templates
 
-**Configuration API (3 endpoints):**
-- GET `/api/config` - Get configuration settings
-- PUT `/api/config` - Update configuration
-- POST `/api/config/test-db-connection` - Test database connection
+**Configuration API (5 endpoints):**
+
+*Currency settings (stored in MariaDB):*
+- GET `/api/config/currency` - Get currency configuration settings from MariaDB (future feature)
+- PUT `/api/config/currency` - Update currency configuration settings (future feature)
+
+*Database connection settings (stored in db_config.json):*
+- GET `/api/config/db-connection` - Get database connection settings from db_config.json (password excluded for security)
+- POST `/api/config/test-db-connection` - Test database connection with provided settings
+- POST `/api/config/save-db-connection` - Save database connection to db_config.json
+
+**Note:** Configuration is split into two storage locations:
+- Application settings (currency format, etc.) → MariaDB Configuration table
+- Database connection settings (host, port, credentials, etc.) → db_config.json file
 
 **Response Format:**
 All API endpoints return JSON in format:
@@ -271,9 +322,9 @@ Or on error:
 - **DATABASE_DESIGN.md** - Complete database schema documentation
 - **BACKEND_IMPLEMENTATION.md** - Backend implementation blueprint (Phases 1-5)
 - **requirements.txt** - Python dependencies
-- **.env** - Local database connection settings (not in Git)
-- **.gitignore** - Excludes .env, venv files, data directories
-- **.dockerignore** - Excludes .env, tests, migrations, markdown files
+- **db_config.json** - Database connection settings (not in Git, contains credentials)
+- **.gitignore** - Excludes db_config.json, venv files, data directories
+- **.dockerignore** - Excludes db_config.json, tests, migrations, markdown files
 - **Dockerfile** - Container image definition
 - **create-container-moneybags.sh** - Deployment script
 - **migrations/** - Database migration scripts
@@ -287,13 +338,14 @@ pytest tests/ -v
 
 ## Notes for Future Development
 
-1. **Never commit .env file** - Contains database credentials
+1. **Never commit db_config.json file** - Contains database credentials
 2. **Use venv from moneybags-runtime** - Not inside repo
 3. **Follow clean architecture** - main.py → business_logic.py → database_manager.py → models → database
 4. **All JavaScript in one file** - static/js/app.js
 5. **All CSS in one file** - static/css/custom.css
 6. **PeeWee auto-creates tables** - Migrations only for schema changes
 7. **pymysql is required** - PeeWee needs this driver for MariaDB
-8. **Environment variables override .env** - Useful for Docker deployment
+8. **Database config via JSON file** - db_config.json persisted via Docker volume mount
 9. **Connection pooling is critical** - For htmx performance requirements
 10. **Configuration is cached** - 5-minute timeout to reduce DB queries
+11. **First-run experience** - Banner on dashboard prompts user to configure database

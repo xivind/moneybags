@@ -8,17 +8,22 @@
         <h2 class="mb-4">Configuration</h2>
 
         <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-currency-dollar me-2"></i>Currency settings</h5>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-calendar-range me-2"></i>Budget Templates by Year</h5>
+                <button class="btn btn-sm btn-success" onclick="openAddYearModal()">
+                    <i class="bi bi-plus-circle me-1"></i>Add New Year
+                </button>
             </div>
             <div class="card-body">
-                <div class="mb-3">
-                    <label for="currencyFormat" class="form-label">Currency format</label>
-                    <select class="form-select" id="currencyFormat">
-                        <option value="nok" selected>NOK (kr)</option>
-                        <option value="usd">USD ($)</option>
-                        <option value="eur">EUR (€)</option>
-                    </select>
+                <p class="text-muted mb-3">Manage which categories are active for each year's budget. Only active categories appear in the budget table for that year.</p>
+
+                <div class="accordion" id="budgetTemplatesAccordion">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+
+                <div id="noYearsMessage" class="text-center text-muted py-5" style="display: none;">
+                    <i class="bi bi-calendar-x" style="font-size: 3rem;"></i>
+                    <p class="mt-3">No budget template years configured yet.<br>Click "Add New Year" to get started.</p>
                 </div>
             </div>
         </div>
@@ -82,6 +87,22 @@
 
         <div class="card mb-4">
             <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-currency-dollar me-2"></i>Currency settings</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="currencyFormat" class="form-label">Currency format</label>
+                    <select class="form-select" id="currencyFormat">
+                        <option value="nok" selected>NOK (kr)</option>
+                        <option value="usd">USD ($)</option>
+                        <option value="eur">EUR (€)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-database me-2"></i>Database Connection</h5>
             </div>
             <div class="card-body">
@@ -136,27 +157,6 @@
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
-
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-calendar-range me-2"></i>Budget Templates by Year</h5>
-                <button class="btn btn-sm btn-success" onclick="openAddYearModal()">
-                    <i class="bi bi-plus-circle me-1"></i>Add New Year
-                </button>
-            </div>
-            <div class="card-body">
-                <p class="text-muted mb-3">Manage which categories are active for each year's budget. Only active categories appear in the budget table for that year.</p>
-
-                <div class="accordion" id="budgetTemplatesAccordion">
-                    <!-- Will be populated by JavaScript -->
-                </div>
-
-                <div id="noYearsMessage" class="text-center text-muted py-5" style="display: none;">
-                    <i class="bi bi-calendar-x" style="font-size: 3rem;"></i>
-                    <p class="mt-3">No budget template years configured yet.<br>Click "Add New Year" to get started.</p>
-                </div>
             </div>
         </div>
     </div>
@@ -250,4 +250,9 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Pass database configuration state to JavaScript
+    window.DATABASE_CONFIGURED = {{ 'true' if database_configured else 'false' }};
+</script>
 {% endblock %}

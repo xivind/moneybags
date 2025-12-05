@@ -1276,14 +1276,22 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Initialize config page
     if (document.getElementById('categoriesTable')) {
-        showLoading('Loading configuration...');
-        await loadCategories();
-        await loadPayees();
-        await populateCategoriesTable();
-        await populatePayeesTable();
+        // Always load database settings (from db_config.json)
         await loadDatabaseSettings();
-        await loadBudgetTemplates();
-        hideLoading();
+
+        // Only load data from database if database is configured
+        if (window.DATABASE_CONFIGURED) {
+            showLoading('Loading configuration...');
+            await loadCategories();
+            await loadPayees();
+            await populateCategoriesTable();
+            await populatePayeesTable();
+            await loadBudgetTemplates();
+            hideLoading();
+        } else {
+            // Database not configured - show message and focus on database connection section
+            console.log('Database not configured. Please enter database connection details.');
+        }
     }
 });
 
@@ -1291,14 +1299,17 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 async function loadDatabaseSettings() {
     try {
-        const config = await apiCall('/api/config');
+        const result = await apiCall('/api/config/db-connection');
 
-        // Populate form fields
-        if (config.db_host) document.getElementById('dbHost').value = config.db_host;
-        if (config.db_port) document.getElementById('dbPort').value = config.db_port;
-        if (config.db_name) document.getElementById('dbName').value = config.db_name;
-        if (config.db_user) document.getElementById('dbUser').value = config.db_user;
-        if (config.db_pool_size) document.getElementById('dbPoolSize').value = config.db_pool_size;
+        // Populate form fields with values from db_config.json
+        if (result.db_host) document.getElementById('dbHost').value = result.db_host;
+        if (result.db_port) document.getElementById('dbPort').value = result.db_port;
+        if (result.db_name) document.getElementById('dbName').value = result.db_name;
+        if (result.db_user) document.getElementById('dbUser').value = result.db_user;
+        if (result.db_pool_size) document.getElementById('dbPoolSize').value = result.db_pool_size;
+
+        // Note: Password is not returned for security reasons
+        // User must re-enter password to save changes
     } catch (error) {
         console.error('Failed to load database settings:', error);
     }
@@ -1323,13 +1334,15 @@ async function testDatabaseConnection() {
             body: JSON.stringify(data)
         });
 
-        statusEl.classList.add('alert-success');
-        statusEl.innerHTML = '<i class="bi bi-check-circle me-2"></i>Connection successful!';
         hideLoading();
+        statusEl.classList.remove('d-none');
+        statusEl.classList.add('alert-success');
+        statusEl.innerHTML = '<i class="bi bi-check-circle me-2"></i>' + (result.message || 'Connection successful!');
     } catch (error) {
+        hideLoading();
+        statusEl.classList.remove('d-none');
         statusEl.classList.add('alert-danger');
         statusEl.innerHTML = '<i class="bi bi-x-circle me-2"></i>Connection failed: ' + error.message;
-        hideLoading();
     }
 }
 
@@ -1345,26 +1358,28 @@ async function saveDatabaseConnection() {
 
     const data = {
         db_host: document.getElementById('dbHost').value,
-        db_port: document.getElementById('dbPort').value,
+        db_port: parseInt(document.getElementById('dbPort').value),
         db_name: document.getElementById('dbName').value,
         db_user: document.getElementById('dbUser').value,
-        db_pool_size: document.getElementById('dbPoolSize').value
+        db_password: document.getElementById('dbPassword').value,
+        db_pool_size: parseInt(document.getElementById('dbPoolSize').value)
     };
 
-    const password = document.getElementById('dbPassword').value;
-    if (password) {
-        data.db_password = password;
+    // Validate required fields
+    if (!data.db_host || !data.db_name || !data.db_user || !data.db_password) {
+        showToast('Please fill in all required fields', 'error');
+        return;
     }
 
     try {
         showLoading('Saving settings...');
-        await apiCall('/api/config', {
-            method: 'PUT',
+        const result = await apiCall('/api/config/save-db-connection', {
+            method: 'POST',
             body: JSON.stringify(data)
         });
 
         hideLoading();
-        showToast('Database settings saved. Please restart the application for changes to take effect.', 'success');
+        showToast(result.message || 'Database settings saved. Please restart the application for changes to take effect.', 'success');
     } catch (error) {
         hideLoading();
     }

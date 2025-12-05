@@ -160,9 +160,8 @@ class Transaction(BaseModel):
     class Meta:
         table_name = 'moneybags_transactions'
         indexes = (
-            (('category_id',), False),
-            (('payee_id',), False),
-            (('date',), False),
+            # Note: category_id and payee_id indexes are automatically created by ForeignKeyField
+            (('date',), False),  # Index for date-based queries
         )
 
 

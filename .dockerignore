@@ -6,6 +6,7 @@ __pycache__
 .coverage
 htmlcov
 .env
+db_config.json
 *.db
 data/
 .git

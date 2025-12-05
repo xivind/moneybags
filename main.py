@@ -26,10 +26,13 @@ def startup_event():
     logger.info("Starting Moneybags application...")
     try:
         business_logic.initialize_database()
-        logger.info("Database initialized successfully")
+        if business_logic.DATABASE_CONFIGURED:
+            logger.info("Database initialized successfully")
+        else:
+            logger.warning("Database not configured - user needs to configure database connection")
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}")
-        raise
+        # Don't raise - allow app to start so user can configure database
     logger.info("Moneybags application started")
 
 # ==================== HTML VIEWS ====================
@@ -39,7 +42,8 @@ def dashboard(request: Request):
     """Dashboard showing financial overview"""
     # TODO: Add real data when backend is ready
     return templates.TemplateResponse("dashboard.html", {
-        "request": request
+        "request": request,
+        "database_configured": business_logic.DATABASE_CONFIGURED
     })
 
 @app.get("/budget", response_class=HTMLResponse)
@@ -60,7 +64,8 @@ def analysis_page(request: Request):
 def config_page(request: Request):
     """Configuration page for user preferences"""
     return templates.TemplateResponse("config.html", {
-        "request": request
+        "request": request,
+        "database_configured": business_logic.DATABASE_CONFIGURED
     })
 
 # ==================== BUDGET API ROUTES ====================
@@ -553,30 +558,37 @@ async def get_available_years():
 
 # ==================== CONFIGURATION API ROUTES ====================
 
-@app.get("/api/config")
-async def get_configuration():
-    """Get all configuration settings."""
+@app.get("/api/config/currency")
+async def get_currency_configuration():
+    """
+    Get currency configuration settings.
+
+    Returns currency_format and other app configuration from MariaDB Configuration table.
+    Note: Database connection settings are in /api/config/db-connection endpoint.
+    """
     try:
         config = business_logic.get_all_configuration()
         return {"success": True, "data": config}
     except Exception as e:
-        logger.error(f"Error getting configuration: {e}")
+        logger.error(f"Error getting currency configuration: {e}")
         return JSONResponse(
             status_code=500,
             content={"success": False, "error": str(e)}
         )
 
-@app.put("/api/config")
-async def update_configuration(request: Request):
+@app.put("/api/config/currency")
+async def update_currency_configuration(request: Request):
     """
-    Update configuration settings.
+    Update currency configuration settings.
 
     Request body:
     {
-        "currency_format": "nok",
-        "db_host": "mariadb",
-        ...
+        "currency_format": "nok"
     }
+
+    Valid values: "nok", "usd", "eur"
+
+    Note: Database connection settings should use /api/config/save-db-connection endpoint.
     """
     try:
         data = await request.json()
@@ -588,7 +600,7 @@ async def update_configuration(request: Request):
             content={"success": False, "error": str(e)}
         )
     except Exception as e:
-        logger.error(f"Error updating configuration: {e}")
+        logger.error(f"Error updating currency configuration: {e}")
         return JSONResponse(
             status_code=500,
             content={"success": False, "error": str(e)}
@@ -606,7 +618,8 @@ async def test_db_connection(request: Request):
             user=data["user"],
             password=data["password"]
         )
-        return {"success": True, "data": result}
+        # Return result directly (it already has 'success' and 'message' fields)
+        return result
     except ValueError as e:
         return JSONResponse(
             status_code=400,
@@ -619,6 +632,104 @@ async def test_db_connection(request: Request):
         )
     except Exception as e:
         logger.error(f"Error testing database connection: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+@app.get("/api/config/db-connection")
+async def get_db_connection():
+    """
+    Get current database connection settings from db_config.json.
+
+    Note: Password is not returned for security reasons.
+    """
+    try:
+        config = business_logic.load_database_config()
+
+        if config is None:
+            return {
+                "success": True,
+                "data": {
+                    "db_host": "localhost",
+                    "db_port": 3306,
+                    "db_name": "",
+                    "db_user": "",
+                    "db_pool_size": 10
+                }
+            }
+
+        # Return config without password for security
+        return {
+            "success": True,
+            "data": {
+                "db_host": config.get("db_host", "localhost"),
+                "db_port": config.get("db_port", 3306),
+                "db_name": config.get("db_name", ""),
+                "db_user": config.get("db_user", ""),
+                "db_pool_size": config.get("db_pool_size", 10)
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error loading database connection settings: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+@app.post("/api/config/save-db-connection")
+async def save_db_connection(request: Request):
+    """
+    Save database connection settings to db_config.json file.
+
+    Request body:
+    {
+        "db_host": "localhost",
+        "db_port": 3306,
+        "db_name": "MASTERDB",
+        "db_user": "root",
+        "db_password": "password",
+        "db_pool_size": 10
+    }
+    """
+    try:
+        data = await request.json()
+
+        # Validate required fields
+        required_fields = ["db_host", "db_port", "db_name", "db_user", "db_password"]
+        for field in required_fields:
+            if field not in data:
+                raise ValueError(f"Missing required field: {field}")
+
+        # Prepare config dict
+        config = {
+            "db_host": data["db_host"],
+            "db_port": int(data["db_port"]),
+            "db_name": data["db_name"],
+            "db_user": data["db_user"],
+            "db_password": data["db_password"],
+            "db_pool_size": int(data.get("db_pool_size", 10))
+        }
+
+        # Save to file
+        business_logic.save_database_config(config)
+
+        return {
+            "success": True,
+            "message": "Database configuration saved successfully. Please restart the application for changes to take effect."
+        }
+    except ValueError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": str(e)}
+        )
+    except KeyError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": f"Missing required field: {e}"}
+        )
+    except Exception as e:
+        logger.error(f"Error saving database configuration: {e}")
         return JSONResponse(
             status_code=500,
             content={"success": False, "error": str(e)}
