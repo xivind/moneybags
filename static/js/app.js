@@ -23,6 +23,9 @@ let budgetData = null;
 // All payees (loaded from API)
 let payees = [];
 
+// Current currency format (loaded from API)
+let currentCurrencyFormat = '';
+
 // Current cell being edited
 let currentCell = null;
 let currentTransactionIndex = null;
@@ -36,13 +39,15 @@ let datePicker = null;
 // ==================== API FUNCTIONS ====================
 
 async function apiCall(url, options = {}) {
+    const { suppressError = false, ...fetchOptions } = options;
+
     try {
         const response = await fetch(url, {
             headers: {
                 'Content-Type': 'application/json',
-                ...options.headers
+                ...fetchOptions.headers
             },
-            ...options
+            ...fetchOptions
         });
 
         const data = await response.json();
@@ -54,35 +59,88 @@ async function apiCall(url, options = {}) {
         return data.data;
     } catch (error) {
         console.error('API Error:', error);
-        showError(error.message || 'Network error occurred');
+
+        // Only show error modal if not suppressed
+        if (!suppressError) {
+            showError(error.message || 'Network error occurred');
+        }
+
         throw error;
     }
 }
 
 async function loadCategories() {
-    allCategories = await apiCall('/api/categories');
+    try {
+        allCategories = await apiCall('/api/categories', { suppressError: true });
+    } catch (error) {
+        console.error('Failed to load categories:', error);
+        allCategories = [];
+    }
 }
 
 async function loadPayees() {
-    const payeeData = await apiCall('/api/payees');
-    payees = payeeData.map(p => ({
-        id: p.id,
-        name: p.name,
-        type: p.type,
-        transaction_count: p.transaction_count,
-        last_used: p.last_used
-    }));
+    try {
+        const payeeData = await apiCall('/api/payees', { suppressError: true });
+        payees = payeeData.map(p => ({
+            id: p.id,
+            name: p.name,
+            type: p.type,
+            transaction_count: p.transaction_count,
+            last_used: p.last_used
+        }));
+    } catch (error) {
+        console.error('Failed to load payees:', error);
+        payees = [];
+    }
 }
 
 async function loadAvailableYears() {
-    availableYears = await apiCall('/api/years');
-    if (availableYears.length === 0) {
-        availableYears = [currentYear];
+    try {
+        availableYears = await apiCall('/api/years', { suppressError: true });
+    } catch (error) {
+        console.error('Failed to load available years:', error);
+        availableYears = [];
     }
 }
 
 async function loadBudgetData(year) {
     budgetData = await apiCall(`/api/budget/${year}`);
+}
+
+async function loadCurrencyFormat() {
+    try {
+        const result = await apiCall('/api/config/currency', { suppressError: true });
+        if (result && result.currency_format) {
+            currentCurrencyFormat = result.currency_format;
+        } else {
+            currentCurrencyFormat = '';
+        }
+    } catch (error) {
+        console.error('Failed to load currency format:', error);
+        currentCurrencyFormat = '';
+    }
+}
+
+function formatCurrency(amount) {
+    if (amount === null || amount === undefined || amount === '') {
+        return '';
+    }
+
+    // Format number with space as thousand separator (nb-NO locale)
+    const formattedNumber = Number(amount).toLocaleString('nb-NO');
+
+    // Apply currency symbol based on format
+    switch (currentCurrencyFormat) {
+        case 'nok':
+            return `${formattedNumber} kr`;
+        case 'usd':
+            return `$${formattedNumber}`;
+        case 'eur':
+            return `€${formattedNumber}`;
+        default:
+            // No currency selected - just return the number
+            return formattedNumber;
+    }
 }
 
 async function saveBudgetEntry(categoryId, year, month, amount) {
@@ -280,10 +338,6 @@ function showConfirmModal(title, message, confirmText = 'Confirm') {
     });
 }
 
-function formatCurrency(amount) {
-    return 'kr ' + Math.round(amount).toLocaleString('nb-NO');
-}
-
 function formatDate(dateStr) {
     // Return date in yyyy-MM-dd format to match application standard
     if (!dateStr) return '';
@@ -325,10 +379,16 @@ async function initializeBudgetPage() {
     try {
         await loadCategories();
         await loadPayees();
+        await loadCurrencyFormat();
         await loadAvailableYears();
-        await populateYearSelector();
-        await loadBudgetData(currentYear);
-        generateTable();
+        populateYearSelector();
+
+        // Only load budget data and generate table if we have years
+        if (availableYears.length > 0) {
+            await loadBudgetData(currentYear);
+            generateTable();
+        }
+
         hideLoading();
     } catch (error) {
         hideLoading();
@@ -338,9 +398,26 @@ async function initializeBudgetPage() {
 
 function populateYearSelector() {
     const selector = document.getElementById('yearSelector');
+    const emptyBanner = document.getElementById('emptyStateBanner');
+    const tableContainer = document.querySelector('.table-responsive');
+
     if (!selector) return;
 
     selector.innerHTML = '';
+
+    // Check if we have any years
+    if (availableYears.length === 0) {
+        // Show empty state banner, hide table and year selector
+        if (emptyBanner) emptyBanner.classList.remove('d-none');
+        if (tableContainer) tableContainer.classList.add('d-none');
+        selector.parentElement.classList.add('d-none');
+        return;
+    }
+
+    // Hide empty state banner, show table and year selector
+    if (emptyBanner) emptyBanner.classList.add('d-none');
+    if (tableContainer) tableContainer.classList.remove('d-none');
+    selector.parentElement.classList.remove('d-none');
 
     // Sort years in descending order (most recent on top)
     const sortedYears = [...availableYears].sort((a, b) => b - a);
@@ -1284,6 +1361,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             showLoading('Loading configuration...');
             await loadCategories();
             await loadPayees();
+            await loadCurrencySettings();
             await populateCategoriesTable();
             await populatePayeesTable();
             await loadBudgetTemplates();
@@ -1294,6 +1372,77 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 });
+
+// ==================== CURRENCY SETTINGS FUNCTIONS ====================
+
+let originalCurrencyFormat = '';
+
+async function loadCurrencySettings() {
+    try {
+        const result = await apiCall('/api/config/currency', { suppressError: true });
+        const currencySelect = document.getElementById('currencyFormat');
+
+        if (result && result.currency_format) {
+            currencySelect.value = result.currency_format;
+            originalCurrencyFormat = result.currency_format;
+        } else {
+            // No currency format set - default to empty
+            currencySelect.value = '';
+            originalCurrencyFormat = '';
+        }
+
+        // Disable save button initially
+        document.getElementById('saveCurrencyBtn').disabled = true;
+    } catch (error) {
+        console.error('Failed to load currency settings:', error);
+        // On error, leave as "Not selected"
+        document.getElementById('currencyFormat').value = '';
+        originalCurrencyFormat = '';
+    }
+}
+
+function enableCurrencySaveButton() {
+    const currencySelect = document.getElementById('currencyFormat');
+    const saveBtn = document.getElementById('saveCurrencyBtn');
+
+    // Enable save button only if value has changed
+    saveBtn.disabled = (currencySelect.value === originalCurrencyFormat);
+}
+
+async function saveCurrencySettings() {
+    const currencyFormat = document.getElementById('currencyFormat').value;
+
+    if (!currencyFormat) {
+        showError('Please select a currency format');
+        return;
+    }
+
+    try {
+        showLoading('Saving currency settings...');
+
+        await apiCall('/api/config/currency', {
+            method: 'PUT',
+            body: JSON.stringify({
+                currency_format: currencyFormat
+            })
+        });
+
+        hideLoading();
+        showToast('Currency settings saved successfully', 'success');
+
+        // Update original value and disable save button
+        originalCurrencyFormat = currencyFormat;
+        document.getElementById('saveCurrencyBtn').disabled = true;
+
+        // Reload budget page if it's open to apply new currency format
+        if (document.getElementById('budgetTable')) {
+            generateTable();
+        }
+    } catch (error) {
+        hideLoading();
+        showError('Failed to save currency settings: ' + error.message);
+    }
+}
 
 // ==================== DATABASE CONNECTION FUNCTIONS ====================
 
@@ -1389,7 +1538,7 @@ async function saveDatabaseConnection() {
 
 async function loadBudgetTemplates() {
     try {
-        const years = await apiCall('/api/years');
+        const years = await apiCall('/api/years', { suppressError: true });
 
         if (years.length === 0) {
             document.getElementById('noYearsMessage').style.display = 'block';
@@ -1408,11 +1557,14 @@ async function loadBudgetTemplates() {
         accordion.innerHTML = '';
 
         for (const year of sortedYears) {
-            const template = await apiCall(`/api/budget-template/${year}`);
+            const template = await apiCall(`/api/budget-template/${year}`, { suppressError: true });
             accordion.innerHTML += generateYearAccordionItem(year, template);
         }
     } catch (error) {
         console.error('Failed to load budget templates:', error);
+        // Show empty state on error
+        document.getElementById('noYearsMessage').style.display = 'block';
+        document.getElementById('budgetTemplatesAccordion').style.display = 'none';
     }
 }
 
@@ -1493,17 +1645,36 @@ async function saveNewYear() {
         return;
     }
 
+    // Check if year already exists
+    const existingYears = await apiCall('/api/years');
+    if (existingYears.includes(year)) {
+        showErrorModal(`Year ${year} already exists`);
+        return;
+    }
+
+    // Check if there are any categories available
+    if (allCategories.length === 0) {
+        showErrorModal('Please create categories first before adding a year');
+        return;
+    }
+
     try {
         showLoading('Creating year...');
 
-        if (copyFromPrevious) {
-            // Get most recent year
-            const years = await apiCall('/api/years');
-            if (years.length > 0) {
-                const fromYear = Math.max(...years);
-                await apiCall('/api/budget-template/copy', {
+        if (copyFromPrevious && existingYears.length > 0) {
+            // Copy from most recent year
+            const fromYear = Math.max(...existingYears);
+            await apiCall('/api/budget-template/copy', {
+                method: 'POST',
+                body: JSON.stringify({ from_year: fromYear, to_year: year })
+            });
+        } else {
+            // Create year by adding all available categories
+            // This ensures the year appears in the UI
+            for (const category of allCategories) {
+                await apiCall('/api/budget-template', {
                     method: 'POST',
-                    body: JSON.stringify({ from_year: fromYear, to_year: year })
+                    body: JSON.stringify({ year: year, category_id: category.id })
                 });
             }
         }
@@ -1513,7 +1684,7 @@ async function saveNewYear() {
 
         bootstrap.Modal.getInstance(document.getElementById('addYearModal')).hide();
         hideLoading();
-        showSuccess(`Year ${year} created`);
+        showSuccess(`Year ${year} created with ${allCategories.length} categories`);
     } catch (error) {
         hideLoading();
     }

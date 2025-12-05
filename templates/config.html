@@ -15,7 +15,17 @@
                 </button>
             </div>
             <div class="card-body">
-                <p class="text-muted mb-3">Manage which categories are active for each year's budget. Only active categories appear in the budget table for that year.</p>
+                <p class="text-muted mb-3">
+                    Manage which categories are active for each year's budget. Only active categories appear in the budget table for that year.
+                </p>
+                <div class="alert alert-info py-2 px-3 mb-3" style="font-size: 13px; border-left: 3px solid #3b82f6;">
+                    <strong><i class="bi bi-info-circle me-1"></i>How it works:</strong>
+                    <ul class="mb-0 mt-2" style="padding-left: 20px;">
+                        <li>To <strong>create a budget for a year</strong>, click "Add New Year" and add categories to it.</li>
+                        <li>To <strong>delete a year</strong>, remove all categories from that year. The year is automatically deleted when the last category is removed.</li>
+                        <li><strong>Note:</strong> Categories with budget entries or transactions cannot be removed until that data is deleted.</li>
+                    </ul>
+                </div>
 
                 <div class="accordion" id="budgetTemplatesAccordion">
                     <!-- Will be populated by JavaScript -->
@@ -87,17 +97,22 @@
 
         <div class="card mb-4">
             <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-currency-dollar me-2"></i>Currency settings</h5>
+                <h5 class="mb-0"><i class="bi bi-currency-dollar me-2"></i>Currency Settings</h5>
             </div>
             <div class="card-body">
                 <div class="mb-3">
-                    <label for="currencyFormat" class="form-label">Currency format</label>
-                    <select class="form-select" id="currencyFormat">
-                        <option value="nok" selected>NOK (kr)</option>
+                    <label for="currencyFormat" class="form-label">Currency Format</label>
+                    <select class="form-select" id="currencyFormat" onchange="enableCurrencySaveButton()">
+                        <option value="" selected>Not selected</option>
+                        <option value="nok">NOK (kr)</option>
                         <option value="usd">USD ($)</option>
                         <option value="eur">EUR (€)</option>
                     </select>
+                    <div class="form-text">Select the currency format to display amounts throughout the application.</div>
                 </div>
+                <button class="btn btn-primary" id="saveCurrencyBtn" onclick="saveCurrencySettings()" disabled>
+                    <i class="bi bi-save me-1"></i>Save Currency Settings
+                </button>
             </div>
         </div>
 

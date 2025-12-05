@@ -636,76 +636,12 @@ def configuration_exists(key: str) -> bool:
 
 def seed_initial_data():
     """
-    Seed database with initial data.
+    No-op function for database seeding.
 
-    Creates:
-    - Initial categories (income and expenses)
-    - Sample payees
-    - Default configuration
-    - Budget templates for current year
+    Previously seeded categories, payees, and configuration.
+    Now users create everything themselves for a clean start.
+
+    This function is kept to maintain compatibility with existing code,
+    but performs no operations.
     """
-    from utils import generate_uid
-    from datetime import datetime
-
-    logger.info("Seeding initial data...")
-    current_year = datetime.now().year
-
-    # Initial categories
-    initial_categories = [
-        {'id': generate_uid(), 'name': 'Salary', 'type': 'income', 'created_at': datetime.now()},
-        {'id': generate_uid(), 'name': 'Other income', 'type': 'income', 'created_at': datetime.now()},
-        {'id': generate_uid(), 'name': 'Housing & utilities', 'type': 'expenses', 'created_at': datetime.now()},
-        {'id': generate_uid(), 'name': 'Repairs & maintenance', 'type': 'expenses', 'created_at': datetime.now()},
-        {'id': generate_uid(), 'name': 'Digital services', 'type': 'expenses', 'created_at': datetime.now()},
-        {'id': generate_uid(), 'name': 'Cars', 'type': 'expenses', 'created_at': datetime.now()},
-        {'id': generate_uid(), 'name': 'Clothing & travel', 'type': 'expenses', 'created_at': datetime.now()},
-        {'id': generate_uid(), 'name': 'Sports', 'type': 'expenses', 'created_at': datetime.now()},
-        {'id': generate_uid(), 'name': 'Travel', 'type': 'expenses', 'created_at': datetime.now()},
-        {'id': generate_uid(), 'name': 'Savings', 'type': 'expenses', 'created_at': datetime.now()},
-    ]
-
-    for cat_data in initial_categories:
-        if not category_exists_by_name(cat_data['name']):
-            create_category(cat_data)
-            logger.info(f"Seeded category: {cat_data['name']}")
-
-    # Initial payees
-    initial_payees = [
-        {'id': generate_uid(), 'name': 'Employer', 'type': 'Actual', 'created_at': datetime.now()},
-        {'id': generate_uid(), 'name': 'Landlord', 'type': 'Generic', 'created_at': datetime.now()},
-        {'id': generate_uid(), 'name': 'Power Company', 'type': 'Generic', 'created_at': datetime.now()},
-        {'id': generate_uid(), 'name': 'Netflix', 'type': 'Actual', 'created_at': datetime.now()},
-        {'id': generate_uid(), 'name': 'Spotify', 'type': 'Actual', 'created_at': datetime.now()},
-    ]
-
-    for payee_data in initial_payees:
-        if not payee_exists_by_name(payee_data['name']):
-            create_payee(payee_data)
-            logger.info(f"Seeded payee: {payee_data['name']}")
-
-    # Initial configuration
-    # Note: Database connection settings are stored in db_config.json, not in Configuration table
-    initial_config = [
-        {'id': generate_uid(), 'key': 'currency_format', 'value': 'nok',
-         'created_at': datetime.now(), 'updated_at': datetime.now()},
-    ]
-
-    for config_data in initial_config:
-        if not configuration_exists(config_data['key']):
-            create_configuration(config_data)
-            logger.info(f"Seeded configuration: {config_data['key']}")
-
-    # Create budget templates for current year with all categories
-    categories = get_all_categories()
-    for category in categories:
-        if not budget_template_exists(current_year, category.id):
-            template_data = {
-                'id': generate_uid(),
-                'year': current_year,
-                'category_id': category.id,
-                'created_at': datetime.now()
-            }
-            create_budget_template(template_data)
-            logger.info(f"Seeded budget template for {current_year}: {category.name}")
-
-    logger.info("Initial data seeding complete")
+    logger.info("Database initialized - no initial data seeding (users create their own data)")
