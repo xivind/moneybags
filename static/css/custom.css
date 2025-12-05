@@ -396,6 +396,14 @@ body {
     color: white !important;
 }
 
+/* Month badge matching month header row */
+.badge-month {
+    background-color: #f5f5f5 !important;
+    color: #000000 !important;
+    border: 1px solid #cbd5e1 !important;
+    font-weight: 700 !important;
+}
+
 /* ==================== TOAST NOTIFICATIONS ==================== */
 .toast-container {
     position: fixed;
@@ -502,4 +510,208 @@ body {
 
 .toast-notification.toast-removing {
     animation: fadeOut 0.3s ease-in forwards;
+}
+
+/* ==================== ENHANCED FORM INPUT STYLING ==================== */
+.modal input[type="number"].form-control,
+.modal input[type="text"].form-control,
+.modal textarea.form-control,
+.modal select.form-control {
+    padding: 12px 16px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #1f2937;
+    border: 2px solid #d1d5db;
+    border-radius: 8px;
+    background-color: #ffffff;
+    transition: all 0.2s ease;
+    min-height: 48px;
+}
+
+.modal input[type="number"].form-control:hover,
+.modal input[type="text"].form-control:hover,
+.modal textarea.form-control:hover,
+.modal select.form-control:hover {
+    border-color: #9ca3af;
+    background-color: #f9fafb;
+}
+
+.modal input[type="number"].form-control:focus,
+.modal input[type="text"].form-control:focus,
+.modal textarea.form-control:focus,
+.modal select.form-control:focus {
+    outline: none;
+    border-color: #3b82f6;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.modal textarea.form-control {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.modal .form-label {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+/* ==================== TEMPUS DOMINUS CUSTOM STYLING ==================== */
+/* Calendar icon button */
+#transactionDatePicker .input-group-text {
+    background-color: #ffffff;
+    border: 2px solid #d1d5db;
+    border-left: none;
+    color: #3b82f6;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 12px 16px;
+}
+
+#transactionDatePicker .input-group-text:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+    color: #2563eb;
+}
+
+#transactionDatePicker .form-control {
+    border-right: none;
+}
+
+#transactionDatePicker .form-control:focus {
+    border-right: none;
+}
+
+#transactionDatePicker .form-control:focus + .input-group-text {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Tempus Dominus calendar popup styling */
+.tempus-dominus-widget {
+    border-radius: 8px !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+    border: 2px solid #d1d5db !important;
+    font-family: inherit !important;
+}
+
+.tempus-dominus-widget .picker-header {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+    color: white !important;
+    border-radius: 6px 6px 0 0 !important;
+    padding: 12px 16px !important;
+}
+
+/* Navigation arrows */
+.tempus-dominus-widget .picker-header .previous,
+.tempus-dominus-widget .picker-header .next {
+    color: white !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    transition: all 0.2s ease !important;
+    font-size: 18px !important;
+}
+
+.tempus-dominus-widget .picker-header .previous:hover,
+.tempus-dominus-widget .picker-header .next:hover {
+    background-color: rgba(255, 255, 255, 0.25) !important;
+    transform: scale(1.1) !important;
+}
+
+/* Month/Year title in header */
+.tempus-dominus-widget .picker-header .title {
+    color: white !important;
+    font-weight: 600 !important;
+    font-size: 16px !important;
+}
+
+/* Calendar body */
+.tempus-dominus-widget .calendar-container {
+    padding: 16px !important;
+}
+
+/* Day cells */
+.tempus-dominus-widget .day {
+    border-radius: 6px !important;
+    transition: all 0.2s ease !important;
+    font-weight: 500 !important;
+    padding: 10px !important;
+}
+
+/* Today's date when NOT selected */
+.tempus-dominus-widget .day.today:not(.selected):not(.active) {
+    border: 2px solid #3b82f6 !important;
+    font-weight: 600 !important;
+    color: #3b82f6 !important;
+    background-color: transparent !important;
+}
+
+/* Selected date (including today when selected) */
+.tempus-dominus-widget .day.active,
+.tempus-dominus-widget .day.selected,
+.tempus-dominus-widget .day.today.selected,
+.tempus-dominus-widget .day.today.active {
+    background-color: #3b82f6 !important;
+    color: white !important;
+    font-weight: 600 !important;
+    border: none !important;
+}
+
+.tempus-dominus-widget .day:hover:not(.disabled):not(.selected):not(.active) {
+    background-color: #eff6ff !important;
+    color: #1e40af !important;
+    transform: scale(1.05) !important;
+}
+
+/* Weekday headers */
+.tempus-dominus-widget .dow {
+    color: #6b7280 !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    text-transform: uppercase !important;
+}
+
+/* Today button */
+.tempus-dominus-widget .toolbar button {
+    background-color: #3b82f6 !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 8px 16px !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+}
+
+.tempus-dominus-widget .toolbar button:hover {
+    background-color: #2563eb !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ==================== MODAL POSITIONING ==================== */
+/* Position transaction list modal lower so add modal appears higher, creating cascade effect */
+#transactionModal .modal-dialog {
+    margin-top: 120px !important;
+}
+
+/* Keep add transaction modal at normal/higher position */
+#addTransactionModal .modal-dialog {
+    margin-top: 60px !important;
+}
+
+/* ==================== STACKED MODAL IMPROVEMENTS ==================== */
+/* Make stacked modals more visually distinct when stacked */
+
+/* Stronger backdrop for stacked modals */
+.modal-backdrop.show ~ .modal-backdrop.show {
+    opacity: 0.7 !important;
+    background-color: rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Add stronger shadow to any modal that comes after another modal */
+/* This only affects the top modal when two are stacked */
+.modal.show ~ .modal.show .modal-dialog {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
 }

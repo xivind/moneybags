@@ -30,6 +30,9 @@ let currentTransactionIndex = null;
 // Tom Select instance
 let payeeSelect = null;
 
+// Tempus Dominus instance
+let datePicker = null;
+
 // ==================== API FUNCTIONS ====================
 
 async function apiCall(url, options = {}) {
@@ -282,8 +285,20 @@ function formatCurrency(amount) {
 }
 
 function formatDate(dateStr) {
+    // Return date in yyyy-MM-dd format to match application standard
+    if (!dateStr) return '';
+
+    // If already in correct format, return as-is
+    if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+        return dateStr.split('T')[0]; // Remove time part if present
+    }
+
+    // Convert to yyyy-MM-dd format
     const date = new Date(dateStr);
-    return date.toLocaleDateString('nb-NO', { day: '2-digit', month: 'short', year: 'numeric' });
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 function cleanupBackdrops() {
@@ -643,8 +658,15 @@ async function openTransactionModal(categoryId, categoryName, month) {
 
     const modal = new bootstrap.Modal(document.getElementById('transactionModal'));
 
-    // Set badges
-    document.getElementById('modalCategory').textContent = categoryName;
+    // Get category to determine type (income/expense)
+    const category = getCategoryById(categoryId);
+    const categoryBadgeClass = category.type === 'income' ? 'badge-income' : 'badge-expense';
+
+    // Set badges with appropriate colors
+    const categoryBadge = document.getElementById('modalCategory');
+    categoryBadge.textContent = categoryName;
+    categoryBadge.className = 'badge me-2 ' + categoryBadgeClass;
+
     document.getElementById('modalMonth').textContent = months[month - 1];
 
     await displayTransactions();
@@ -719,15 +741,29 @@ function showAddTransactionForm() {
     document.getElementById('addTransactionTitle').textContent = 'Add transaction';
     document.getElementById('transactionForm').reset();
 
-    // Set badges
-    document.getElementById('addModalCategory').textContent = currentCell.categoryName;
+    // Set badges with appropriate colors
+    const category = getCategoryById(currentCell.categoryId);
+    const categoryBadgeClass = category.type === 'income' ? 'badge-income' : 'badge-expense';
+
+    const categoryBadge = document.getElementById('addModalCategory');
+    categoryBadge.textContent = currentCell.categoryName;
+    categoryBadge.className = 'badge me-2 ' + categoryBadgeClass;
+
     document.getElementById('addModalMonth').textContent = months[currentCell.month - 1];
 
-    // Set default date to 1st of the selected month (avoid timezone issues with toISOString)
+    // Set default date to 1st of the selected month
     const year = currentYear;
     const month = String(currentCell.month).padStart(2, '0');
     const day = '01';
-    document.getElementById('transactionDate').value = `${year}-${month}-${day}`;
+    const defaultDate = `${year}-${month}-${day}`;
+
+    // Set date using Tempus Dominus API if available
+    if (datePicker) {
+        datePicker.dates.setValue(new tempusDominus.DateTime(defaultDate));
+    } else {
+        // Fallback for plain input
+        document.getElementById('transactionDate').value = defaultDate;
+    }
 
     // Reset payee dropdown
     if (payeeSelect) {
@@ -753,11 +789,24 @@ async function editTransaction(transactionId) {
     currentTransactionIndex = transactionId;
     document.getElementById('addTransactionTitle').textContent = 'Edit transaction';
 
-    // Set badges
-    document.getElementById('addModalCategory').textContent = currentCell.categoryName;
+    // Set badges with appropriate colors
+    const category = getCategoryById(currentCell.categoryId);
+    const categoryBadgeClass = category.type === 'income' ? 'badge-income' : 'badge-expense';
+
+    const categoryBadge = document.getElementById('addModalCategory');
+    categoryBadge.textContent = currentCell.categoryName;
+    categoryBadge.className = 'badge me-2 ' + categoryBadgeClass;
+
     document.getElementById('addModalMonth').textContent = months[currentCell.month - 1];
 
-    document.getElementById('transactionDate').value = transaction.date;
+    // Set date using Tempus Dominus API if available
+    if (datePicker) {
+        datePicker.dates.setValue(new tempusDominus.DateTime(transaction.date));
+    } else {
+        // Fallback for plain input
+        document.getElementById('transactionDate').value = transaction.date;
+    }
+
     document.getElementById('transactionAmount').value = transaction.amount;
     document.getElementById('transactionComment').value = transaction.comment || '';
 
@@ -945,7 +994,7 @@ async function populatePayeesTable() {
 
     sortedPayees.forEach(payee => {
         const lastUsedText = payee.last_used
-            ? new Date(payee.last_used).toLocaleDateString('nb-NO')
+            ? formatDate(payee.last_used)
             : '<span class="text-muted">Never</span>';
 
         const deleteBtn = payee.transaction_count > 0
@@ -1158,6 +1207,49 @@ function initializePayeeSelect() {
     }
 }
 
+function initializeDatePicker() {
+    const dateElement = document.getElementById('transactionDatePicker');
+    if (dateElement && typeof tempusDominus !== 'undefined') {
+        datePicker = new tempusDominus.TempusDominus(dateElement, {
+            display: {
+                viewMode: 'calendar',
+                components: {
+                    decades: true,
+                    year: true,
+                    month: true,
+                    date: true,
+                    hours: false,
+                    minutes: false,
+                    seconds: false
+                },
+                buttons: {
+                    today: true,
+                    clear: false,
+                    close: false
+                },
+                icons: {
+                    type: 'icons',
+                    time: 'bi bi-clock',
+                    date: 'bi bi-calendar',
+                    up: 'bi bi-arrow-up',
+                    down: 'bi bi-arrow-down',
+                    previous: 'bi bi-chevron-left',
+                    next: 'bi bi-chevron-right',
+                    today: 'bi bi-calendar-check',
+                    clear: 'bi bi-trash',
+                    close: 'bi bi-x'
+                },
+                theme: 'light'
+            },
+            localization: {
+                format: 'yyyy-MM-dd',
+                locale: 'en',
+                dayViewHeaderFormat: { month: 'long', year: 'numeric' }
+            }
+        });
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async function() {
     // Global modal cleanup on hide - ensures scroll is always restored
     document.addEventListener('hidden.bs.modal', function() {
@@ -1168,6 +1260,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (document.getElementById('budgetTable')) {
         await initializeBudgetPage();
         initializePayeeSelect();
+        initializeDatePicker();
 
         // Enter key support for budget modal
         const budgetAmount = document.getElementById('budgetAmount');

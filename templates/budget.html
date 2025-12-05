@@ -53,8 +53,8 @@
                 <div>
                     <h5 class="modal-title mb-2">Transactions</h5>
                     <div>
-                        <span class="badge bg-primary me-2" id="modalCategory"></span>
-                        <span class="badge bg-secondary" id="modalMonth"></span>
+                        <span class="badge me-2" id="modalCategory"></span>
+                        <span class="badge badge-month" id="modalMonth"></span>
                     </div>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -81,8 +81,8 @@
                 <div>
                     <h5 class="modal-title mb-2" id="addTransactionTitle">Add transaction</h5>
                     <div>
-                        <span class="badge bg-primary me-2" id="addModalCategory"></span>
-                        <span class="badge bg-secondary" id="addModalMonth"></span>
+                        <span class="badge me-2" id="addModalCategory"></span>
+                        <span class="badge badge-month" id="addModalMonth"></span>
                     </div>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -91,7 +91,12 @@
                 <form id="transactionForm">
                     <div class="mb-3">
                         <label for="transactionDate" class="form-label">Date</label>
-                        <input type="date" class="form-control" id="transactionDate" required>
+                        <div class="input-group" id="transactionDatePicker" data-td-target-input="nearest" data-td-target-toggle="nearest">
+                            <input id="transactionDate" type="text" class="form-control" data-td-target="#transactionDatePicker" required/>
+                            <span class="input-group-text" data-td-target="#transactionDatePicker" data-td-toggle="datetimepicker">
+                                <i class="bi bi-calendar3"></i>
+                            </span>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="transactionAmount" class="form-label">Amount (kr)</label>
