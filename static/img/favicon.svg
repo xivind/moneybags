@@ -1,0 +1,9 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Bag body: Wider and Grey -->
+  <path d="M32 60 C 10 60 3 45 6 35 L 16 18 L 48 18 L 58 35 C 61 45 54 60 32 60 Z" fill="#CFD8DC" stroke="#455A64" stroke-width="2"/>
+  <!-- Bag neck/tie -->
+  <path d="M19 18 L 16 12 L 22 8 L 42 8 L 48 12 L 45 18 Z" fill="#B0BEC5" stroke="#455A64" stroke-width="2"/>
+  <rect x="14" y="16" width="36" height="4" rx="2" fill="#78909C" />
+  <!-- Dollar sign -->
+  <text x="32" y="48" font-family="Arial, sans-serif" font-weight="bold" font-size="28" text-anchor="middle" fill="#FBC02D" stroke="#F57F17" stroke-width="1">$</text>
+</svg>
