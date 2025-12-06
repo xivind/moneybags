@@ -163,8 +163,8 @@ moneybags/
 - All CSS in one file: `static/css/custom.css` (no inline styles)
 - Clean architecture: main.py → business_logic.py → database_manager.py → models
 - Database credentials stored in `moneybags_db_config.json` (excluded from Git)
-- Currency format: Symbol before amount with space (kr 1,234 | $ 1,234 | € 1,234)
-- Number locale: en-US (comma thousands separator)
+- Currency format: Symbol before amount with space (kr 1 234 | $ 1 234 | € 1 234)
+- Number format: Space as thousand separator
 - Production-ready with 34 passing tests
 
 ## Testing

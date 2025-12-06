@@ -372,8 +372,8 @@ The application is production-ready with 34 passing tests. Core features fully i
 4. **Never commit moneybags_db_config.json** - Contains database credentials
 
 ### Currency Format (Production Standard)
-- Symbol BEFORE amount with space: `kr 1,234` | `$ 1,234` | `€ 1,234`
-- Number locale: `en-US` (comma thousands separator)
+- Symbol BEFORE amount with space: `kr 1 234` | `$ 1 234` | `€ 1 234`
+- Number format: Space as thousand separator
 - Dynamic currency via config: NOK, USD, EUR
 - Form labels update automatically when currency changes
 

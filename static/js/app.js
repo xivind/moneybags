@@ -158,8 +158,8 @@ function formatCurrency(amount) {
         return '';
     }
 
-    // Format number with comma as thousand separator (en-US locale)
-    const formattedNumber = Number(amount).toLocaleString('en-US');
+    // Format number with space as thousand separator
+    const formattedNumber = Number(amount).toLocaleString('en-US').replace(/,/g, ' ');
 
     // Apply currency symbol based on format (symbol before amount with space)
     switch (currentCurrencyFormat) {
