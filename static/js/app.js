@@ -1389,7 +1389,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const configData = document.getElementById('configPageData');
         window.DATABASE_CONFIGURED = configData ? configData.dataset.databaseConfigured === 'true' : false;
 
-        // Always load database settings (from db_config.json)
+        // Always load database settings (from moneybags_db_config.json)
         await loadDatabaseSettings();
 
         // Only load data from database if database is configured
@@ -1490,7 +1490,7 @@ async function loadDatabaseSettings() {
     try {
         const result = await apiCall('/api/config/db-connection');
 
-        // Populate form fields with values from db_config.json
+        // Populate form fields with values from moneybags_db_config.json
         if (result.db_host) document.getElementById('dbHost').value = result.db_host;
         if (result.db_port) document.getElementById('dbPort').value = result.db_port;
         if (result.db_name) document.getElementById('dbName').value = result.db_name;

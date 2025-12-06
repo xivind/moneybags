@@ -18,7 +18,6 @@ mkdir -p ~/code/container_data/moneybags
 docker run -d \
   --name=moneybags \
   -e TZ=Europe/Stockholm \
-  -v ~/code/container_data/moneybags/db_config.json:/app/db_config.json \
   -v ~/code/container_data:/app/data \
   --restart unless-stopped \
   -p 8003:8000 \

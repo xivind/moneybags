@@ -108,7 +108,7 @@ The core application is fully implemented, tested (34 passing tests), and ready 
 ### Database Configuration
 - Database configuration kept simple: no backrefs, no automatically generated IDs
 - Always create unique IDs in backend and submit to database
-- Connection settings stored in `db_config.json` file (persisted via Docker volume mount)
+- Connection settings stored in `moneybags_db_config.json` file (persisted via Docker volume mount)
 - Configuration caching in business_logic.py reduces database queries
 
 ## Development Setup
@@ -130,7 +130,7 @@ source /home/xivind/code/moneybags-runtime/bin/activate
 pip install -r requirements.txt
 ```
 
-### Database Connection (db_config.json)
+### Database Connection (moneybags_db_config.json)
 
 **First-time setup:**
 1. Start the application: `uvicorn main:app --host 0.0.0.0 --port 8000 --log-config uvicorn_log_config.ini --reload`
@@ -144,7 +144,7 @@ pip install -r requirements.txt
    - Connection Pool Size (default: `10`)
 5. Click "Save Settings" and restart the application
 
-The configuration is saved to `db_config.json` (excluded from Git in `.gitignore`):
+The configuration is saved to `moneybags_db_config.json` (excluded from Git in `.gitignore`):
 ```json
 {
   "db_host": "sandbox",
@@ -156,7 +156,7 @@ The configuration is saved to `db_config.json` (excluded from Git in `.gitignore
 }
 ```
 
-**Important**: The `db_config.json` file is excluded from Git (in `.gitignore`) and Docker (in `.dockerignore`).
+**Important**: The `moneybags_db_config.json` file is excluded from Git (in `.gitignore`) and Docker (in `.dockerignore`).
 
 ### Running Locally
 
@@ -186,10 +186,10 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --log-config uvicorn_log_config.ini 
 
 1. **Create database configuration file:**
    ```bash
-   mkdir -p ~/code/container_data/moneybags
+   mkdir -p ~/code/container_data
    ```
 
-   Create `~/code/container_data/moneybags/db_config.json` with your MariaDB connection settings:
+   Create `~/code/container_data/moneybags_db_config.json` with your MariaDB connection settings:
    ```json
    {
      "db_host": "your-mariadb-host",
@@ -210,21 +210,21 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --log-config uvicorn_log_config.ini 
 
 3. **Access the application:**
    - Open browser to http://localhost:8003
-   - Application will automatically connect to MariaDB using settings from `db_config.json`
+   - Application will automatically connect to MariaDB using settings from `moneybags_db_config.json`
 
 **What the script does:**
 1. Stops and removes old container/image
 2. Builds fresh Docker image
-3. Creates data directories (~/code/container_data/moneybags)
+3. Creates data directories (~/code/container_data)
 4. Runs container with:
-   - Volume mount for `db_config.json` (persists database configuration)
-   - Volume mount for data persistence
+   - Volume mount for data persistence (includes `moneybags_db_config.json`)
    - Port 8003→8000 mapping (access at http://localhost:8003)
    - Auto-restart policy
    - Europe/Stockholm timezone
 
 **Database Configuration in Container:**
-- Container mounts `db_config.json` from host: `~/code/container_data/moneybags/db_config.json`
+- Container mounts data directory from host: `~/code/container_data` → `/app/data`
+- Config file location: `~/code/container_data/moneybags_db_config.json` (host) → `/app/data/moneybags_db_config.json` (container)
 - File MUST be manually created before first container run
 - Settings persist across container rebuilds via volume mount
 - Can be updated via Configuration page in the UI (requires restart)
@@ -285,14 +285,14 @@ All API routes in `main.py` follow this pattern:
 - GET `/api/config/currency` - Get currency configuration settings from MariaDB (future feature)
 - PUT `/api/config/currency` - Update currency configuration settings (future feature)
 
-*Database connection settings (stored in db_config.json):*
-- GET `/api/config/db-connection` - Get database connection settings from db_config.json (password excluded for security)
+*Database connection settings (stored in moneybags_db_config.json):*
+- GET `/api/config/db-connection` - Get database connection settings from moneybags_db_config.json (password excluded for security)
 - POST `/api/config/test-db-connection` - Test database connection with provided settings
-- POST `/api/config/save-db-connection` - Save database connection to db_config.json
+- POST `/api/config/save-db-connection` - Save database connection to moneybags_db_config.json
 
 **Note:** Configuration is split into two storage locations:
 - Application settings (currency format, etc.) → MariaDB Configuration table
-- Database connection settings (host, port, credentials, etc.) → db_config.json file
+- Database connection settings (host, port, credentials, etc.) → moneybags_db_config.json file
 
 **Response Format:**
 All API endpoints return JSON in format:
@@ -346,9 +346,9 @@ Or on error:
 - **DATABASE_DESIGN.md** - Complete database schema documentation
 - **BACKEND_IMPLEMENTATION.md** - Backend implementation blueprint (Phases 1-5)
 - **requirements.txt** - Python dependencies
-- **db_config.json** - Database connection settings (not in Git, contains credentials)
-- **.gitignore** - Excludes db_config.json, venv files, data directories
-- **.dockerignore** - Excludes db_config.json, tests, migrations, markdown files
+- **moneybags_db_config.json** - Database connection settings (not in Git, contains credentials)
+- **.gitignore** - Excludes moneybags_db_config.json, venv files, data directories
+- **.dockerignore** - Excludes moneybags_db_config.json, tests, migrations, markdown files
 - **Dockerfile** - Container image definition
 - **create-container-moneybags.sh** - Deployment script
 - **migrations/** - Database migration scripts
@@ -369,7 +369,7 @@ The application is production-ready with 34 passing tests. Core features fully i
 1. **NO inline styles** - All CSS in `static/css/custom.css` only
 2. **NO inline scripts** - All JavaScript in `static/js/app.js` only
 3. **Follow clean architecture** - main.py → business_logic.py → database_manager.py → models → database
-4. **Never commit db_config.json** - Contains database credentials
+4. **Never commit moneybags_db_config.json** - Contains database credentials
 
 ### Currency Format (Production Standard)
 - Symbol BEFORE amount with space: `kr 1,234` | `$ 1,234` | `€ 1,234`
@@ -380,7 +380,7 @@ The application is production-ready with 34 passing tests. Core features fully i
 ### Database & Performance
 5. **PeeWee auto-creates tables** - Migrations only for schema changes
 6. **pymysql is required** - PeeWee needs this driver for MariaDB
-7. **Database config via JSON file** - db_config.json persisted via Docker volume mount
+7. **Database config via JSON file** - moneybags_db_config.json persisted via Docker volume mount
 8. **Connection pooling is critical** - For htmx performance requirements
 9. **Configuration is cached** - 5-minute timeout to reduce DB queries
 10. **Transaction wrapping** - All writes use @with_transaction decorator

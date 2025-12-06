@@ -17,6 +17,7 @@ pyvenv.cfg
 
 # Database configuration (contains credentials)
 db_config.json
+moneybags_db_config.json
 
 # Testing
 .pytest_cache/

@@ -174,7 +174,7 @@ class Configuration(BaseModel):
     - database_seeded: "true" or "false" (internal flag for first-time setup)
 
     NOTE: Database connection settings (host, port, credentials, pool size, etc.)
-    are stored in db_config.json file, NOT in this table.
+    are stored in moneybags_db_config.json file, NOT in this table.
 
     Business rules (enforced in business_logic.py):
     - Keys must be unique

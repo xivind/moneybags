@@ -639,7 +639,7 @@ async def test_db_connection(request: Request):
 @app.get("/api/config/db-connection")
 async def get_db_connection():
     """
-    Get current database connection settings from db_config.json.
+    Get current database connection settings from moneybags_db_config.json.
 
     Note: Password is not returned for security reasons.
     """
@@ -679,7 +679,7 @@ async def get_db_connection():
 @app.post("/api/config/save-db-connection")
 async def save_db_connection(request: Request):
     """
-    Save database connection settings to db_config.json file.
+    Save database connection settings to moneybags_db_config.json file.
 
     Request body:
     {

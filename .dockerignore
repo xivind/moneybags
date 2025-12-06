@@ -7,6 +7,7 @@ __pycache__
 htmlcov
 .env
 db_config.json
+moneybags_db_config.json
 *.db
 data/
 .git

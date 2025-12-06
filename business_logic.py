@@ -28,45 +28,80 @@ CACHE_TIMEOUT = 300  # 5 minutes
 
 # Database configuration state
 DATABASE_CONFIGURED = False
-DB_CONFIG_FILE = "db_config.json"
+
+# Try multiple paths for database config file (Docker vs local development)
+DB_CONFIG_PATHS = [
+    "/app/data/moneybags_db_config.json",  # Docker container path
+    "./moneybags_db_config.json",           # Local development (project root)
+    "./data/moneybags_db_config.json"       # Local development (data subdirectory)
+]
 
 
 # ==================== INITIALIZATION ====================
 
+def _get_config_file_path() -> str:
+    """
+    Get the path to the database configuration file.
+
+    Tries multiple paths in order:
+    1. /app/data/moneybags_db_config.json (Docker container)
+    2. ./moneybags_db_config.json (local dev - project root)
+    3. ./data/moneybags_db_config.json (local dev - data subdirectory)
+
+    Returns:
+        str: Path to the config file (may not exist yet)
+    """
+    for path in DB_CONFIG_PATHS:
+        if os.path.exists(path):
+            return path
+
+    # If none exist, return the first writable path
+    # In Docker: /app/data/moneybags_db_config.json
+    # Local dev: ./moneybags_db_config.json
+    if os.path.exists("/app/data"):
+        return DB_CONFIG_PATHS[0]  # Docker
+    else:
+        return DB_CONFIG_PATHS[1]  # Local dev
+
+
 def load_database_config() -> dict:
     """
-    Load database configuration from db_config.json file.
+    Load database configuration from moneybags_db_config.json file.
 
     Returns:
         dict: Database configuration with keys: db_host, db_port, db_name, db_user, db_password, db_pool_size
         None if file doesn't exist
     """
-    if not os.path.exists(DB_CONFIG_FILE):
+    config_file = _get_config_file_path()
+
+    if not os.path.exists(config_file):
         return None
 
     try:
-        with open(DB_CONFIG_FILE, 'r') as f:
+        with open(config_file, 'r') as f:
             config = json.load(f)
-            logger.info("Database configuration loaded from db_config.json")
+            logger.info(f"Database configuration loaded from {config_file}")
             return config
     except Exception as e:
-        logger.error(f"Failed to read db_config.json: {e}")
+        logger.error(f"Failed to read {config_file}: {e}")
         return None
 
 
 def save_database_config(config: dict) -> None:
     """
-    Save database configuration to db_config.json file.
+    Save database configuration to moneybags_db_config.json file.
 
     Args:
         config: Dictionary with keys: db_host, db_port, db_name, db_user, db_password, db_pool_size
     """
+    config_file = _get_config_file_path()
+
     try:
-        with open(DB_CONFIG_FILE, 'w') as f:
+        with open(config_file, 'w') as f:
             json.dump(config, f, indent=2)
-        logger.info("Database configuration saved to db_config.json")
+        logger.info(f"Database configuration saved to {config_file}")
     except Exception as e:
-        logger.error(f"Failed to write db_config.json: {e}")
+        logger.error(f"Failed to write {config_file}: {e}")
         raise ValueError(f"Failed to save database configuration: {e}")
 
 
@@ -75,11 +110,11 @@ def initialize_database():
     global DATABASE_CONFIGURED
 
     try:
-        # Load connection settings from db_config.json
+        # Load connection settings from moneybags_db_config.json
         config = load_database_config()
 
         if config is None:
-            logger.warning("Database not configured - db_config.json not found")
+            logger.warning("Database not configured - moneybags_db_config.json not found")
             DATABASE_CONFIGURED = False
             return
 

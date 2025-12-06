@@ -77,7 +77,7 @@ The core application is fully implemented and tested with 34 passing tests. Dash
    - Click "Save Settings"
    - Restart the application
 
-   This creates `db_config.json` in the project directory:
+   This creates `moneybags_db_config.json` in the project directory:
    ```json
    {
      "db_host": "your-mariadb-host",
@@ -93,10 +93,10 @@ The core application is fully implemented and tested with 34 passing tests. Dash
 
 1. **Create database configuration file:**
    ```bash
-   mkdir -p ~/code/container_data/moneybags
+   mkdir -p ~/code/container_data
    ```
 
-   Create `~/code/container_data/moneybags/db_config.json` with your database settings:
+   Create `~/code/container_data/moneybags_db_config.json` with your database settings:
    ```json
    {
      "db_host": "your-mariadb-host",
@@ -117,7 +117,7 @@ The core application is fully implemented and tested with 34 passing tests. Dash
 
 3. **Access the application:**
    - Open browser to http://localhost:8003
-   - Application will automatically connect to MariaDB using settings from `db_config.json`
+   - Application will automatically connect to MariaDB using settings from `moneybags_db_config.json`
 
 ## Database Requirements
 
@@ -129,8 +129,8 @@ Moneybags requires a MariaDB database. The application will automatically:
 ## Configuration
 
 ### Database Connection
-- Stored in `db_config.json` (not tracked in Git)
-- Docker: Persisted via volume mount at `~/code/container_data/moneybags/db_config.json`
+- Stored in `moneybags_db_config.json` (not tracked in Git)
+- Docker: Persisted via volume mount at `~/code/container_data/moneybags_db_config.json`
 - Can be updated via Configuration page in the UI
 
 ### Application Settings
@@ -162,7 +162,7 @@ moneybags/
 - All JavaScript in one file: `static/js/app.js` (no inline scripts)
 - All CSS in one file: `static/css/custom.css` (no inline styles)
 - Clean architecture: main.py → business_logic.py → database_manager.py → models
-- Database credentials stored in `db_config.json` (excluded from Git)
+- Database credentials stored in `moneybags_db_config.json` (excluded from Git)
 - Currency format: Symbol before amount with space (kr 1,234 | $ 1,234 | € 1,234)
 - Number locale: en-US (comma thousands separator)
 - Production-ready with 34 passing tests
