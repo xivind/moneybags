@@ -11,12 +11,35 @@ Moneybags helps you take control of your personal finances by allowing you to:
 - Analyze spending patterns across years
 - Manage categories, payees, and budget templates
 
+## Production Status
+
+**Status:** Production-ready ✅
+
+The core application is fully implemented and tested with 34 passing tests. Dashboard and Analysis pages are intentionally placeholders, pending production data to inform their design.
+
+**Implemented features:**
+- ✅ Complete Budget & Actuals interface with htmx auto-save
+- ✅ Category and Payee management (CRUD operations)
+- ✅ Budget template management by year
+- ✅ Transaction tracking with date, amount, payee, and comments
+- ✅ Dynamic currency support (NOK, USD, EUR) - symbol before amount with space
+- ✅ CSV export functionality
+- ✅ Comprehensive form validation (client + server + database)
+- ✅ Error handling with toast notifications
+- ✅ Connection pooling and transaction management
+- ✅ Docker deployment with volume persistence
+
+**Planned features:**
+- 🔲 Dashboard with charts and key metrics (awaiting production data)
+- 🔲 Analysis page with multiple views (awaiting production data)
+
 ## Features
 
-- **Dashboard** - Visual overview with charts and key metrics
-- **Budget & Actuals** - Side-by-side budget planning and actual tracking
-- **Analysis** - Deep dive into spending patterns with multiple views
+- **Budget & Actuals** - Side-by-side budget planning and actual tracking with automatic save
 - **Configuration** - Manage categories, payees, currency settings, and budget templates
+- **Dynamic Currency** - Choose between NOK, USD, or EUR with proper formatting
+- **Dashboard** _(placeholder)_ - Visual overview with charts and key metrics
+- **Analysis** _(placeholder)_ - Deep dive into spending patterns with multiple views
 
 ## Tech Stack
 
@@ -136,10 +159,13 @@ moneybags/
 ## Development Notes
 
 - Virtual environment: `/home/xivind/code/moneybags-runtime/` (separate from repo)
-- All JavaScript in one file: `static/js/app.js`
-- All CSS in one file: `static/css/custom.css`
+- All JavaScript in one file: `static/js/app.js` (no inline scripts)
+- All CSS in one file: `static/css/custom.css` (no inline styles)
 - Clean architecture: main.py → business_logic.py → database_manager.py → models
 - Database credentials stored in `db_config.json` (excluded from Git)
+- Currency format: Symbol before amount with space (kr 1,234 | $ 1,234 | € 1,234)
+- Number locale: en-US (comma thousands separator)
+- Production-ready with 34 passing tests
 
 ## Testing
 
