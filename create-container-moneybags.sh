@@ -20,5 +20,5 @@ docker run -d \
   -e TZ=Europe/Stockholm \
   -v ~/code/container_data:/app/data \
   --restart unless-stopped \
-  -p 8003:8000 \
+  -p 8009:8009 \
   moneybags

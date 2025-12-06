@@ -16,11 +16,11 @@ COPY . .
 RUN mkdir -p /app/data/logs
 
 # Expose port
-EXPOSE 8003
+EXPOSE 8009
 
 # Run application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8003", "--log-config", "uvicorn_log_config.ini"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8009", "--log-config", "uvicorn_log_config.ini"]
 
 # Healthcheck using curl to test HTTP endpoint
 HEALTHCHECK --interval=600s --timeout=10s --retries=3 \
-  CMD curl -sSf -o /dev/null -w "%{http_code}" http://127.0.0.1:8003 || exit 1
+  CMD curl -sSf -o /dev/null -w "%{http_code}" http://127.0.0.1:8009 || exit 1

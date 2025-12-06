@@ -65,11 +65,11 @@ The core application is fully implemented and tested with 34 passing tests. Dash
 
 3. **Start the application:**
    ```bash
-   uvicorn main:app --host 0.0.0.0 --port 8000 --log-config uvicorn_log_config.ini --reload
+   uvicorn main:app --host 0.0.0.0 --port 8009 --log-config uvicorn_log_config.ini --reload
    ```
 
 4. **Configure database:**
-   - Open browser to http://localhost:8000
+   - Open browser to http://localhost:8009
    - You'll see a banner prompting you to configure the database
    - Click "Go to Configuration"
    - Scroll to "Database Connection" section
@@ -116,7 +116,7 @@ The core application is fully implemented and tested with 34 passing tests. Dash
    ```
 
 3. **Access the application:**
-   - Open browser to http://localhost:8003
+   - Open browser to http://localhost:8009
    - Application will automatically connect to MariaDB using settings from `moneybags_db_config.json`
 
 ## Database Requirements

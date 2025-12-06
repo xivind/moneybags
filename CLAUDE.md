@@ -133,8 +133,8 @@ pip install -r requirements.txt
 ### Database Connection (moneybags_db_config.json)
 
 **First-time setup:**
-1. Start the application: `uvicorn main:app --host 0.0.0.0 --port 8000 --log-config uvicorn_log_config.ini --reload`
-2. Open browser to http://localhost:8000
+1. Start the application: `uvicorn main:app --host 0.0.0.0 --port 8009 --log-config uvicorn_log_config.ini --reload`
+2. Open browser to http://localhost:8009
 3. You'll see a banner prompting you to configure the database
 4. Click "Go to Configuration" and enter your database connection details:
    - Database Host (e.g., `sandbox` or IP address)
@@ -168,7 +168,7 @@ source /home/xivind/code/moneybags-runtime/bin/activate
 cd /home/xivind/code/moneybags
 
 # 3. Run with uvicorn (recommended for development)
-uvicorn main:app --host 0.0.0.0 --port 8000 --log-config uvicorn_log_config.ini --reload
+uvicorn main:app --host 0.0.0.0 --port 8009 --log-config uvicorn_log_config.ini --reload
 
 # The --reload flag auto-restarts on code changes (useful for development)
 ```
@@ -209,7 +209,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --log-config uvicorn_log_config.ini 
    ```
 
 3. **Access the application:**
-   - Open browser to http://localhost:8003
+   - Open browser to http://localhost:8009
    - Application will automatically connect to MariaDB using settings from `moneybags_db_config.json`
 
 **What the script does:**
@@ -218,7 +218,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --log-config uvicorn_log_config.ini 
 3. Creates data directories (~/code/container_data)
 4. Runs container with:
    - Volume mount for data persistence (includes `moneybags_db_config.json`)
-   - Port 8003→8000 mapping (access at http://localhost:8003)
+   - Port 8009:8009 mapping (access at http://localhost:8009)
    - Auto-restart policy
    - Europe/Stockholm timezone
 

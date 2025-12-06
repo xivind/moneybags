@@ -430,7 +430,7 @@ All enforced in `business_logic.py`:
 ┌─────────────────┐         ┌─────────────────┐
 │   App Container │────────▶│ MariaDB Container│
 │   (FastAPI)     │         │   (Database)     │
-│   Port: 8000    │         │   Port: 3306     │
+│   Port: 8009    │         │   Port: 3306     │
 └─────────────────┘         └─────────────────┘
 ```
 
