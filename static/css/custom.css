@@ -720,3 +720,57 @@ body {
 .modal.show ~ .modal.show .modal-dialog {
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
 }
+
+/* ==================== INLINE STYLE REPLACEMENTS ==================== */
+
+/* Year selector label */
+.year-selector-label {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+/* Empty state banner */
+.empty-state-banner {
+    background-color: #dbeafe;
+    border-left: 4px solid #3b82f6;
+    border-radius: 8px;
+}
+
+.empty-state-icon {
+    font-size: 24px;
+    color: #3b82f6;
+}
+
+.empty-state-heading {
+    color: #1e40af;
+    font-weight: 600;
+}
+
+.empty-state-text {
+    color: #1e3a8a;
+}
+
+/* Configuration page info alert */
+.config-alert-info {
+    font-size: 13px;
+    border-left: 3px solid #3b82f6;
+}
+
+.config-alert-list {
+    padding-left: 20px;
+}
+
+/* No years message */
+.no-years-icon {
+    font-size: 3rem;
+}
+
+/* No transactions message */
+.no-transactions i {
+    font-size: 3rem;
+}
+
+/* Small close button for category chips */
+.btn-close-small {
+    font-size: 0.7rem;
+}

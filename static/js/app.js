@@ -107,6 +107,36 @@ async function loadBudgetData(year) {
     budgetData = await apiCall(`/api/budget/${year}`);
 }
 
+function getCurrencySymbol() {
+    switch (currentCurrencyFormat) {
+        case 'nok':
+            return 'kr';
+        case 'usd':
+            return '$';
+        case 'eur':
+            return '€';
+        default:
+            return '';
+    }
+}
+
+function updateCurrencyLabels() {
+    const symbol = getCurrencySymbol();
+    const labelText = symbol ? ` (${symbol})` : '';
+
+    // Update budget modal label
+    const budgetLabel = document.querySelector('label[for="budgetAmount"]');
+    if (budgetLabel) {
+        budgetLabel.textContent = `Budget${labelText}`;
+    }
+
+    // Update transaction amount label
+    const amountLabel = document.querySelector('label[for="transactionAmount"]');
+    if (amountLabel) {
+        amountLabel.textContent = `Amount${labelText}`;
+    }
+}
+
 async function loadCurrencyFormat() {
     try {
         const result = await apiCall('/api/config/currency', { suppressError: true });
@@ -115,9 +145,11 @@ async function loadCurrencyFormat() {
         } else {
             currentCurrencyFormat = '';
         }
+        updateCurrencyLabels();
     } catch (error) {
         console.error('Failed to load currency format:', error);
         currentCurrencyFormat = '';
+        updateCurrencyLabels();
     }
 }
 
@@ -126,17 +158,17 @@ function formatCurrency(amount) {
         return '';
     }
 
-    // Format number with space as thousand separator (nb-NO locale)
-    const formattedNumber = Number(amount).toLocaleString('nb-NO');
+    // Format number with comma as thousand separator (en-US locale)
+    const formattedNumber = Number(amount).toLocaleString('en-US');
 
-    // Apply currency symbol based on format
+    // Apply currency symbol based on format (symbol before amount with space)
     switch (currentCurrencyFormat) {
         case 'nok':
-            return `${formattedNumber} kr`;
+            return `kr ${formattedNumber}`;
         case 'usd':
-            return `$${formattedNumber}`;
+            return `$ ${formattedNumber}`;
         case 'eur':
-            return `€${formattedNumber}`;
+            return `€ ${formattedNumber}`;
         default:
             // No currency selected - just return the number
             return formattedNumber;
@@ -758,7 +790,7 @@ async function displayTransactions() {
     const listDiv = document.getElementById('transactionsList');
 
     if (monthTransactions.length === 0) {
-        listDiv.innerHTML = '<div class="no-transactions"><i class="bi bi-inbox" style="font-size: 3rem;"></i><p>No transactions yet</p></div>';
+        listDiv.innerHTML = '<div class="no-transactions"><i class="bi bi-inbox"></i><p>No transactions yet</p></div>';
         return;
     }
 
@@ -1353,6 +1385,10 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Initialize config page
     if (document.getElementById('categoriesTable')) {
+        // Read database configuration state from data attribute
+        const configData = document.getElementById('configPageData');
+        window.DATABASE_CONFIGURED = configData ? configData.dataset.databaseConfigured === 'true' : false;
+
         // Always load database settings (from db_config.json)
         await loadDatabaseSettings();
 
@@ -1432,7 +1468,11 @@ async function saveCurrencySettings() {
 
         // Update original value and disable save button
         originalCurrencyFormat = currencyFormat;
+        currentCurrencyFormat = currencyFormat;
         document.getElementById('saveCurrencyBtn').disabled = true;
+
+        // Update currency labels in modals
+        updateCurrencyLabels();
 
         // Reload budget page if it's open to apply new currency format
         if (document.getElementById('budgetTable')) {
@@ -1592,7 +1632,7 @@ function generateYearAccordionItem(year, categories) {
         html += `
             <div class="badge badge-${cat.type === 'income' ? 'income' : 'expense'} d-flex align-items-center gap-2">
                 ${cat.name}
-                <button type="button" class="btn-close btn-close-white" style="font-size: 0.7rem;" onclick="removeCategoryFromYear(${year}, '${cat.id}')" ${cat.has_data ? 'disabled title="Cannot remove - has budget data"' : ''}></button>
+                <button type="button" class="btn-close btn-close-white btn-close-small" onclick="removeCategoryFromYear(${year}, '${cat.id}')" ${cat.has_data ? 'disabled title="Cannot remove - has budget data"' : ''}></button>
             </div>
         `;
     });

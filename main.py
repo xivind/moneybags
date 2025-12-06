@@ -40,7 +40,6 @@ def startup_event():
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request):
     """Dashboard showing financial overview"""
-    # TODO: Add real data when backend is ready
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "database_configured": business_logic.DATABASE_CONFIGURED

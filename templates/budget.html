@@ -8,7 +8,7 @@
         <h2 class="mb-0">Budget and Actuals - Chart of Accounts</h2>
     </div>
     <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
-        <label for="yearSelector" class="mb-0 me-2 fw-bold" style="font-size: 14px; color: #6b7280;">Year:</label>
+        <label for="yearSelector" class="mb-0 me-2 fw-bold year-selector-label">Year:</label>
         <select id="yearSelector" class="form-select d-inline-block w-auto" onchange="changeYear()">
             <!-- Will be populated by JavaScript -->
         </select>
@@ -16,14 +16,14 @@
 </div>
 
 <!-- Empty State Banner (shown when no budget years exist) -->
-<div id="emptyStateBanner" class="alert alert-info d-none" role="alert" style="background-color: #dbeafe; border-left: 4px solid #3b82f6; border-radius: 8px;">
+<div id="emptyStateBanner" class="alert alert-info empty-state-banner d-none" role="alert">
     <div class="d-flex align-items-start">
-        <div class="me-3" style="font-size: 24px; color: #3b82f6;">
+        <div class="me-3 empty-state-icon">
             <i class="bi bi-info-circle-fill"></i>
         </div>
         <div>
-            <h5 class="alert-heading mb-2" style="color: #1e40af; font-weight: 600;">No budgets created yet</h5>
-            <p class="mb-0" style="color: #1e3a8a;">
+            <h5 class="alert-heading mb-2 empty-state-heading">No budgets created yet</h5>
+            <p class="mb-0 empty-state-text">
                 To get started, go to the <strong>Configuration</strong> page to create categories and payees.
                 Then add categories to a year to create your first budget.
             </p>
@@ -48,7 +48,7 @@
             <div class="modal-body">
                 <form id="budgetForm">
                     <div class="mb-3">
-                        <label for="budgetAmount" class="form-label">Budget (kr)</label>
+                        <label for="budgetAmount" class="form-label">Budget</label>
                         <input type="number" class="form-control" id="budgetAmount" step="1" required>
                     </div>
                 </form>
@@ -115,7 +115,7 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label for="transactionAmount" class="form-label">Amount (kr)</label>
+                        <label for="transactionAmount" class="form-label">Amount</label>
                         <input type="number" class="form-control" id="transactionAmount" step="0.01" required>
                     </div>
                     <div class="mb-3">

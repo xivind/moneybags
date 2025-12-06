@@ -171,13 +171,10 @@ class Configuration(BaseModel):
 
     Stores key-value pairs for application settings including:
     - currency_format: "nok", "usd", "eur"
-    - db_host: MariaDB host
-    - db_port: MariaDB port
-    - db_name: Database name
-    - db_user: Database username
-    - db_password: Database password (encrypted in production)
-    - db_pool_size: Connection pool size
-    - db_pool_recycle: Connection recycle time in seconds
+    - database_seeded: "true" or "false" (internal flag for first-time setup)
+
+    NOTE: Database connection settings (host, port, credentials, pool size, etc.)
+    are stored in db_config.json file, NOT in this table.
 
     Business rules (enforced in business_logic.py):
     - Keys must be unique
