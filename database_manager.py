@@ -223,19 +223,30 @@ def close_connection() -> None:
         logger.info("Database connection closed")
 
 
+def _execute_transaction(func, *args, **kwargs):
+    """
+    Inner function to execute database operation in transaction.
+
+    This is separated out so it can be wrapped by execute_with_retry.
+    """
+    with database.atomic():
+        return func(*args, **kwargs)
+
+
 def with_transaction(func):
     """
-    Decorator to wrap database write operations in transactions.
+    Decorator to wrap database write operations in transactions with retry logic.
 
     Ensures atomicity - either all changes succeed or all are rolled back.
+    Automatically retries on transient connection failures (OperationalError).
+
     Pattern from DATABASE_DESIGN.md.
     """
     def wrapper(*args, **kwargs):
         try:
-            with database.atomic():
-                return func(*args, **kwargs)
+            return execute_with_retry(_execute_transaction, func, *args, **kwargs)
         except Exception as e:
-            logger.error(f"Transaction failed in {func.__name__}: {e}")
+            logger.error(f"Transaction failed in {func.__name__} after all retries: {e}")
             raise
     return wrapper
 

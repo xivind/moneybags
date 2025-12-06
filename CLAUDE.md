@@ -83,6 +83,9 @@ The core application is fully implemented, tested (34 passing tests), and ready 
 - Ensures atomicity (all or nothing)
 - Automatic rollback on errors
 - Explicit commit on success
+- Automatic retry on transient failures (OperationalError)
+- Up to 3 retry attempts with connection health checks
+- Non-retryable errors (ValueError, IntegrityError) fail immediately
 
 **Performance Features:**
 - Configuration caching (5-minute timeout, in-memory)
