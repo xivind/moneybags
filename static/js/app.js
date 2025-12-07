@@ -617,18 +617,19 @@ function generateSectionRows(sectionType) {
             const entry = entries[monthNum];
             const budgetValue = entry ? entry.amount : 0;
             const isFuture = idx > currentMonth;
-            const hasValue = budgetValue > 0 ? 'has-value' : '';
+            const hasValue = entry ? 'has-value' : '';
             const cellClass = isFuture ? 'result-future' : hasValue;
             const clickHandler = isFuture ? '' : `openBudgetModal('${category.id}', '${category.name}', ${monthNum})`;
             html += `<td class="${cellClass}" onclick="${clickHandler}">`;
-            html += budgetValue > 0 ? formatCurrency(budgetValue) : '<span class="empty-cell">0</span>';
+            html += entry ? formatCurrency(budgetValue) : '<span class="empty-cell">-</span>';
             html += '</td>';
         });
 
         // Budget total
         const budgetTotal = calculateBudgetYearTotal(category.id);
-        const budgetTotalClass = budgetTotal > 0 ? 'total-column has-value' : 'total-column';
-        html += `<td class="${budgetTotalClass}">${formatCurrency(budgetTotal)}</td>`;
+        const hasAnyBudgetEntry = Object.keys(entries).length > 0;
+        const budgetTotalClass = hasAnyBudgetEntry ? 'total-column has-value' : 'total-column';
+        html += `<td class="${budgetTotalClass}">${hasAnyBudgetEntry ? formatCurrency(budgetTotal) : '<span class="empty-cell">-</span>'}</td>`;
         html += '</tr>';
 
         // Result row
@@ -649,14 +650,15 @@ function generateSectionRows(sectionType) {
             const clickHandler = isFuture ? '' : `openTransactionModal('${category.id}', '${category.name}', ${monthNum})`;
 
             html += `<td class="${colorClass}" onclick="${clickHandler}">`;
-            html += resultTotal > 0 ? formatCurrency(resultTotal) : '<span class="empty-cell">0</span>';
+            html += monthTransactions.length > 0 ? formatCurrency(resultTotal) : '<span class="empty-cell">-</span>';
             html += '</td>';
         });
 
         // Result total
         const resultYearTotal = calculateResultYearTotal(category.id);
+        const hasAnyTransaction = Object.values(transactions).some(monthTxs => monthTxs.length > 0);
         const resultTotalColorClass = getTotalColorClass(resultYearTotal, budgetTotal, sectionType);
-        html += `<td class="${resultTotalColorClass}">${formatCurrency(resultYearTotal)}</td>`;
+        html += `<td class="${resultTotalColorClass}">${hasAnyTransaction ? formatCurrency(resultYearTotal) : '<span class="empty-cell">-</span>'}</td>`;
         html += '</tr>';
     });
 
