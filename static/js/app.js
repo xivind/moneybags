@@ -646,7 +646,7 @@ function generateSectionRows(sectionType) {
             const budgetValue = entry ? entry.amount : 0;
             const isFuture = idx > currentMonth;
 
-            const colorClass = getResultColorClass(resultTotal, budgetValue, sectionType, isFuture);
+            const colorClass = getResultColorClass(resultTotal, budgetValue, sectionType, isFuture, monthTransactions.length > 0);
             const clickHandler = isFuture ? '' : `openTransactionModal('${category.id}', '${category.name}', ${monthNum})`;
 
             html += `<td class="${colorClass}" onclick="${clickHandler}">`;
@@ -657,7 +657,7 @@ function generateSectionRows(sectionType) {
         // Result total
         const resultYearTotal = calculateResultYearTotal(category.id);
         const hasAnyTransaction = Object.values(transactions).some(monthTxs => monthTxs.length > 0);
-        const resultTotalColorClass = getTotalColorClass(resultYearTotal, budgetTotal, sectionType);
+        const resultTotalColorClass = getTotalColorClass(resultYearTotal, budgetTotal, sectionType, hasAnyTransaction);
         html += `<td class="${resultTotalColorClass}">${hasAnyTransaction ? formatCurrency(resultYearTotal) : '<span class="empty-cell">-</span>'}</td>`;
         html += '</tr>';
     });
@@ -665,9 +665,9 @@ function generateSectionRows(sectionType) {
     return html;
 }
 
-function getResultColorClass(result, budget, section, isFuture) {
+function getResultColorClass(result, budget, section, isFuture, hasTransactions) {
     if (isFuture) return 'result-future';
-    if (result === 0) return 'result-no-data';
+    if (!hasTransactions) return 'result-no-data';
 
     if (section === 'expenses') {
         return result <= budget ? 'result-better' : 'result-worse';
@@ -676,8 +676,8 @@ function getResultColorClass(result, budget, section, isFuture) {
     }
 }
 
-function getTotalColorClass(result, budget, section) {
-    if (result === 0) return 'total-column result-no-data';
+function getTotalColorClass(result, budget, section, hasTransactions) {
+    if (!hasTransactions) return 'total-column result-no-data';
 
     if (section === 'expenses') {
         return result <= budget ? 'total-column result-better' : 'total-column result-worse';
