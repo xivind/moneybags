@@ -251,6 +251,22 @@ def with_transaction(func):
     return wrapper
 
 
+def with_retry(func):
+    """
+    Decorator to wrap database read operations with retry logic.
+
+    Automatically retries on transient connection failures (OperationalError).
+    Used for SELECT queries to ensure connection resilience.
+    """
+    def wrapper(*args, **kwargs):
+        try:
+            return execute_with_retry(func, *args, **kwargs)
+        except Exception as e:
+            logger.error(f"Failed to {func.__name__} after all retries: {e}")
+            raise
+    return wrapper
+
+
 def log_query_time(func):
     """
     Decorator to log query execution time for performance monitoring.
@@ -290,6 +306,7 @@ def create_category(data: dict) -> Category:
     return category
 
 
+@with_retry
 def get_category_by_id(category_id: str) -> Category:
     """Get category by ID."""
     try:
@@ -298,11 +315,13 @@ def get_category_by_id(category_id: str) -> Category:
         return None
 
 
+@with_retry
 def get_all_categories() -> list:
     """Get all categories."""
     return list(Category.select())
 
 
+@with_retry
 def category_exists_by_name(name: str) -> bool:
     """Check if category with name exists (case-insensitive)."""
     return Category.select().where(Category.name.ilike(name)).exists()
@@ -328,6 +347,7 @@ def delete_category(category_id: str) -> None:
     logger.info(f"Deleted category: {category_name} ({category_id})")
 
 
+@with_retry
 def category_has_budget_templates(category_id: str) -> bool:
     """Check if category is used in any budget_templates."""
     return BudgetTemplate.select().where(
@@ -335,6 +355,7 @@ def category_has_budget_templates(category_id: str) -> bool:
     ).exists()
 
 
+@with_retry
 def category_has_budget_entries(category_id: str) -> bool:
     """Check if category has any budget_entries."""
     return BudgetEntry.select().where(
@@ -342,6 +363,7 @@ def category_has_budget_entries(category_id: str) -> bool:
     ).exists()
 
 
+@with_retry
 def category_has_transactions(category_id: str) -> bool:
     """Check if category has any transactions."""
     return Transaction.select().where(
@@ -360,6 +382,7 @@ def create_payee(data: dict) -> Payee:
     return payee
 
 
+@with_retry
 def get_payee_by_id(payee_id: str) -> Payee:
     """Get payee by ID."""
     try:
@@ -368,11 +391,13 @@ def get_payee_by_id(payee_id: str) -> Payee:
         return None
 
 
+@with_retry
 def get_all_payees() -> list:
     """Get all payees."""
     return list(Payee.select())
 
 
+@with_retry
 def payee_exists_by_name(name: str) -> bool:
     """Check if payee with name exists (case-insensitive)."""
     return Payee.select().where(Payee.name.ilike(name)).exists()
@@ -398,6 +423,7 @@ def delete_payee(payee_id: str) -> None:
     logger.info(f"Deleted payee: {payee_name} ({payee_id})")
 
 
+@with_retry
 def payee_transaction_count(payee_id: str) -> int:
     """Count transactions for payee."""
     return Transaction.select().where(
@@ -405,6 +431,7 @@ def payee_transaction_count(payee_id: str) -> int:
     ).count()
 
 
+@with_retry
 def payee_last_used_date(payee_id: str) -> str:
     """Get most recent transaction date for payee."""
     result = (Transaction
@@ -426,6 +453,7 @@ def create_budget_template(data: dict) -> BudgetTemplate:
     return template
 
 
+@with_retry
 def get_budget_template_by_year(year: int) -> list:
     """Get all categories in budget template for year."""
     return list(BudgetTemplate
@@ -434,6 +462,7 @@ def get_budget_template_by_year(year: int) -> list:
                 .where(BudgetTemplate.year == year))
 
 
+@with_retry
 def budget_template_exists(year: int, category_id: str) -> bool:
     """Check if category is in year's template."""
     return BudgetTemplate.select().where(
@@ -453,6 +482,7 @@ def delete_budget_template(year: int, category_id: str) -> None:
     logger.info(f"Deleted budget template: year={year}, category={category_id}")
 
 
+@with_retry
 def get_distinct_years() -> list:
     """Get all distinct years from budget_templates."""
     years = (BudgetTemplate
@@ -473,6 +503,7 @@ def create_budget_entry(data: dict) -> BudgetEntry:
     return entry
 
 
+@with_retry
 def get_budget_entry(category_id: str, year: int, month: int) -> BudgetEntry:
     """Get budget entry by category/year/month."""
     try:
@@ -485,6 +516,7 @@ def get_budget_entry(category_id: str, year: int, month: int) -> BudgetEntry:
         return None
 
 
+@with_retry
 def get_budget_entries_by_year(year: int) -> list:
     """Get all budget entries for year."""
     return list(BudgetEntry
@@ -492,6 +524,7 @@ def get_budget_entries_by_year(year: int) -> list:
                 .where(BudgetEntry.year == year))
 
 
+@with_retry
 def get_budget_entries_by_category_year(category_id: str, year: int) -> list:
     """Get all budget entries for category/year."""
     return list(BudgetEntry
@@ -513,6 +546,7 @@ def update_budget_entry(entry_id: str, data: dict) -> BudgetEntry:
     return entry
 
 
+@with_retry
 def category_has_budget_entries_for_year(category_id: str, year: int) -> bool:
     """Check if category has budget entries for specific year."""
     return BudgetEntry.select().where(
@@ -532,6 +566,7 @@ def create_transaction(data: dict) -> Transaction:
     return transaction
 
 
+@with_retry
 def get_transaction_by_id(transaction_id: str) -> Transaction:
     """Get transaction by ID."""
     try:
@@ -540,6 +575,7 @@ def get_transaction_by_id(transaction_id: str) -> Transaction:
         return None
 
 
+@with_retry
 def get_transactions_by_category_month(category_id: str, year: int, month: int) -> list:
     """Get transactions for category/year/month."""
     start_date = date(year, month, 1)
@@ -559,6 +595,7 @@ def get_transactions_by_category_month(category_id: str, year: int, month: int) 
                 .order_by(Transaction.date))
 
 
+@with_retry
 def get_transactions_by_year(year: int) -> list:
     """Get all transactions for year."""
     start_date = date(year, 1, 1)
@@ -591,6 +628,7 @@ def delete_transaction(transaction_id: str) -> None:
     logger.info(f"Deleted transaction: {transaction_id}")
 
 
+@with_retry
 def category_has_transactions_for_year(category_id: str, year: int) -> bool:
     """Check if category has transactions for specific year."""
     start_date = date(year, 1, 1)
@@ -614,6 +652,7 @@ def create_configuration(data: dict) -> Configuration:
     return config
 
 
+@with_retry
 def get_configuration_by_key(key: str) -> Configuration:
     """Get configuration by key."""
     try:
@@ -622,6 +661,7 @@ def get_configuration_by_key(key: str) -> Configuration:
         return None
 
 
+@with_retry
 def get_all_configuration() -> list:
     """Get all configuration entries."""
     return list(Configuration.select())
@@ -638,6 +678,7 @@ def update_configuration(key: str, data: dict) -> Configuration:
     return config
 
 
+@with_retry
 def configuration_exists(key: str) -> bool:
     """Check if configuration key exists."""
     return Configuration.select().where(Configuration.key == key).exists()

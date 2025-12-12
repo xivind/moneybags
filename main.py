@@ -67,6 +67,54 @@ def config_page(request: Request):
         "database_configured": business_logic.DATABASE_CONFIGURED
     })
 
+# ==================== HEALTH CHECK ====================
+
+@app.get("/health")
+async def health_check():
+    """
+    Health check endpoint for Docker and monitoring.
+
+    Tests actual database connectivity by executing a simple query.
+    Returns 200 if healthy, 503 if database is unreachable.
+    """
+    try:
+        # Check if database is configured
+        if not business_logic.DATABASE_CONFIGURED:
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "status": "unhealthy",
+                    "reason": "Database not configured"
+                }
+            )
+
+        # Test database connection with simple query
+        import database_manager as db
+        is_connected = db.check_connection()
+
+        if is_connected:
+            return {
+                "status": "healthy",
+                "database": "connected"
+            }
+        else:
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "status": "unhealthy",
+                    "reason": "Database connection lost"
+                }
+            )
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "unhealthy",
+                "reason": "Health check error"
+            }
+        )
+
 # ==================== BUDGET API ROUTES ====================
 
 @app.get("/api/budget/{year}")

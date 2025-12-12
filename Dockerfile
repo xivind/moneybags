@@ -21,6 +21,6 @@ EXPOSE 8009
 # Run application
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8009", "--log-config", "uvicorn_log_config.ini"]
 
-# Healthcheck using curl to test HTTP endpoint
-HEALTHCHECK --interval=600s --timeout=10s --retries=3 \
-  CMD curl -sSf -o /dev/null -w "%{http_code}" http://127.0.0.1:8009 || exit 1
+# Healthcheck using dedicated /health endpoint that tests database connectivity
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+  CMD curl -f http://127.0.0.1:8009/health || exit 1

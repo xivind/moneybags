@@ -52,6 +52,24 @@ async function apiCall(url, options = {}) {
 
         const data = await response.json();
 
+        // Check for server errors (500) - likely database connection issues
+        if (response.status === 500) {
+            const errorMsg = data.error || 'Server error occurred';
+
+            // Database connection errors contain specific patterns
+            const isDatabaseError = errorMsg.includes('Lost connection') ||
+                                   errorMsg.includes('MySQL') ||
+                                   errorMsg.includes('connection') ||
+                                   errorMsg.includes('(0,') ||
+                                   errorMsg.includes('(2013,');
+
+            if (isDatabaseError) {
+                // Show toast for database errors (less intrusive, allows retry to work)
+                showToast('Database connection issue. Retrying...', 'error');
+                throw new Error('Database connection error');
+            }
+        }
+
         if (!data.success) {
             throw new Error(data.error || 'API request failed');
         }
@@ -60,8 +78,8 @@ async function apiCall(url, options = {}) {
     } catch (error) {
         console.error('API Error:', error);
 
-        // Only show error modal if not suppressed
-        if (!suppressError) {
+        // Only show error modal if not suppressed and not already shown as toast
+        if (!suppressError && !error.message.includes('Database connection')) {
             showError(error.message || 'Network error occurred');
         }
 
