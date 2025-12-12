@@ -205,6 +205,12 @@ async function saveBudgetEntry(categoryId, year, month, amount) {
     });
 }
 
+async function deleteBudgetEntryApi(entryId) {
+    return await apiCall(`/api/budget/entry/${entryId}`, {
+        method: 'DELETE'
+    });
+}
+
 async function loadTransactions(categoryId, year, month) {
     return await apiCall(`/api/transactions/${categoryId}/${year}/${month}`);
 }
@@ -737,16 +743,26 @@ function calculateResultYearTotal(categoryId) {
 // ==================== BUDGET MODAL FUNCTIONS ====================
 
 function openBudgetModal(categoryId, categoryName, month) {
-    currentCell = { categoryId, categoryName, month, type: 'budget' };
+    const entries = budgetData.budget_entries[categoryId] || {};
+    const entry = entries[month];
+    const entryId = entry ? entry.id : null;
+
+    currentCell = { categoryId, categoryName, month, type: 'budget', entryId };
 
     const modal = new bootstrap.Modal(document.getElementById('budgetModal'));
     document.getElementById('budgetModalTitle').textContent =
         `${categoryName} - Budget - ${months[month - 1]}`;
 
-    const entries = budgetData.budget_entries[categoryId] || {};
-    const entry = entries[month];
     const currentValue = entry ? entry.amount : 0;
     document.getElementById('budgetAmount').value = currentValue;
+
+    // Show delete button only if entry exists
+    const deleteBtn = document.getElementById('deleteBudgetBtn');
+    if (entryId) {
+        deleteBtn.style.display = 'block';
+    } else {
+        deleteBtn.style.display = 'none';
+    }
 
     modal.show();
 
@@ -774,6 +790,43 @@ async function saveBudget() {
         generateTable();
         hideLoading();
         showSuccess('Budget saved');
+    } catch (error) {
+        hideLoading();
+        // Error already shown by apiCall
+    }
+}
+
+async function deleteBudgetEntry() {
+    const { entryId } = currentCell;
+
+    if (!entryId) {
+        showError('No budget entry to delete');
+        return;
+    }
+
+    const confirmed = await showConfirmModal(
+        'Delete Budget Entry',
+        'Are you sure you want to delete this budget entry?',
+        'Delete'
+    );
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        showLoading('Deleting budget entry...');
+        await deleteBudgetEntryApi(entryId);
+
+        // Reload budget data
+        await loadBudgetData(currentYear);
+
+        // Close modal
+        bootstrap.Modal.getInstance(document.getElementById('budgetModal')).hide();
+
+        // Refresh table
+        generateTable();
+        hideLoading();
+        showSuccess('Budget entry deleted');
     } catch (error) {
         hideLoading();
         // Error already shown by apiCall

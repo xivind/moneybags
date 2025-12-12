@@ -781,6 +781,28 @@ def save_budget_entry(category_id: str, year: int, month: int, amount: int) -> d
         raise
 
 
+def delete_budget_entry(entry_id: str) -> None:
+    """
+    Delete budget entry.
+
+    Business logic:
+    - Validate entry_id exists
+    - Delete budget entry
+    """
+    try:
+        # Validate entry exists
+        entry = db.get_budget_entry_by_id(entry_id)
+        if not entry:
+            raise ValueError(f"Budget entry {entry_id} not found")
+
+        # Delete
+        db.delete_budget_entry(entry_id)
+        logger.info(f"Business logic: Deleted budget entry {entry_id}")
+    except Exception as e:
+        logger.error(f"Failed to delete budget entry: {e}")
+        raise
+
+
 # ==================== TRANSACTION BUSINESS LOGIC ====================
 
 def get_transactions(category_id: str, year: int, month: int) -> list:

@@ -517,6 +517,15 @@ def get_budget_entry(category_id: str, year: int, month: int) -> BudgetEntry:
 
 
 @with_retry
+def get_budget_entry_by_id(entry_id: str) -> BudgetEntry:
+    """Get budget entry by ID."""
+    try:
+        return BudgetEntry.get(BudgetEntry.id == entry_id)
+    except DoesNotExist:
+        return None
+
+
+@with_retry
 def get_budget_entries_by_year(year: int) -> list:
     """Get all budget entries for year."""
     return list(BudgetEntry
@@ -544,6 +553,14 @@ def update_budget_entry(entry_id: str, data: dict) -> BudgetEntry:
     entry.save()
     logger.info(f"Updated budget entry: {entry.id}")
     return entry
+
+
+@with_transaction
+def delete_budget_entry(entry_id: str) -> None:
+    """Delete budget entry by ID."""
+    entry = BudgetEntry.get(BudgetEntry.id == entry_id)
+    entry.delete_instance()
+    logger.info(f"Deleted budget entry: {entry_id}")
 
 
 @with_retry

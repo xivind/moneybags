@@ -184,6 +184,24 @@ async def save_budget_entry(request: Request):
             content={"success": False, "error": str(e)}
         )
 
+@app.delete("/api/budget/entry/{entry_id}")
+async def delete_budget_entry(entry_id: str):
+    """Delete budget entry."""
+    try:
+        business_logic.delete_budget_entry(entry_id)
+        return {"success": True}
+    except ValueError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": str(e)}
+        )
+    except Exception as e:
+        logger.error(f"Error deleting budget entry: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
 @app.get("/api/transactions/{category_id}/{year}/{month}")
 async def get_transactions(category_id: str, year: int, month: int):
     """Get all transactions for category/year/month."""
