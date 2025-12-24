@@ -318,7 +318,7 @@ def get_category_by_id(category_id: str) -> Category:
 @with_retry
 def get_all_categories() -> list:
     """Get all categories."""
-    return list(Category.select())
+    return list(Category.select().order_by(Category.type, Category.name))
 
 
 @with_retry
@@ -394,7 +394,7 @@ def get_payee_by_id(payee_id: str) -> Payee:
 @with_retry
 def get_all_payees() -> list:
     """Get all payees."""
-    return list(Payee.select())
+    return list(Payee.select().order_by(Payee.name))
 
 
 @with_retry
@@ -459,7 +459,8 @@ def get_budget_template_by_year(year: int) -> list:
     return list(BudgetTemplate
                 .select(BudgetTemplate, Category)
                 .join(Category)
-                .where(BudgetTemplate.year == year))
+                .where(BudgetTemplate.year == year)
+                .order_by(Category.type, Category.name))
 
 
 @with_retry
@@ -623,7 +624,8 @@ def get_transactions_by_year(year: int) -> list:
                 .where(
                     (Transaction.date >= start_date) &
                     (Transaction.date < end_date)
-                ))
+                )
+                .order_by(Transaction.date))
 
 
 @with_transaction

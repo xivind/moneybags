@@ -193,14 +193,15 @@ function formatCurrency(amount) {
     }
 }
 
-async function saveBudgetEntry(categoryId, year, month, amount) {
+async function saveBudgetEntry(categoryId, year, month, amount, comment) {
     return await apiCall('/api/budget/entry', {
         method: 'POST',
         body: JSON.stringify({
             category_id: categoryId,
             year: year,
             month: month,
-            amount: amount
+            amount: amount,
+            comment: comment
         })
     });
 }
@@ -756,6 +757,9 @@ function openBudgetModal(categoryId, categoryName, month) {
     const currentValue = entry ? entry.amount : 0;
     document.getElementById('budgetAmount').value = currentValue;
 
+    const currentComment = entry ? (entry.comment || '') : '';
+    document.getElementById('budgetComment').value = currentComment;
+
     // Show delete button only if entry exists
     const deleteBtn = document.getElementById('deleteBudgetBtn');
     if (entryId) {
@@ -774,11 +778,12 @@ function openBudgetModal(categoryId, categoryName, month) {
 
 async function saveBudget() {
     const amount = parseInt(document.getElementById('budgetAmount').value) || 0;
+    const comment = document.getElementById('budgetComment').value || '';
     const { categoryId, month } = currentCell;
 
     try {
         showLoading('Saving budget...');
-        await saveBudgetEntry(categoryId, currentYear, month, amount);
+        await saveBudgetEntry(categoryId, currentYear, month, amount, comment);
 
         // Reload budget data
         await loadBudgetData(currentYear);
@@ -1246,6 +1251,17 @@ async function saveCategory() {
         return;
     }
 
+    // Check for case-insensitive duplicates
+    const nameLower = name.toLowerCase();
+    const duplicate = allCategories.find(c =>
+        c.name.toLowerCase() === nameLower &&
+        (!currentEditingCategory || c.id !== currentEditingCategory.id)
+    );
+    if (duplicate) {
+        showErrorModal(`Category "${duplicate.name}" already exists`);
+        return;
+    }
+
     try {
         showLoading('Saving category...');
 
@@ -1328,6 +1344,17 @@ async function savePayee() {
         return;
     }
 
+    // Check for case-insensitive duplicates
+    const nameLower = name.toLowerCase();
+    const duplicate = payees.find(p =>
+        p.name.toLowerCase() === nameLower &&
+        (!currentEditingPayee || p.id !== currentEditingPayee.id)
+    );
+    if (duplicate) {
+        showErrorModal(`Payee "${duplicate.name}" already exists`);
+        return;
+    }
+
     try {
         showLoading('Saving payee...');
 
@@ -1382,8 +1409,16 @@ function initializePayeeSelect() {
             placeholder: 'Select or type new payee...',
             maxOptions: 100,
             createFilter: function(input) {
-                // Allow creating new payees (any non-empty string)
-                return input.length > 0;
+                // Prevent creating duplicate payees (case-insensitive check)
+                if (!input || input.length === 0) {
+                    return false;
+                }
+
+                // Check if payee already exists (case-insensitive)
+                const inputLower = input.toLowerCase().trim();
+                const exists = payees.some(p => p.name.toLowerCase() === inputLower);
+
+                return !exists; // Only allow creation if it doesn't exist
             }
         });
     }

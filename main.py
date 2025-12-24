@@ -155,7 +155,8 @@ async def save_budget_entry(request: Request):
         "category_id": "abc123",
         "year": 2025,
         "month": 1,
-        "amount": 53000
+        "amount": 53000,
+        "comment": "Optional comment"
     }
     """
     try:
@@ -164,7 +165,8 @@ async def save_budget_entry(request: Request):
             category_id=data["category_id"],
             year=data["year"],
             month=data["month"],
-            amount=data["amount"]
+            amount=data["amount"],
+            comment=data.get("comment")
         )
         return {"success": True, "data": result}
     except ValueError as e:

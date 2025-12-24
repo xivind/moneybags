@@ -114,19 +114,21 @@ class BudgetEntry(BaseModel):
     Budget amounts for each category, year, and month.
 
     Stores the budgeted amount for a specific category in a specific month/year.
-    Amount is stored as integer (no decimals).
+    Amount is stored as integer (no decimals). Comment is optional.
 
     Business rules (enforced in business_logic.py):
     - Unique constraint on (category_id, year, month)
     - Month must be 1-12
     - Category must exist in budget_templates for that year
     - Deletion logic handled in business_logic.py
+    - Empty comment stored as NULL (via utils.empty_to_none)
     - updated_at set by business_logic.py on create/update
     """
     category_id = ForeignKeyField(Category, column_name='category_id')
     year = IntegerField()
     month = SmallIntegerField()  # 1-12
     amount = IntegerField()
+    comment = TextField(null=True)
     updated_at = DateTimeField()
 
     class Meta:

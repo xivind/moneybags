@@ -678,7 +678,8 @@ def get_budget_data_for_year(year: int) -> dict:
                 budget_dict[cat_id] = {}
             budget_dict[cat_id][entry.month] = {
                 'amount': entry.amount,
-                'id': entry.id
+                'id': entry.id,
+                'comment': entry.comment
             }
 
         # Get transactions - organized by category and month (nested structure)
@@ -712,7 +713,7 @@ def get_budget_data_for_year(year: int) -> dict:
         raise
 
 
-def save_budget_entry(category_id: str, year: int, month: int, amount: int) -> dict:
+def save_budget_entry(category_id: str, year: int, month: int, amount: int, comment: str = None) -> dict:
     """
     Create or update budget entry.
 
@@ -722,8 +723,9 @@ def save_budget_entry(category_id: str, year: int, month: int, amount: int) -> d
     - Validate amount >= 0
     - Check category is in budget_template for this year
     - Check if entry exists (get by category/year/month)
-    - If exists: update with new amount, set updated_at
+    - If exists: update with new amount and comment, set updated_at
     - If not exists: create new entry with all fields
+    - Empty comment stored as NULL (via utils.empty_to_none)
     """
     try:
         # Validate
@@ -744,6 +746,9 @@ def save_budget_entry(category_id: str, year: int, month: int, amount: int) -> d
         if not db.budget_template_exists(year, category_id):
             raise ValueError(f"Category not in budget template for {year}")
 
+        # Convert empty comment to NULL
+        comment = empty_to_none(comment)
+
         # Check if entry exists
         existing_entry = db.get_budget_entry(category_id, year, month)
 
@@ -751,6 +756,7 @@ def save_budget_entry(category_id: str, year: int, month: int, amount: int) -> d
             # Update
             update_data = {
                 'amount': amount,
+                'comment': comment,
                 'updated_at': datetime.now()
             }
             entry = db.update_budget_entry(existing_entry.id, update_data)
@@ -763,6 +769,7 @@ def save_budget_entry(category_id: str, year: int, month: int, amount: int) -> d
                 'year': year,
                 'month': month,
                 'amount': amount,
+                'comment': comment,
                 'created_at': datetime.now(),
                 'updated_at': datetime.now()
             }
@@ -774,7 +781,8 @@ def save_budget_entry(category_id: str, year: int, month: int, amount: int) -> d
             'category_id': entry.category_id,
             'year': entry.year,
             'month': entry.month,
-            'amount': entry.amount
+            'amount': entry.amount,
+            'comment': entry.comment
         }
     except Exception as e:
         logger.error(f"Failed to save budget entry: {e}")
