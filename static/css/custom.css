@@ -267,6 +267,10 @@ body {
     color: #dc2626;
 }
 
+.jan-column {
+    border-left: 1px solid #6b7280 !important;
+}
+
 .total-column {
     background-color: #fef3c7;
     font-weight: bold;

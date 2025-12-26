@@ -528,8 +528,9 @@ function generateTable() {
 
 function generateMonthHeaderRow() {
     let html = '<tr class="month-header-row section-tile-row"><th class="month-header-cell"></th>';
-    months.forEach(month => {
-        html += `<th class="month-header-cell">${month}</th>`;
+    months.forEach((month, idx) => {
+        const janClass = idx === 0 ? ' jan-column' : '';
+        html += `<th class="month-header-cell${janClass}">${month}</th>`;
     });
     html += '<th class="month-header-cell">Total</th></tr>';
     return html;
@@ -541,8 +542,9 @@ function generateBalanceRows() {
     // Budget Balance row
     html += '<tr class="budget-balance-row section-tile-row"><td class="category-cell">Budget Balance</td>';
     months.forEach((month, idx) => {
+        const janClass = idx === 0 ? ' jan-column' : '';
         const balance = calculateMonthlyBudgetBalance(idx);
-        html += `<td class="balance-white-cell">${formatCurrency(balance)}</td>`;
+        html += `<td class="balance-white-cell${janClass}">${formatCurrency(balance)}</td>`;
     });
     const totalBalance = months.reduce((sum, month, idx) => sum + calculateMonthlyBudgetBalance(idx), 0);
     html += `<td class="total-column balance-white-cell">${formatCurrency(totalBalance)}</td>`;
@@ -551,10 +553,11 @@ function generateBalanceRows() {
     // Result Balance row
     html += '<tr class="result-balance-row section-tile-row"><td class="category-cell">Result Balance</td>';
     months.forEach((month, idx) => {
+        const janClass = idx === 0 ? ' jan-column' : '';
         const actualResult = calculateMonthlyResult(idx);
         const budgetBalance = calculateMonthlyBudgetBalance(idx);
         const colorClass = getBalanceColorClass(actualResult, budgetBalance);
-        html += `<td class="${colorClass}">${formatCurrency(actualResult)}</td>`;
+        html += `<td class="${colorClass}${janClass}">${formatCurrency(actualResult)}</td>`;
     });
     const totalResult = months.reduce((sum, month, idx) => sum + calculateMonthlyResult(idx), 0);
     const totalBudget = months.reduce((sum, month, idx) => sum + calculateMonthlyBudgetBalance(idx), 0);
@@ -565,9 +568,10 @@ function generateBalanceRows() {
     // Difference row
     html += '<tr class="difference-row section-tile-row"><td class="category-cell">Difference</td>';
     months.forEach((month, idx) => {
+        const janClass = idx === 0 ? ' jan-column' : '';
         const diff = calculateMonthlyDifference(idx);
         const colorClass = getDifferenceColorClass(diff);
-        html += `<td class="${colorClass}">${formatCurrency(diff)}</td>`;
+        html += `<td class="${colorClass}${janClass}">${formatCurrency(diff)}</td>`;
     });
     const totalDiff = months.reduce((sum, month, idx) => sum + calculateMonthlyDifference(idx), 0);
     const totalDiffColorClass = getDifferenceColorClass(totalDiff);
@@ -643,9 +647,10 @@ function generateSectionRows(sectionType) {
             const budgetValue = entry ? entry.amount : 0;
             const isFuture = idx > currentMonth;
             const hasValue = entry ? 'has-value' : '';
+            const janClass = idx === 0 ? ' jan-column' : '';
             const cellClass = isFuture ? 'result-future' : hasValue;
             const clickHandler = isFuture ? '' : `openBudgetModal('${category.id}', '${category.name}', ${monthNum})`;
-            html += `<td class="${cellClass}" onclick="${clickHandler}">`;
+            html += `<td class="${cellClass}${janClass}" onclick="${clickHandler}">`;
             html += entry ? formatCurrency(budgetValue) : '<span class="empty-cell">-</span>';
             html += '</td>';
         });
@@ -671,10 +676,11 @@ function generateSectionRows(sectionType) {
             const budgetValue = entry ? entry.amount : 0;
             const isFuture = idx > currentMonth;
 
+            const janClass = idx === 0 ? ' jan-column' : '';
             const colorClass = getResultColorClass(resultTotal, budgetValue, sectionType, isFuture, monthTransactions.length > 0);
             const clickHandler = isFuture ? '' : `openTransactionModal('${category.id}', '${category.name}', ${monthNum})`;
 
-            html += `<td class="${colorClass}" onclick="${clickHandler}">`;
+            html += `<td class="${colorClass}${janClass}" onclick="${clickHandler}">`;
             html += monthTransactions.length > 0 ? formatCurrency(resultTotal) : '<span class="empty-cell">-</span>';
             html += '</td>';
         });
