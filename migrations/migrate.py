@@ -10,6 +10,7 @@ If no migration file specified, lists available migrations.
 
 import sys
 import os
+import json
 from pathlib import Path
 
 try:
@@ -20,13 +21,31 @@ except ImportError:
 
 
 def get_db_config():
-    """Get database configuration from environment or defaults."""
+    """Get database configuration from moneybags_db_config.json."""
+    config_file = Path(__file__).parent.parent / 'moneybags_db_config.json'
+
+    if not config_file.exists():
+        print(f"Error: Database configuration file not found: {config_file}")
+        print("\nPlease create moneybags_db_config.json with your database settings:")
+        print('''{
+  "db_host": "localhost",
+  "db_port": 3306,
+  "db_name": "MASTERDB",
+  "db_user": "root",
+  "db_password": "your_password",
+  "db_pool_size": 10
+}''')
+        sys.exit(1)
+
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+
     return {
-        'host': os.getenv('DB_HOST', 'localhost'),
-        'port': int(os.getenv('DB_PORT', 3306)),
-        'database': os.getenv('DB_NAME', 'moneybags'),
-        'user': os.getenv('DB_USER', 'moneybags_user'),
-        'password': os.getenv('DB_PASSWORD', 'moneybags_pass'),
+        'host': config['db_host'],
+        'port': config['db_port'],
+        'database': config['db_name'],
+        'user': config['db_user'],
+        'password': config['db_password'],
         'charset': 'utf8mb4'
     }
 

@@ -69,7 +69,7 @@ The core application is fully implemented, tested (34 passing tests), and ready 
 - **utils.py** - Helper methods (UUID generation, date validation, NULL conversion)
 - **uvicorn_log_config.ini** - Logging configuration (uniform logging for FastAPI and Python)
 
-### Database Architecture (from DATABASE_DESIGN.md)
+### Database Architecture
 
 **Connection Management:**
 - Uses `PooledMySQLDatabase` for connection pooling (htmx performance)
@@ -343,8 +343,7 @@ Or on error:
 
 ## Important Files
 
-- **DATABASE_DESIGN.md** - Complete database schema documentation
-- **BACKEND_IMPLEMENTATION.md** - Backend implementation blueprint (Phases 1-5)
+- **database_model.py** - Database schema (PeeWee models - source of truth)
 - **requirements.txt** - Python dependencies
 - **moneybags_db_config.json** - Database connection settings (not in Git, contains credentials)
 - **.gitignore** - Excludes moneybags_db_config.json, venv files, data directories
