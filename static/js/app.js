@@ -20,6 +20,9 @@ let allCategories = [];
 // Budget data for current year
 let budgetData = null;
 
+// Trend data for current year (keyed by category_id)
+let trendData = {};
+
 // All payees (loaded from API)
 let payees = [];
 
@@ -123,6 +126,27 @@ async function loadAvailableYears() {
 
 async function loadBudgetData(year) {
     budgetData = await apiCall(`/api/budget/${year}`);
+}
+
+async function loadCategoryTrends(year, categoryId) {
+    try {
+        const trends = await apiCall(`/api/budget/trends/${year}/${categoryId}`, { suppressError: true });
+        trendData[categoryId] = trends;
+    } catch (error) {
+        console.error(`Failed to load trends for category ${categoryId}:`, error);
+        trendData[categoryId] = null;
+    }
+}
+
+async function loadAllTrends(year) {
+    if (!budgetData || !budgetData.categories) return;
+
+    // Load trends for all categories in parallel
+    const trendPromises = budgetData.categories.map(cat =>
+        loadCategoryTrends(year, cat.id)
+    );
+
+    await Promise.all(trendPromises);
 }
 
 function getCurrencySymbol() {
@@ -443,6 +467,7 @@ async function initializeBudgetPage() {
         // Only load budget data and generate table if we have years
         if (availableYears.length > 0) {
             await loadBudgetData(currentYear);
+            await loadAllTrends(currentYear);
             generateTable();
         }
 
@@ -495,6 +520,7 @@ async function changeYear() {
     currentYear = parseInt(selector.value);
     showLoading('Loading year data...');
     await loadBudgetData(currentYear);
+    await loadAllTrends(currentYear);
     generateTable();
     hideLoading();
 }
@@ -650,6 +676,7 @@ function generateSectionRows(sectionType) {
             const janClass = idx === 0 ? ' jan-column' : '';
             const cellClass = isFuture ? 'result-future' : hasValue;
             const clickHandler = isFuture ? '' : `openBudgetModal('${category.id}', '${category.name}', ${monthNum})`;
+            // No arrow for individual budget months - only on total
             html += `<td class="${cellClass}${janClass}" onclick="${clickHandler}">`;
             html += entry ? formatCurrency(budgetValue) : '<span class="empty-cell">-</span>';
             html += '</td>';
@@ -659,7 +686,8 @@ function generateSectionRows(sectionType) {
         const budgetTotal = calculateBudgetYearTotal(category.id);
         const hasAnyBudgetEntry = Object.keys(entries).length > 0;
         const budgetTotalClass = hasAnyBudgetEntry ? 'total-column has-value' : 'total-column';
-        html += `<td class="${budgetTotalClass}">${hasAnyBudgetEntry ? formatCurrency(budgetTotal) : '<span class="empty-cell">-</span>'}</td>`;
+        const budgetTotalArrow = getTrendArrowHTML(category.id, 'total', 'budget');
+        html += `<td class="${budgetTotalClass}">${budgetTotalArrow}${hasAnyBudgetEntry ? formatCurrency(budgetTotal) : '<span class="empty-cell">-</span>'}</td>`;
         html += '</tr>';
 
         // Result row
@@ -679,8 +707,10 @@ function generateSectionRows(sectionType) {
             const janClass = idx === 0 ? ' jan-column' : '';
             const colorClass = getResultColorClass(resultTotal, budgetValue, sectionType, isFuture, monthTransactions.length > 0);
             const clickHandler = isFuture ? '' : `openTransactionModal('${category.id}', '${category.name}', ${monthNum})`;
+            const arrow = getTrendArrowHTML(category.id, monthNum, 'actual');
 
             html += `<td class="${colorClass}${janClass}" onclick="${clickHandler}">`;
+            html += arrow;
             html += monthTransactions.length > 0 ? formatCurrency(resultTotal) : '<span class="empty-cell">-</span>';
             html += '</td>';
         });
@@ -689,7 +719,8 @@ function generateSectionRows(sectionType) {
         const resultYearTotal = calculateResultYearTotal(category.id);
         const hasAnyTransaction = Object.values(transactions).some(monthTxs => monthTxs.length > 0);
         const resultTotalColorClass = getTotalColorClass(resultYearTotal, budgetTotal, sectionType, hasAnyTransaction);
-        html += `<td class="${resultTotalColorClass}">${hasAnyTransaction ? formatCurrency(resultYearTotal) : '<span class="empty-cell">-</span>'}</td>`;
+        const actualTotalArrow = getTrendArrowHTML(category.id, 'total', 'actual');
+        html += `<td class="${resultTotalColorClass}">${actualTotalArrow}${hasAnyTransaction ? formatCurrency(resultYearTotal) : '<span class="empty-cell">-</span>'}</td>`;
         html += '</tr>';
     });
 
@@ -747,6 +778,33 @@ function calculateResultYearTotal(categoryId) {
     return total;
 }
 
+function getTrendArrowHTML(categoryId, month, type) {
+    /**
+     * Generate trend arrow HTML for a cell.
+     *
+     * @param {string} categoryId - Category ID
+     * @param {number|string} month - Month number (1-12) or 'total'
+     * @param {string} type - 'budget' or 'actual'
+     * @returns {string} HTML for trend arrow or empty string
+     */
+    const trends = trendData[categoryId];
+    if (!trends) return '';
+
+    let trendInfo;
+    if (month === 'total') {
+        trendInfo = trends.total?.[type];
+    } else {
+        trendInfo = trends.months?.[String(month)]?.[type];
+    }
+
+    if (!trendInfo) return '';
+
+    const arrowClass = `bi-arrow-${trendInfo.arrow}`;
+    const colorClass = `text-${trendInfo.color}`;
+
+    return `<i class="bi ${arrowClass} ${colorClass} trend-arrow"></i>`;
+}
+
 // ==================== BUDGET MODAL FUNCTIONS ====================
 
 function openBudgetModal(categoryId, categoryName, month) {
@@ -791,8 +849,9 @@ async function saveBudget() {
         showLoading('Saving budget...');
         await saveBudgetEntry(categoryId, currentYear, month, amount, comment);
 
-        // Reload budget data
+        // Reload budget data and trends for this category
         await loadBudgetData(currentYear);
+        await loadCategoryTrends(currentYear, categoryId);
 
         // Close modal
         bootstrap.Modal.getInstance(document.getElementById('budgetModal')).hide();
@@ -1104,8 +1163,9 @@ async function saveTransaction() {
             await createTransaction(currentCell.categoryId, date, amount, payeeId, comment);
         }
 
-        // Reload budget data
+        // Reload budget data and trends for this category
         await loadBudgetData(currentYear);
+        await loadCategoryTrends(currentYear, currentCell.categoryId);
 
         // Close add modal
         const addModal = bootstrap.Modal.getInstance(document.getElementById('addTransactionModal'));

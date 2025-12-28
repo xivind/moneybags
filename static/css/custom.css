@@ -778,3 +778,30 @@ body {
 .btn-close-small {
     font-size: 0.7rem;
 }
+
+/* Trend arrows - Year-over-year comparison indicators */
+.budget-table td {
+    position: relative;
+}
+
+.trend-arrow {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    pointer-events: none;
+}
+
+/* Ensure arrow visibility on all cell backgrounds */
+.trend-arrow.text-success {
+    color: #10b981 !important;
+}
+
+.trend-arrow.text-danger {
+    color: #ef4444 !important;
+}
+
+.trend-arrow.text-secondary {
+    color: #6b7280 !important;
+}

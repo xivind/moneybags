@@ -311,6 +311,38 @@ async def delete_transaction(transaction_id: str):
             content={"success": False, "error": str(e)}
         )
 
+@app.get("/api/budget/trends/{year}/{category_id}")
+async def get_budget_trends(year: int, category_id: str):
+    """
+    Get year-over-year trend data for a category.
+
+    Compares current year to previous year for all 12 months + total.
+    Returns arrow direction and color for each comparison.
+
+    Returns:
+    {
+        "months": {
+            "1": {"budget": {"arrow": "up", "color": "success"}, "actual": {"arrow": "down", "color": "danger"}},
+            ...
+        },
+        "total": {"budget": {"arrow": "right", "color": "secondary"}, "actual": {"arrow": "up", "color": "success"}}
+    }
+    """
+    try:
+        trends = business_logic.calculate_category_trends(year, category_id)
+        return {"success": True, "data": trends}
+    except ValueError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": str(e)}
+        )
+    except Exception as e:
+        logger.error(f"Error calculating trends for category {category_id}: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
 # ==================== CATEGORY API ROUTES ====================
 
 @app.get("/api/categories")

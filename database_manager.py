@@ -10,7 +10,7 @@ See DATABASE_DESIGN.md for complete documentation.
 
 import logging
 import time
-from peewee import MySQLDatabase, IntegrityError, DoesNotExist, OperationalError
+from peewee import MySQLDatabase, IntegrityError, DoesNotExist, OperationalError, JOIN
 from playhouse.pool import PooledMySQLDatabase
 from datetime import date, datetime
 from database_model import (
@@ -528,9 +528,10 @@ def get_budget_entry_by_id(entry_id: str) -> BudgetEntry:
 
 @with_retry
 def get_budget_entries_by_year(year: int) -> list:
-    """Get all budget entries for year."""
+    """Get all budget entries for year (with eager-loaded categories to avoid N+1 queries)."""
     return list(BudgetEntry
-                .select()
+                .select(BudgetEntry, Category)
+                .join(Category, JOIN.LEFT_OUTER, on=(BudgetEntry.category_id == Category.id))
                 .where(BudgetEntry.year == year))
 
 
@@ -615,12 +616,15 @@ def get_transactions_by_category_month(category_id: str, year: int, month: int) 
 
 @with_retry
 def get_transactions_by_year(year: int) -> list:
-    """Get all transactions for year."""
+    """Get all transactions for year (with eager-loaded payees and categories to avoid N+1 queries)."""
     start_date = date(year, 1, 1)
     end_date = date(year + 1, 1, 1)
 
     return list(Transaction
-                .select()
+                .select(Transaction, Payee, Category)
+                .join(Payee, JOIN.LEFT_OUTER, on=(Transaction.payee_id == Payee.id))
+                .switch(Transaction)
+                .join(Category, JOIN.LEFT_OUTER, on=(Transaction.category_id == Category.id))
                 .where(
                     (Transaction.date >= start_date) &
                     (Transaction.date < end_date)

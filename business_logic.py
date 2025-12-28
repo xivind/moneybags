@@ -662,15 +662,23 @@ def get_budget_data_for_year(year: int) -> dict:
     - Get all transactions for this year
     - Format data for frontend consumption
     """
+    import time
+    start_time = time.time()
+    logger.debug(f"[BUDGET_DATA] Starting get_budget_data_for_year({year})")
+
     try:
         if not validate_year(year):
             raise ValueError(f"Invalid year: {year}")
 
         # Get categories for this year
+        t1 = time.time()
         categories = get_budget_template(year)
+        logger.debug(f"[BUDGET_DATA] Get categories took {(time.time()-t1)*1000:.2f}ms")
 
         # Get budget entries - organized by category and month
+        t2 = time.time()
         budget_entries = db.get_budget_entries_by_year(year)
+        logger.debug(f"[BUDGET_DATA] Get budget entries took {(time.time()-t2)*1000:.2f}ms")
         budget_dict = {}
         for entry in budget_entries:
             cat_id = entry.category_id if isinstance(entry.category_id, str) else entry.category_id.id
@@ -683,7 +691,9 @@ def get_budget_data_for_year(year: int) -> dict:
             }
 
         # Get transactions - organized by category and month (nested structure)
+        t3 = time.time()
         transactions = db.get_transactions_by_year(year)
+        logger.debug(f"[BUDGET_DATA] Get transactions took {(time.time()-t3)*1000:.2f}ms")
         transactions_dict = {}
         for t in transactions:
             month = t.date.month
@@ -702,6 +712,9 @@ def get_budget_data_for_year(year: int) -> dict:
                 'comment': t.comment
             })
 
+        total_time = (time.time() - start_time) * 1000
+        logger.debug(f"[BUDGET_DATA] Total get_budget_data_for_year({year}) took {total_time:.2f}ms")
+
         return {
             'year': year,
             'categories': categories,
@@ -710,6 +723,205 @@ def get_budget_data_for_year(year: int) -> dict:
         }
     except Exception as e:
         logger.error(f"Failed to get budget data for year: {e}")
+        raise
+
+
+def calculate_category_trends(year: int, category_id: str) -> dict:
+    """
+    Calculate year-over-year trends for a category.
+
+    Compares current year to previous year for budget and actuals.
+    Returns arrow direction and color based on category type.
+
+    Business logic:
+    - Compare year to year-1
+    - For each month (1-12) + total:
+      - Budget: compare budget amounts
+      - Actual: compare transaction totals
+    - Income: increase = green up, decrease = red down
+    - Expense: increase = red up, decrease = green down
+    - Same value = grey right
+    - No comparison data = None (no arrow)
+
+    Returns:
+    {
+        "months": {
+            "1": {"budget": {"arrow": "up", "color": "success"}, "actual": {"arrow": "down", "color": "danger"}},
+            ...
+        },
+        "total": {"budget": {"arrow": "right", "color": "secondary"}, "actual": None}
+    }
+    """
+    import time
+    start_time = time.time()
+    logger.debug(f"[TRENDS] Starting trend calculation for category {category_id}, year {year}")
+
+    try:
+        if not validate_year(year):
+            raise ValueError(f"Invalid year: {year}")
+
+        # Get category to determine type (income/expense)
+        t1 = time.time()
+        category = db.get_category_by_id(category_id)
+        logger.debug(f"[TRENDS] Get category took {(time.time()-t1)*1000:.2f}ms")
+        if not category:
+            raise ValueError(f"Category not found: {category_id}")
+
+        # Get current year and previous year data
+        t2 = time.time()
+        current_year_data = get_budget_data_for_year(year)
+        logger.debug(f"[TRENDS] Get current year data took {(time.time()-t2)*1000:.2f}ms")
+
+        try:
+            t3 = time.time()
+            previous_year_data = get_budget_data_for_year(year - 1)
+            logger.debug(f"[TRENDS] Get previous year data took {(time.time()-t3)*1000:.2f}ms")
+        except:
+            # Previous year doesn't exist - return None for all trends
+            logger.debug(f"[TRENDS] Previous year {year-1} doesn't exist, returning None trends")
+            return {
+                "months": {str(m): {"budget": None, "actual": None} for m in range(1, 13)},
+                "total": {"budget": None, "actual": None}
+            }
+
+        # Check if category exists in both years
+        current_budget = current_year_data['budget_entries'].get(category_id, {})
+        previous_budget = previous_year_data['budget_entries'].get(category_id, {})
+        current_transactions = current_year_data['transactions'].get(category_id, {})
+        previous_transactions = previous_year_data['transactions'].get(category_id, {})
+
+        def calculate_trend(current_value, previous_value, category_type):
+            """
+            Helper to calculate trend arrow and color.
+
+            Note: 0 is a valid value (user entered zero), None means no data entered.
+
+            Arrow types based on percentage change:
+            - ≤ 5%: right arrow (grey) - minimal change (inflation/noise)
+            - > 5% and ≤ 25%: diagonal arrow (colored) - moderate change
+            - > 25%: straight arrow (colored) - significant change
+            """
+            # No arrow if current year has no data entered (None/NULL, not 0)
+            if current_value is None:
+                return None
+
+            # No arrow if previous year has no data to compare against (None/NULL, not 0)
+            if previous_value is None:
+                return None
+
+            # Calculate percentage change
+            # Handle division by zero (previous_value could be 0)
+            if previous_value == 0:
+                # If previous was 0 and current is not 0, that's infinite change
+                # Treat as significant change (>25%)
+                if current_value == 0:
+                    return {"arrow": "right", "color": "secondary"}
+                else:
+                    percentage_change = 100  # Force significant change threshold
+            else:
+                percentage_change = abs((current_value - previous_value) / previous_value * 100)
+
+            # Determine direction
+            is_increase = current_value > previous_value
+
+            # Determine arrow type based on percentage change
+            if percentage_change <= 5:
+                # Minimal change - grey right arrow (inflation/noise)
+                return {"arrow": "right", "color": "secondary"}
+            elif percentage_change <= 25:
+                # Moderate change - diagonal arrow with color
+                if is_increase:
+                    arrow = "up-right"
+                else:
+                    arrow = "down-right"
+            else:
+                # Significant change (>25%) - straight arrow with color
+                if is_increase:
+                    arrow = "up"
+                else:
+                    arrow = "down"
+
+            # Determine color based on category type and direction
+            if category_type == 'income':
+                # Income: increase is good, decrease is bad
+                color = "success" if is_increase else "danger"
+            else:  # expenses
+                # Expense: decrease is good, increase is bad
+                color = "success" if not is_increase else "danger"
+
+            return {"arrow": arrow, "color": color}
+
+        # Calculate trends for each month
+        months_trends = {}
+        current_budget_total = 0
+        previous_budget_total = 0
+        current_actual_total = 0
+        previous_actual_total = 0
+        has_current_budget = False
+        has_previous_budget = False
+        has_current_actual = False
+        has_previous_actual = False
+
+        for month in range(1, 13):
+            # Budget trend
+            current_budget_amount = current_budget.get(month, {}).get('amount', 0)
+            previous_budget_amount = previous_budget.get(month, {}).get('amount', 0)
+            budget_trend = calculate_trend(current_budget_amount, previous_budget_amount, category.type)
+
+            # Track if we have any budget entries
+            if month in current_budget:
+                has_current_budget = True
+                current_budget_total += current_budget_amount
+            if month in previous_budget:
+                has_previous_budget = True
+                previous_budget_total += previous_budget_amount
+
+            # Actual trend (pass None if no transactions, not 0)
+            current_month_transactions = current_transactions.get(month, [])
+            previous_month_transactions = previous_transactions.get(month, [])
+
+            current_actual_amount = sum(t['amount'] for t in current_month_transactions) if len(current_month_transactions) > 0 else None
+            previous_actual_amount = sum(t['amount'] for t in previous_month_transactions) if len(previous_month_transactions) > 0 else None
+
+            actual_trend = calculate_trend(current_actual_amount, previous_actual_amount, category.type)
+
+            # Track if we have any transactions
+            if month in current_transactions and len(current_transactions[month]) > 0:
+                has_current_actual = True
+                current_actual_total += current_actual_amount
+            if month in previous_transactions and len(previous_transactions[month]) > 0:
+                has_previous_actual = True
+                previous_actual_total += previous_actual_amount
+
+            months_trends[str(month)] = {
+                "budget": budget_trend,
+                "actual": actual_trend
+            }
+
+        # Calculate total trends (pass None if no data, not 0)
+        budget_total_trend = calculate_trend(
+            current_budget_total if has_current_budget else None,
+            previous_budget_total if has_previous_budget else None,
+            category.type
+        )
+        actual_total_trend = calculate_trend(
+            current_actual_total if has_current_actual else None,
+            previous_actual_total if has_previous_actual else None,
+            category.type
+        )
+
+        total_time = (time.time() - start_time) * 1000
+        logger.debug(f"[TRENDS] Total trend calculation took {total_time:.2f}ms for category {category_id}")
+
+        return {
+            "months": months_trends,
+            "total": {
+                "budget": budget_total_trend,
+                "actual": actual_total_trend
+            }
+        }
+    except Exception as e:
+        logger.error(f"Failed to calculate trends: {e}")
         raise
 
 
