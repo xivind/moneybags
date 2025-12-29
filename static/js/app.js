@@ -2117,6 +2117,12 @@ let existingCategories = [];
 async function initImportPage() {
     if (!document.getElementById('upload-form')) return;
 
+    // Set current year in input field
+    const yearInput = document.getElementById('year-input');
+    if (yearInput) {
+        yearInput.value = currentYear; // Uses the global currentYear variable
+    }
+
     // Load existing categories for mapping dropdowns
     try {
         const response = await fetch('/api/categories');
