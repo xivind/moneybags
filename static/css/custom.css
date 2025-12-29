@@ -810,3 +810,8 @@ body {
 .dashboard-placeholder-icon {
     font-size: 3rem;
 }
+
+/* Import page year input */
+.year-input {
+    max-width: 150px;
+}
