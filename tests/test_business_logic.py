@@ -98,3 +98,22 @@ def test_parse_excel_file(tmp_path):
 
     # Actuals should be dict of month: [amounts]
     assert isinstance(first_cat["actuals"], dict)
+
+
+def test_ensure_import_payee():
+    """Test getting or creating import payee."""
+    import database_manager as db
+
+    # First call should create payee
+    payee_id = business_logic._ensure_import_payee()
+    assert payee_id is not None
+
+    # Verify payee exists
+    payee = db.get_payee_by_name("Import - Google Sheets")
+    assert payee is not None
+    assert payee.id == payee_id
+    assert payee.type == "Generic"
+
+    # Second call should return same payee
+    payee_id_2 = business_logic._ensure_import_payee()
+    assert payee_id_2 == payee_id

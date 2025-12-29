@@ -1605,6 +1605,28 @@ def test_database_connection(host: str, port: int, database: str,
         }
 
 
+def _ensure_import_payee() -> str:
+    """
+    Get or create "Import - Google Sheets" payee.
+
+    Returns:
+        str: Payee UUID
+    """
+    payee = db.get_payee_by_name("Import - Google Sheets")
+    if payee:
+        return payee.id
+
+    # Create payee
+    data = {
+        "id": generate_uid(),
+        "name": "Import - Google Sheets",
+        "type": "Generic",
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    payee = db.create_payee(data)
+    return payee.id
+
+
 def parse_excel_file(file_path: str, year: int) -> dict:
     """
     Parse Google Sheets Excel file and extract budget/actual data.
