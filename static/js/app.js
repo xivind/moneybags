@@ -1533,6 +1533,150 @@ function initializeDatePicker() {
     }
 }
 
+// ==================== DASHBOARD WIDGET FUNCTIONS ====================
+
+async function loadRecurringPayments() {
+    const container = document.getElementById('recurring-payments-content');
+    if (!container) return;
+
+    try {
+        const recurringPayments = await apiCall('/api/dashboard/recurring-payments', { suppressError: true });
+
+        if (!recurringPayments || recurringPayments.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted py-3">
+                    <i class="bi bi-info-circle" style="font-size: 2rem;"></i>
+                    <p class="small mt-2 mb-0">No recurring payments detected yet. Transactions will appear here once you have payees appearing in consecutive months.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Group by status
+        const pending = recurringPayments.filter(p => p.status === 'pending');
+        const paid = recurringPayments.filter(p => p.status === 'paid');
+
+        let html = '<div class="list-group list-group-flush">';
+
+        // Show pending first
+        pending.forEach(payment => {
+            html += `
+                <div class="list-group-item d-flex justify-content-between align-items-start px-0">
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">${payment.payee_name}</div>
+                        <small class="text-muted">Last: ${payment.last_payment_date} - ${formatCurrency(payment.last_amount)}</small>
+                    </div>
+                    <span class="badge bg-warning text-dark">
+                        <i class="bi bi-exclamation-triangle me-1"></i>Pending
+                    </span>
+                </div>
+            `;
+        });
+
+        // Show paid after
+        paid.forEach(payment => {
+            html += `
+                <div class="list-group-item d-flex justify-content-between align-items-start px-0">
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">${payment.payee_name}</div>
+                        <small class="text-muted">Last: ${payment.last_payment_date} - ${formatCurrency(payment.last_amount)}</small>
+                    </div>
+                    <span class="badge bg-success">
+                        <i class="bi bi-check-circle me-1"></i>Paid
+                    </span>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+
+    } catch (error) {
+        console.error('Failed to load recurring payments:', error);
+        container.innerHTML = `
+            <div class="alert alert-danger mb-0" role="alert">
+                <i class="bi bi-exclamation-circle me-2"></i>Failed to load recurring payments
+            </div>
+        `;
+    }
+}
+
+async function loadRecentTransactions() {
+    const container = document.getElementById('recent-transactions-content');
+    if (!container) return;
+
+    try {
+        const transactions = await apiCall('/api/dashboard/recent-transactions', { suppressError: true });
+
+        if (!transactions || transactions.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted py-3">
+                    <i class="bi bi-info-circle" style="font-size: 2rem;"></i>
+                    <p class="small mt-2 mb-0">No transactions yet. Start by entering budget and actual values in the Budget & Actuals page.</p>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '<div class="list-group list-group-flush">';
+
+        transactions.forEach(tx => {
+            const amountClass = tx.category_type === 'income' ? 'text-success' : 'text-danger';
+            const amountPrefix = tx.category_type === 'income' ? '+' : '-';
+
+            html += `
+                <div class="list-group-item px-0">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <div class="fw-bold">${tx.payee_name}</div>
+                            <small class="text-muted">${tx.category_name} • ${tx.transaction_date}</small>
+                        </div>
+                        <div class="${amountClass} fw-bold">
+                            ${amountPrefix}${formatCurrency(Math.abs(tx.amount))}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+
+    } catch (error) {
+        console.error('Failed to load recent transactions:', error);
+        container.innerHTML = `
+            <div class="alert alert-danger mb-0" role="alert">
+                <i class="bi bi-exclamation-circle me-2"></i>Failed to load recent transactions
+            </div>
+        `;
+    }
+}
+
+async function initializeDashboard() {
+    // Load currency format first (needed for formatting)
+    await loadCurrencyFormat();
+
+    // Load both widgets in parallel
+    await Promise.all([
+        loadRecurringPayments(),
+        loadRecentTransactions()
+    ]);
+}
+
+async function loadCurrencyFormat() {
+    try {
+        const result = await apiCall('/api/config/currency', { suppressError: true });
+        if (result && result.currency_format) {
+            currentCurrencyFormat = result.currency_format;
+        } else {
+            currentCurrencyFormat = '';
+        }
+    } catch (error) {
+        console.error('Failed to load currency format:', error);
+        currentCurrencyFormat = '';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async function() {
     // Global modal cleanup on hide - ensures scroll is always restored
     document.addEventListener('hidden.bs.modal', function() {
@@ -1580,6 +1724,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Database not configured - show message and focus on database connection section
             console.log('Database not configured. Please enter database connection details.');
         }
+    }
+
+    // Initialize dashboard page
+    if (document.getElementById('recurring-payments-content') || document.getElementById('recent-transactions-content')) {
+        await initializeDashboard();
     }
 });
 

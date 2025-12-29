@@ -1231,6 +1231,158 @@ def delete_transaction(transaction_id: str) -> None:
         raise
 
 
+# ==================== DASHBOARD BUSINESS LOGIC ====================
+
+def get_recurring_payment_status() -> list:
+    """
+    Identify recurring payments (expenses only) and their status for current month.
+
+    Logic:
+    - Find expense payees that appear in BOTH of the previous 2 months
+    - Income transactions are excluded (only expenses tracked)
+    - Check if each payee has a transaction in current month
+    - Return list with payee name, status, and last payment details
+
+    Returns:
+        list: [
+            {
+                'payee_id': str,
+                'payee_name': str,
+                'status': 'paid' | 'pending',
+                'last_payment_date': str,  # YYYY-MM-DD
+                'last_amount': int  # Most recent transaction amount
+            }
+        ]
+    """
+    try:
+        from datetime import date
+        from dateutil.relativedelta import relativedelta
+
+        # Get current date and calculate month boundaries
+        today = date.today()
+        current_month_start = date(today.year, today.month, 1)
+
+        # Previous month (month - 1)
+        prev_month_start = current_month_start - relativedelta(months=1)
+        prev_month_end = current_month_start - relativedelta(days=1)
+
+        # Two months ago (month - 2)
+        two_months_ago_start = current_month_start - relativedelta(months=2)
+        two_months_ago_end = prev_month_start - relativedelta(days=1)
+
+        # Get transactions for the last 3 months
+        three_months_ago_start = current_month_start - relativedelta(months=2)
+        transactions = db.get_transactions_by_date_range(three_months_ago_start, today)
+
+        # Group transactions by payee and month
+        payee_months = {}  # {payee_id: {month_key: [transactions]}}
+
+        for t in transactions:
+            if not t.payee_id:
+                continue  # Skip transactions without payee
+
+            # Only include expense transactions (skip income)
+            if t.category_id and t.category_id.type == 'income':
+                continue
+
+            payee_id = t.payee_id.id if hasattr(t.payee_id, 'id') else str(t.payee_id)
+            month_key = f"{t.date.year}-{t.date.month:02d}"
+
+            if payee_id not in payee_months:
+                payee_months[payee_id] = {}
+            if month_key not in payee_months[payee_id]:
+                payee_months[payee_id][month_key] = []
+
+            payee_months[payee_id][month_key].append(t)
+
+        # Calculate month keys
+        current_month_key = f"{today.year}-{today.month:02d}"
+        prev_month_key = f"{prev_month_start.year}-{prev_month_start.month:02d}"
+        two_months_ago_key = f"{two_months_ago_start.year}-{two_months_ago_start.month:02d}"
+
+        # Find payees that appear in BOTH previous months
+        recurring_payees = []
+
+        for payee_id, months in payee_months.items():
+            # Must have transactions in BOTH month-1 AND month-2
+            if prev_month_key in months and two_months_ago_key in months:
+                # Get payee details
+                payee = db.get_payee_by_id(payee_id)
+                if not payee:
+                    continue
+
+                # Check if paid in current month
+                paid_this_month = current_month_key in months
+
+                # Get most recent transaction details
+                all_transactions = []
+                for month_transactions in months.values():
+                    all_transactions.extend(month_transactions)
+
+                # Sort by date descending to get most recent
+                all_transactions.sort(key=lambda t: t.date, reverse=True)
+                last_transaction = all_transactions[0]
+
+                recurring_payees.append({
+                    'payee_id': payee_id,
+                    'payee_name': payee.name,
+                    'status': 'paid' if paid_this_month else 'pending',
+                    'last_payment_date': str(last_transaction.date),
+                    'last_amount': last_transaction.amount
+                })
+
+        # Sort: pending first, then paid (alphabetically within each group)
+        recurring_payees.sort(key=lambda p: (p['status'] == 'paid', p['payee_name']))
+
+        logger.info(f"Business logic: Found {len(recurring_payees)} recurring payments")
+        return recurring_payees
+
+    except Exception as e:
+        logger.error(f"Failed to get recurring payment status: {e}")
+        raise
+
+
+def get_recent_transactions(limit: int = 5) -> list:
+    """
+    Get most recent transactions for dashboard display.
+
+    Args:
+        limit: Number of transactions to return (default 5)
+
+    Returns:
+        list: [
+            {
+                'transaction_id': str,
+                'transaction_date': str,   # YYYY-MM-DD
+                'payee_name': str,
+                'category_name': str,
+                'amount': int,
+                'category_type': str       # 'income' | 'expense'
+            }
+        ]
+    """
+    try:
+        transactions = db.get_recent_transactions(limit)
+
+        result = []
+        for t in transactions:
+            result.append({
+                'transaction_id': t.id,
+                'transaction_date': str(t.date),
+                'payee_name': t.payee_id.name if t.payee_id else 'Unknown',
+                'category_name': t.category_id.name if t.category_id else 'Unknown',
+                'amount': t.amount,
+                'category_type': t.category_id.type if t.category_id else 'expense'
+            })
+
+        logger.info(f"Business logic: Retrieved {len(result)} recent transactions")
+        return result
+
+    except Exception as e:
+        logger.error(f"Failed to get recent transactions: {e}")
+        raise
+
+
 # ==================== CONFIGURATION BUSINESS LOGIC ====================
 
 def _invalidate_config_cache():

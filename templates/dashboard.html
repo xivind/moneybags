@@ -24,42 +24,59 @@
             </p>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-        {% else %}
-        <div class="alert alert-info">
-            <i class="bi bi-info-circle me-2"></i>
-            Dashboard with overview and interesting statistics will be displayed here.
-        </div>
         {% endif %}
     </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col-md-4">
-        <div class="card">
+{% if database_configured %}
+<div class="row g-3 mt-2">
+    <!-- Recurring Payments Widget -->
+    <div class="col-lg-4">
+        <div class="card h-100">
             <div class="card-body">
-                <h5 class="card-title"><i class="bi bi-cash-stack me-2"></i>Income</h5>
-                <p class="card-text">Total income for the year</p>
-                <h3 class="text-success">kr 0</h3>
+                <h5 class="card-title">
+                    <i class="bi bi-arrow-repeat me-2"></i>Recurring Payments
+                </h5>
+                <div id="recurring-payments-content">
+                    <div class="text-center text-muted py-3">
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="small mt-2 mb-0">Loading...</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card">
+
+    <!-- Recent Transactions Widget -->
+    <div class="col-lg-4">
+        <div class="card h-100">
             <div class="card-body">
-                <h5 class="card-title"><i class="bi bi-wallet2 me-2"></i>Expenses</h5>
-                <p class="card-text">Total expenses for the year</p>
-                <h3 class="text-danger">kr 0</h3>
+                <h5 class="card-title">
+                    <i class="bi bi-clock-history me-2"></i>Recent Transactions
+                </h5>
+                <div id="recent-transactions-content">
+                    <div class="text-center text-muted py-3">
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="small mt-2 mb-0">Loading...</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title"><i class="bi bi-piggy-bank me-2"></i>Balance</h5>
-                <p class="card-text">Net for the year</p>
-                <h3 class="text-primary">kr 0</h3>
+
+    <!-- Placeholder for Future Widget -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-body text-center text-muted d-flex flex-column justify-content-center">
+                <i class="bi bi-plus-circle dashboard-placeholder-icon"></i>
+                <p class="mt-2 mb-0">Future widget</p>
             </div>
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}

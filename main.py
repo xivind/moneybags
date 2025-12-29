@@ -834,6 +834,75 @@ async def save_db_connection(request: Request):
             content={"success": False, "error": str(e)}
         )
 
+
+# ==================== DASHBOARD API ====================
+
+@app.get("/api/dashboard/recurring-payments")
+def get_recurring_payments():
+    """
+    Get recurring payment status for current month (expenses only).
+
+    Returns list of expense payees that appeared in both of the previous 2 months,
+    with status indicating if they've been paid this month. Income is excluded.
+
+    Response format:
+    {
+        "success": true,
+        "data": [
+            {
+                "payee_id": "uuid",
+                "payee_name": "Electric Company",
+                "status": "pending" | "paid",
+                "last_payment_date": "2025-12-15",
+                "last_amount": 150000
+            }
+        ]
+    }
+    """
+    try:
+        recurring_payments = business_logic.get_recurring_payment_status()
+        return {"success": True, "data": recurring_payments}
+    except Exception as e:
+        logger.error(f"Error getting recurring payments: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
+@app.get("/api/dashboard/recent-transactions")
+def get_recent_transactions_api():
+    """
+    Get most recent transactions for dashboard display.
+
+    Returns last 5 transactions with payee, category, and amount.
+
+    Response format:
+    {
+        "success": true,
+        "data": [
+            {
+                "transaction_id": "uuid",
+                "transaction_date": "2025-12-28",
+                "payee_name": "Grocery Store",
+                "category_name": "Food",
+                "amount": 50000,
+                "category_type": "expense"
+            }
+        ]
+    }
+    """
+    try:
+        recent_transactions = business_logic.get_recent_transactions(limit=5)
+        return {"success": True, "data": recent_transactions}
+    except Exception as e:
+        logger.error(f"Error getting recent transactions: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(

@@ -664,6 +664,33 @@ def category_has_transactions_for_year(category_id: str, year: int) -> bool:
     ).exists()
 
 
+@with_retry
+def get_recent_transactions(limit: int = 5) -> list:
+    """Get most recent transactions (with eager-loaded payees and categories to avoid N+1 queries)."""
+    return list(Transaction
+                .select(Transaction, Payee, Category)
+                .join(Payee, JOIN.LEFT_OUTER, on=(Transaction.payee_id == Payee.id))
+                .switch(Transaction)
+                .join(Category, JOIN.LEFT_OUTER, on=(Transaction.category_id == Category.id))
+                .order_by(Transaction.date.desc())
+                .limit(limit))
+
+
+@with_retry
+def get_transactions_by_date_range(start_date: date, end_date: date) -> list:
+    """Get all transactions within date range (with eager-loaded payees and categories)."""
+    return list(Transaction
+                .select(Transaction, Payee, Category)
+                .join(Payee, JOIN.LEFT_OUTER, on=(Transaction.payee_id == Payee.id))
+                .switch(Transaction)
+                .join(Category, JOIN.LEFT_OUTER, on=(Transaction.category_id == Category.id))
+                .where(
+                    (Transaction.date >= start_date) &
+                    (Transaction.date <= end_date)
+                )
+                .order_by(Transaction.date.desc()))
+
+
 # ==================== CONFIGURATION CRUD ====================
 
 @with_transaction

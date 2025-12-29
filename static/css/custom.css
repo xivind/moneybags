@@ -805,3 +805,8 @@ body {
 .trend-arrow.text-secondary {
     color: #6b7280 !important;
 }
+
+/* Dashboard widgets */
+.dashboard-placeholder-icon {
+    font-size: 3rem;
+}
