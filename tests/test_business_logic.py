@@ -72,3 +72,29 @@ def test_extract_amounts_from_formula_rejects_multiplication():
 
     with pytest.raises(ValueError, match="Only addition \\(\\+\\) supported"):
         business_logic._extract_amounts_from_formula("=43*2", 10, "C")
+
+
+def test_parse_excel_file(tmp_path):
+    """Test parsing Excel file structure."""
+    # Note: This test uses the real test.xlsx file
+    # For unit testing, we'd use openpyxl to create a minimal test file
+    # But for now, we'll test with the actual file structure
+
+    result = business_logic.parse_excel_file("/home/xivind/code/moneybags/test.xlsx", 2024)
+
+    assert result["year"] == 2024
+    assert "sheet_categories" in result
+    assert len(result["sheet_categories"]) > 0
+
+    # Check first category structure
+    first_cat = result["sheet_categories"][0]
+    assert "name" in first_cat
+    assert "type" in first_cat
+    assert "budget" in first_cat
+    assert "actuals" in first_cat
+
+    # Budget should be dict of month: amount
+    assert isinstance(first_cat["budget"], dict)
+
+    # Actuals should be dict of month: [amounts]
+    assert isinstance(first_cat["actuals"], dict)

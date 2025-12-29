@@ -1603,3 +1603,130 @@ def test_database_connection(host: str, port: int, database: str,
             'success': False,
             'error': str(e)
         }
+
+
+def parse_excel_file(file_path: str, year: int) -> dict:
+    """
+    Parse Google Sheets Excel file and extract budget/actual data.
+
+    Expected structure:
+    - Row 3: Headers ("Balanse", "Januar", ..., "Desember")
+    - Row 7: "Inntekter" section
+    - Row 16+: "Utgifter" section
+    - Category blocks every 4 rows:
+      - Row N: Category name
+      - Row N+1: "Budsjett" (budget values)
+      - Row N+2: "Resultat" (actual formulas)
+      - Row N+3: "Differanse" (skip)
+
+    Args:
+        file_path: Path to .xlsx file
+        year: Year for the data
+
+    Returns:
+        {
+            "year": 2024,
+            "sheet_categories": [
+                {
+                    "name": "Lønn",
+                    "type": "income",
+                    "budget": {1: 52000, 2: 52000, ...},
+                    "actuals": {1: [55615], 2: [55615], ...}
+                }
+            ]
+        }
+
+    Raises:
+        ValueError: On validation errors
+    """
+    import openpyxl
+
+    # Validate year
+    if not validate_year(year):
+        raise ValueError(f"Invalid year: {year}")
+
+    # Load workbook
+    try:
+        wb = openpyxl.load_workbook(file_path, data_only=False)
+    except Exception as e:
+        raise ValueError(f"Failed to load Excel file: {e}")
+
+    sheet = wb.active
+
+    # Month column mapping (C=1, D=2, ..., N=12)
+    month_columns = {
+        'C': 1, 'D': 2, 'E': 3, 'F': 4, 'G': 5, 'H': 6,
+        'I': 7, 'J': 8, 'K': 9, 'L': 10, 'M': 11, 'N': 12
+    }
+
+    # Find "Utgifter" row to split income vs expenses
+    utgifter_row = None
+    for row_idx in range(1, 100):
+        cell = sheet[f'B{row_idx}']
+        if cell.value and "Utgifter" in str(cell.value):
+            utgifter_row = row_idx
+            break
+
+    if not utgifter_row:
+        raise ValueError("Could not find 'Utgifter' section in Excel file")
+
+    sheet_categories = []
+
+    # Parse categories (every 4 rows, starting from row 8)
+    for row_idx in range(8, 60, 4):
+        category_cell = sheet[f'B{row_idx}']
+        category_name = category_cell.value
+
+        # Skip if no category name or if it's a header row
+        if not category_name or category_name in ["Inntekter", "Utgifter", "Balanse"]:
+            continue
+
+        category_name = str(category_name).strip()
+
+        # Determine type (income if before utgifter_row, expenses after)
+        category_type = "income" if row_idx < utgifter_row else "expenses"
+
+        # Extract budget values (row N+1)
+        budget = {}
+        budget_row = row_idx + 1
+        for col, month in month_columns.items():
+            cell = sheet[f'{col}{budget_row}']
+            if cell.value:
+                try:
+                    amount = int(float(cell.value)) if cell.value else 0
+                    budget[month] = amount
+                except (ValueError, TypeError):
+                    # Skip invalid values
+                    pass
+
+        # Extract actual values (row N+2)
+        actuals = {}
+        actuals_row = row_idx + 2
+        for col, month in month_columns.items():
+            cell = sheet[f'{col}{actuals_row}']
+            if cell.value:
+                try:
+                    amounts = _extract_amounts_from_formula(cell.value, actuals_row, col)
+                    if amounts:
+                        actuals[month] = amounts
+                except ValueError as e:
+                    raise ValueError(f"Category '{category_name}': {e}")
+
+        # Skip categories with no data
+        if not budget and not actuals:
+            continue
+
+        sheet_categories.append({
+            "name": category_name,
+            "type": category_type,
+            "budget": budget,
+            "actuals": actuals
+        })
+
+    if not sheet_categories:
+        raise ValueError("No categories found in Excel file")
+
+    return {
+        "year": year,
+        "sheet_categories": sheet_categories
+    }
