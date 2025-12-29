@@ -1730,6 +1730,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (document.getElementById('recurring-payments-content') || document.getElementById('recent-transactions-content')) {
         await initializeDashboard();
     }
+
+    // Initialize import page
+    initImportPage();
 });
 
 // ==================== CURRENCY SETTINGS FUNCTIONS ====================
@@ -2350,9 +2353,3 @@ async function handleImport() {
         spinner.classList.add('d-none');
     }
 }
-
-// Call init on page load
-document.addEventListener('DOMContentLoaded', function() {
-    // ... existing init code ...
-    initImportPage();
-});
