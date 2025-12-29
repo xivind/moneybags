@@ -37,6 +37,86 @@ DB_CONFIG_PATHS = [
 ]
 
 
+# ==================== HELPER FUNCTIONS ====================
+
+def _extract_amounts_from_formula(cell_value, row_num: int, col_name: str) -> list[int]:
+    """
+    Extract individual amounts from Excel formula or value.
+
+    Strict validation - only simple addition formulas allowed.
+
+    Args:
+        cell_value: Cell value (formula string or number)
+        row_num: Row number for error messages
+        col_name: Column name for error messages
+
+    Returns:
+        List of integer amounts extracted from formula
+
+    Raises:
+        ValueError: On invalid formula format or negative values
+
+    Examples:
+        "=575+2182" → [575, 2182]
+        "=104571" → [104571]
+        "55615.0" → [55615]
+        "0" → [0]
+        "" → []
+    """
+    # Handle None or empty
+    if cell_value is None or cell_value == "":
+        return []
+
+    # Convert to string
+    formula_str = str(cell_value).strip()
+
+    # Empty after strip
+    if not formula_str:
+        return []
+
+    # Remove "=" prefix if present
+    if formula_str.startswith("="):
+        formula_str = formula_str[1:]
+
+    # Check for forbidden operations/functions
+    forbidden = ["IF", "SUM", "AVERAGE", "COUNT", "MIN", "MAX", "*", "/", "-", "(", ")"]
+    for forbidden_item in forbidden:
+        if forbidden_item in formula_str:
+            if forbidden_item in ["IF", "SUM", "AVERAGE", "COUNT", "MIN", "MAX"]:
+                raise ValueError(f"Row {row_num}, Column {col_name}: Complex formula not supported ({forbidden_item})")
+            elif forbidden_item == "-":
+                # Allow negative check after splitting
+                pass
+            else:
+                raise ValueError(f"Row {row_num}, Column {col_name}: Only addition (+) supported")
+
+    # Split by "+"
+    parts = formula_str.split("+")
+
+    # Convert to integers
+    amounts = []
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+
+        try:
+            # Convert to float first (handles decimals), then to int
+            value = int(float(part))
+
+            # Reject negative values
+            if value < 0:
+                raise ValueError(f"Row {row_num}, Column {col_name}: Negative value not allowed ({value})")
+
+            amounts.append(value)
+        except ValueError as e:
+            if "Negative value not allowed" in str(e):
+                raise
+            raise ValueError(f"Row {row_num}, Column {col_name}: Invalid number format: {part}")
+
+    return amounts
+
+
 # ==================== INITIALIZATION ====================
 
 def _get_config_file_path() -> str:
