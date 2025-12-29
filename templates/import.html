@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Import from Google Sheets</h2>
+    <p class="text-muted">Upload an Excel file (.xlsx) exported from Google Sheets to import budget and transaction data.</p>
+
+    <!-- Step 1: Upload File -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <strong>Step 1:</strong> Upload Excel File
+        </div>
+        <div class="card-body">
+            <form id="upload-form">
+                <div class="mb-3">
+                    <label for="file-input" class="form-label">Excel File (.xlsx)</label>
+                    <input type="file" class="form-control" id="file-input" accept=".xlsx" required>
+                    <div class="form-text">Export your Google Sheet as .xlsx (File → Download → Microsoft Excel)</div>
+                </div>
+                <div class="mb-3">
+                    <label for="year-input" class="form-label">Year</label>
+                    <input type="number" class="form-control" id="year-input"
+                           min="2000" max="2100" value="{{ current_year }}" required style="max-width: 150px;">
+                    <div class="form-text">The year this data belongs to</div>
+                </div>
+                <button type="submit" class="btn btn-primary" id="parse-btn">
+                    <span class="spinner-border spinner-border-sm d-none" id="parse-spinner"></span>
+                    Parse File
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Step 2: Category Mapping (hidden until file parsed) -->
+    <div class="card mb-4 d-none" id="mapping-section">
+        <div class="card-header">
+            <strong>Step 2:</strong> Map Categories
+        </div>
+        <div class="card-body">
+            <p class="text-muted">Map each Google Sheets category to a Moneybags category.</p>
+            <div id="mapping-container"></div>
+            <button type="button" class="btn btn-primary mt-3" id="validate-btn">
+                <span class="spinner-border spinner-border-sm d-none" id="validate-spinner"></span>
+                Validate Import
+            </button>
+        </div>
+    </div>
+
+    <!-- Step 3: Preview & Import (hidden until validated) -->
+    <div class="card mb-4 d-none" id="preview-section">
+        <div class="card-header">
+            <strong>Step 3:</strong> Preview & Import
+        </div>
+        <div class="card-body">
+            <div id="validation-results"></div>
+            <button type="button" class="btn btn-success mt-3 d-none" id="import-btn">
+                <span class="spinner-border spinner-border-sm d-none" id="import-spinner"></span>
+                Import Data
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Set current year
+    const currentYear = new Date().getFullYear();
+    document.getElementById('year-input').value = currentYear;
+</script>
+{% endblock %}
