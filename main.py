@@ -3,7 +3,7 @@ Main application file for Moneybags.
 All routes consolidated here - no separate router files.
 """
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, UploadFile, File, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -65,6 +65,15 @@ def config_page(request: Request):
     return templates.TemplateResponse("config.html", {
         "request": request,
         "database_configured": business_logic.DATABASE_CONFIGURED
+    })
+
+@app.get("/import", response_class=HTMLResponse)
+def import_page(request: Request):
+    """Import from Google Sheets Excel files"""
+    from datetime import datetime
+    return templates.TemplateResponse("import.html", {
+        "request": request,
+        "current_year": datetime.now().year
     })
 
 # ==================== HEALTH CHECK ====================
@@ -897,6 +906,118 @@ def get_recent_transactions_api():
         return {"success": True, "data": recent_transactions}
     except Exception as e:
         logger.error(f"Error getting recent transactions: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
+# ==================== IMPORT API ====================
+
+@app.post("/api/import/parse")
+async def parse_import_file(file: UploadFile = File(...), year: int = Form(...)):
+    """
+    Parse uploaded Excel file and extract budget/actual data.
+
+    Returns parsed data structure with categories, budget, and actuals.
+    """
+    try:
+        # Validate file extension
+        if not file.filename.endswith('.xlsx'):
+            raise ValueError("Only .xlsx files supported")
+
+        # Save to temp file
+        import tempfile
+        import os
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp:
+            content = await file.read()
+            tmp.write(content)
+            tmp_path = tmp.name
+
+        try:
+            # Call business logic for parsing
+            result = business_logic.parse_excel_file(tmp_path, year)
+            return {"success": True, "data": result}
+        finally:
+            # Clean up temp file
+            os.unlink(tmp_path)
+
+    except ValueError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": str(e)}
+        )
+    except Exception as e:
+        logger.error(f"Error parsing import file: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
+@app.post("/api/import/validate")
+async def validate_import_data(request: Request):
+    """
+    Validate import data before execution (dry-run).
+
+    Request body:
+    {
+        "parsed_data": {...},
+        "category_mapping": {"Lønn": "uuid-123", ...}
+    }
+    """
+    try:
+        data = await request.json()
+        result = business_logic.validate_import(
+            parsed_data=data["parsed_data"],
+            category_mapping=data["category_mapping"]
+        )
+        return {"success": True, "data": result}
+    except ValueError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": str(e)}
+        )
+    except KeyError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": f"Missing required field: {e}"}
+        )
+    except Exception as e:
+        logger.error(f"Error validating import: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
+@app.post("/api/import/execute")
+async def execute_import(request: Request):
+    """
+    Execute import - create BudgetEntry and Transaction records.
+
+    Request body: Same as /api/import/validate
+    """
+    try:
+        data = await request.json()
+        result = business_logic.import_budget_and_transactions(
+            parsed_data=data["parsed_data"],
+            category_mapping=data["category_mapping"]
+        )
+        return {"success": True, "data": result}
+    except ValueError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": str(e)}
+        )
+    except KeyError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": f"Missing required field: {e}"}
+        )
+    except Exception as e:
+        logger.error(f"Error executing import: {e}")
         return JSONResponse(
             status_code=500,
             content={"success": False, "error": str(e)}
