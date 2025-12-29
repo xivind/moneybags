@@ -1694,8 +1694,9 @@ def parse_excel_file(file_path: str, year: int) -> dict:
 
     sheet_categories = []
 
-    # Parse categories (every 4 rows, starting from row 8)
-    for row_idx in range(8, 60, 4):
+    # Parse income categories (4-row pattern: Category, Budsjett, Resultat, Differanse)
+    # Start at row 8, step by 4, until we reach utgifter_row
+    for row_idx in range(8, utgifter_row, 4):
         category_cell = sheet[f'B{row_idx}']
         category_name = category_cell.value
 
@@ -1704,9 +1705,57 @@ def parse_excel_file(file_path: str, year: int) -> dict:
             continue
 
         category_name = str(category_name).strip()
+        category_type = "income"
 
-        # Determine type (income if before utgifter_row, expenses after)
-        category_type = "income" if row_idx < utgifter_row else "expenses"
+        # Extract budget values (row N+1)
+        budget = {}
+        budget_row = row_idx + 1
+        for col, month in month_columns.items():
+            cell = sheet[f'{col}{budget_row}']
+            if cell.value:
+                try:
+                    amount = int(float(cell.value)) if cell.value else 0
+                    budget[month] = amount
+                except (ValueError, TypeError):
+                    # Skip invalid values
+                    pass
+
+        # Extract actual values (row N+2)
+        actuals = {}
+        actuals_row = row_idx + 2
+        for col, month in month_columns.items():
+            cell = sheet[f'{col}{actuals_row}']
+            if cell.value:
+                try:
+                    amounts = _extract_amounts_from_formula(cell.value, actuals_row, col)
+                    if amounts:
+                        actuals[month] = amounts
+                except ValueError as e:
+                    raise ValueError(f"Category '{category_name}': {e}")
+
+        # Skip categories with no data
+        if not budget and not actuals:
+            continue
+
+        sheet_categories.append({
+            "name": category_name,
+            "type": category_type,
+            "budget": budget,
+            "actuals": actuals
+        })
+
+    # Parse expense categories (3-row pattern: Category, Budsjett, Resultat - NO Differanse)
+    # Start at utgifter_row + 1, step by 3
+    for row_idx in range(utgifter_row + 1, 60, 3):
+        category_cell = sheet[f'B{row_idx}']
+        category_name = category_cell.value
+
+        # Skip if no category name or if it's a header row or row label
+        if not category_name or category_name in ["Inntekter", "Utgifter", "Balanse", "Budsjett", "Resultat", "Differanse"]:
+            continue
+
+        category_name = str(category_name).strip()
+        category_type = "expenses"
 
         # Extract budget values (row N+1)
         budget = {}
