@@ -1992,8 +1992,8 @@ function generateYearAccordionItem(year, categories) {
 }
 
 function openAddYearModal() {
-    const currentYear = new Date().getFullYear();
-    document.getElementById('newYear').value = currentYear + 1;
+    const thisYear = new Date().getFullYear();
+    document.getElementById('newYear').value = thisYear + 1;
 
     const modal = new bootstrap.Modal(document.getElementById('addYearModal'));
     modal.show();
