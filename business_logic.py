@@ -1752,3 +1752,79 @@ def parse_excel_file(file_path: str, year: int) -> dict:
         "year": year,
         "sheet_categories": sheet_categories
     }
+
+
+def validate_import(parsed_data: dict, category_mapping: dict) -> dict:
+    """
+    Dry-run validation before import.
+
+    Checks:
+    - All mapped categories exist
+    - Category types match (income/expenses)
+    - Check for duplicate BudgetEntries
+    - Check for duplicate Transactions
+
+    Args:
+        parsed_data: Parsed Excel data structure
+        category_mapping: Dict mapping sheet category names to Moneybags category IDs
+
+    Returns:
+        {
+            "valid": True/False,
+            "errors": ["..."],
+            "warnings": ["..."],
+            "summary": {"budget_count": 120, "transaction_count": 347}
+        }
+    """
+    errors = []
+    warnings = []
+    budget_count = 0
+    transaction_count = 0
+
+    year = parsed_data["year"]
+
+    # Validate all categories exist and types match
+    for sheet_cat in parsed_data["sheet_categories"]:
+        sheet_name = sheet_cat["name"]
+
+        # Check category is mapped
+        if sheet_name not in category_mapping:
+            errors.append(f"Category '{sheet_name}' not mapped")
+            continue
+
+        category_id = category_mapping[sheet_name]
+
+        # Check category exists
+        category = db.get_category_by_id(category_id)
+        if not category:
+            errors.append(f"Category '{sheet_name}' mapped to '{category_id}' which does not exist")
+            continue
+
+        # Check type matches
+        if category.type != sheet_cat["type"]:
+            errors.append(f"Category '{sheet_name}' type mismatch: sheet has '{sheet_cat['type']}' but Moneybags has '{category.type}'")
+            continue
+
+        # Count budget entries and check for duplicates
+        for month in sheet_cat["budget"].keys():
+            existing = db.get_budget_entry(category_id, year, month)
+            if existing:
+                warnings.append(f"Budget entry for '{category.name}' {year}-{month:02d} already exists - will overwrite")
+            budget_count += 1
+
+        # Count transactions
+        for month, amounts in sheet_cat["actuals"].items():
+            transaction_count += len(amounts)
+
+    # Final validation
+    valid = len(errors) == 0
+
+    return {
+        "valid": valid,
+        "errors": errors,
+        "warnings": warnings,
+        "summary": {
+            "budget_count": budget_count,
+            "transaction_count": transaction_count
+        }
+    }

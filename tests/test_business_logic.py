@@ -117,3 +117,69 @@ def test_ensure_import_payee():
     # Second call should return same payee
     payee_id_2 = business_logic._ensure_import_payee()
     assert payee_id_2 == payee_id
+
+
+def test_validate_import():
+    """Test import validation."""
+    import database_manager as db
+    from datetime import datetime
+
+    # Create test categories
+    cat1_data = {
+        "id": "cat1",
+        "name": "Salary",
+        "type": "income",
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    db.create_category(cat1_data)
+
+    # Parse data structure
+    parsed_data = {
+        "year": 2024,
+        "sheet_categories": [
+            {
+                "name": "Lønn",
+                "type": "income",
+                "budget": {1: 50000},
+                "actuals": {1: [55000]}
+            }
+        ]
+    }
+
+    category_mapping = {
+        "Lønn": "cat1"
+    }
+
+    result = business_logic.validate_import(parsed_data, category_mapping)
+
+    assert result["valid"] is True
+    assert isinstance(result["errors"], list)
+    assert isinstance(result["warnings"], list)
+    assert "summary" in result
+    assert result["summary"]["budget_count"] == 1
+    assert result["summary"]["transaction_count"] == 1
+
+
+def test_validate_import_missing_category():
+    """Test validation fails for missing category."""
+    parsed_data = {
+        "year": 2024,
+        "sheet_categories": [
+            {
+                "name": "Lønn",
+                "type": "income",
+                "budget": {1: 50000},
+                "actuals": {1: [55000]}
+            }
+        ]
+    }
+
+    category_mapping = {
+        "Lønn": "nonexistent123"
+    }
+
+    result = business_logic.validate_import(parsed_data, category_mapping)
+
+    assert result["valid"] is False
+    assert len(result["errors"]) > 0
+    assert any("not found" in err.lower() for err in result["errors"])
