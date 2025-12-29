@@ -2330,72 +2330,82 @@ async function handleImport() {
     const budgetCount = budgetMatch ? budgetMatch[1] : '?';
     const transactionCount = transactionMatch ? transactionMatch[1] : '?';
 
-    // Populate confirmation modal summary
-    const summaryList = document.getElementById('confirm-import-summary');
-    summaryList.innerHTML = `
-        <li><strong>${budgetCount}</strong> budget entries</li>
-        <li><strong>${transactionCount}</strong> transactions</li>
+    // Build confirmation message HTML
+    const summaryHtml = `
+        <p><strong>Are you sure you want to import this data?</strong></p>
+        <p class="mb-0">This will create:</p>
+        <ul>
+            <li><strong>${budgetCount}</strong> budget entries</li>
+            <li><strong>${transactionCount}</strong> transactions</li>
+        </ul>
+        <p class="text-muted mb-0"><small>This action cannot be undone.</small></p>
     `;
 
-    // Show confirmation modal
-    const modal = new bootstrap.Modal(document.getElementById('confirmImportModal'));
-    modal.show();
-}
+    // Set modal content
+    document.getElementById('confirmModalTitle').textContent = 'Confirm Import';
+    document.getElementById('confirmModalMessage').innerHTML = summaryHtml;
 
-// Execute import after confirmation
-document.addEventListener('DOMContentLoaded', function() {
-    const confirmBtn = document.getElementById('confirmImportBtn');
-    if (confirmBtn) {
-        confirmBtn.addEventListener('click', async function() {
-            const importBtn = document.getElementById('import-btn');
-            const spinner = document.getElementById('import-spinner');
-            const modal = bootstrap.Modal.getInstance(document.getElementById('confirmImportModal'));
+    // Attach one-time click handler to confirm button
+    const confirmActionBtn = document.getElementById('confirmActionBtn');
+    const handleConfirm = async function() {
+        const importBtn = document.getElementById('import-btn');
+        const spinner = document.getElementById('import-spinner');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('confirmModal'));
 
-            // Close modal
-            modal.hide();
+        // Close modal
+        modal.hide();
 
-            // Show loading
-            importBtn.disabled = true;
-            spinner.classList.remove('d-none');
+        // Show loading
+        importBtn.disabled = true;
+        spinner.classList.remove('d-none');
 
-            try {
-                console.log('Sending import request with:', {
+        try {
+            console.log('Sending import request with:', {
+                parsed_data: parsedData,
+                category_mapping: categoryMapping
+            });
+
+            const response = await fetch('/api/import/execute', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
                     parsed_data: parsedData,
                     category_mapping: categoryMapping
-                });
+                })
+            });
 
-                const response = await fetch('/api/import/execute', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        parsed_data: parsedData,
-                        category_mapping: categoryMapping
-                    })
-                });
+            console.log('Import response status:', response.status);
+            const result = await response.json();
+            console.log('Import response data:', result);
 
-                console.log('Import response status:', response.status);
-                const result = await response.json();
-                console.log('Import response data:', result);
+            if (result.success) {
+                showToast(`Successfully imported ${result.data.budget_count} budget entries and ${result.data.transaction_count} transactions!`, 'success');
 
-                if (result.success) {
-                    showToast(`Successfully imported ${result.data.budget_count} budget entries and ${result.data.transaction_count} transactions!`, 'success');
-
-                    // Reset form after 2 seconds
-                    setTimeout(() => {
-                        location.reload();
-                    }, 2000);
-                } else {
-                    console.error('Import failed:', result.error);
-                    showToast(result.error || 'Import failed', 'danger');
-                    importBtn.disabled = false;
-                }
-            } catch (error) {
-                console.error('Import error:', error);
-                showToast('Error executing import: ' + error.message, 'danger');
+                // Reset form after 2 seconds
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            } else {
+                console.error('Import failed:', result.error);
+                showToast(result.error || 'Import failed', 'danger');
                 importBtn.disabled = false;
-            } finally {
-                spinner.classList.add('d-none');
             }
-        });
-    }
-});
+        } catch (error) {
+            console.error('Import error:', error);
+            showToast('Error executing import: ' + error.message, 'danger');
+            importBtn.disabled = false;
+        } finally {
+            spinner.classList.add('d-none');
+        }
+
+        // Remove this listener after execution
+        confirmActionBtn.removeEventListener('click', handleConfirm);
+    };
+
+    // Add the listener
+    confirmActionBtn.addEventListener('click', handleConfirm);
+
+    // Show confirmation modal
+    const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    modal.show();
+}
