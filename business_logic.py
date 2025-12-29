@@ -1855,14 +1855,16 @@ def validate_import(parsed_data: dict, category_mapping: dict) -> dict:
             continue
 
         # Count budget entries and check for duplicates
-        for month in sheet_cat["budget"].keys():
+        for month_str in sheet_cat["budget"].keys():
+            month = int(month_str)  # Convert string to int
             existing = db.get_budget_entry(category_id, year, month)
             if existing:
                 warnings.append(f"Budget entry for '{category.name}' {year}-{month:02d} already exists - will overwrite")
             budget_count += 1
 
         # Count transactions
-        for month, amounts in sheet_cat["actuals"].items():
+        for month_str, amounts in sheet_cat["actuals"].items():
+            month = int(month_str)  # Convert string to int
             transaction_count += len(amounts)
 
     # Final validation
@@ -1910,7 +1912,8 @@ def import_budget_and_transactions(parsed_data: dict, category_mapping: dict) ->
         category_id = category_mapping[sheet_category["name"]]
 
         # Import budget entries
-        for month, amount in sheet_category["budget"].items():
+        for month_str, amount in sheet_category["budget"].items():
+            month = int(month_str)  # Convert string to int
             data = {
                 "id": generate_uid(),
                 "category_id": category_id,
@@ -1925,7 +1928,8 @@ def import_budget_and_transactions(parsed_data: dict, category_mapping: dict) ->
             budget_count += 1
 
         # Import transactions
-        for month, amounts in sheet_category["actuals"].items():
+        for month_str, amounts in sheet_category["actuals"].items():
+            month = int(month_str)  # Convert string to int
             for amount in amounts:
                 date_str = f"{year}-{month:02d}-01"
                 data = {
