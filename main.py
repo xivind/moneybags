@@ -968,24 +968,54 @@ async def validate_import_data(request: Request):
     }
     """
     try:
+        # Parse JSON (only read body once!)
+        logger.info(f"=== VALIDATION REQUEST DEBUG ===")
+        logger.info(f"Content-Type: {request.headers.get('content-type')}")
+
         data = await request.json()
+        logger.info(f"Parsed JSON keys: {list(data.keys())}")
+        logger.info(f"Data type: {type(data)}")
+
+        # Check for required fields
+        if "parsed_data" not in data:
+            logger.error("Missing 'parsed_data' field in request")
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "error": "Missing required field: parsed_data"}
+            )
+
+        if "category_mapping" not in data:
+            logger.error("Missing 'category_mapping' field in request")
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "error": "Missing required field: category_mapping"}
+            )
+
+        logger.info(f"parsed_data type: {type(data['parsed_data'])}")
+        logger.info(f"category_mapping type: {type(data['category_mapping'])}")
+        logger.info(f"category_mapping keys: {list(data['category_mapping'].keys()) if isinstance(data['category_mapping'], dict) else 'N/A'}")
+
+        # Call business logic
         result = business_logic.validate_import(
             parsed_data=data["parsed_data"],
             category_mapping=data["category_mapping"]
         )
+        logger.info(f"Validation successful: {result}")
         return {"success": True, "data": result}
     except ValueError as e:
+        logger.error(f"ValueError in validation: {e}", exc_info=True)
         return JSONResponse(
             status_code=400,
             content={"success": False, "error": str(e)}
         )
     except KeyError as e:
+        logger.error(f"KeyError in validation: {e}", exc_info=True)
         return JSONResponse(
             status_code=400,
             content={"success": False, "error": f"Missing required field: {e}"}
         )
     except Exception as e:
-        logger.error(f"Error validating import: {e}")
+        logger.error(f"Error validating import: {e}", exc_info=True)
         return JSONResponse(
             status_code=500,
             content={"success": False, "error": str(e)}

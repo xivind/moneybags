@@ -2241,6 +2241,26 @@ async function handleValidate() {
         return;
     }
 
+    // Debug logging
+    console.log('=== VALIDATION DEBUG ===');
+    console.log('parsedData:', parsedData);
+    console.log('categoryMapping:', categoryMapping);
+    console.log('parsedData is null?', parsedData === null);
+    console.log('categoryMapping is empty?', Object.keys(categoryMapping).length === 0);
+
+    // Validate data exists
+    if (!parsedData) {
+        console.error('ERROR: parsedData is null or undefined');
+        showToast('Error: No parsed data available. Please upload and parse a file first.', 'danger');
+        return;
+    }
+
+    if (Object.keys(categoryMapping).length === 0) {
+        console.error('ERROR: categoryMapping is empty');
+        showToast('Error: No category mappings defined.', 'danger');
+        return;
+    }
+
     // Show loading
     const validateBtn = document.getElementById('validate-btn');
     const spinner = document.getElementById('validate-spinner');
@@ -2248,23 +2268,33 @@ async function handleValidate() {
     spinner.classList.remove('d-none');
 
     try {
+        const payload = {
+            parsed_data: parsedData,
+            category_mapping: categoryMapping
+        };
+
+        console.log('Sending validation request with payload:', JSON.stringify(payload, null, 2));
+
         const response = await fetch('/api/import/validate', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                parsed_data: parsedData,
-                category_mapping: categoryMapping
-            })
+            body: JSON.stringify(payload)
         });
 
+        console.log('Validation response status:', response.status);
+        console.log('Validation response headers:', response.headers);
+
         const result = await response.json();
+        console.log('Validation response data:', result);
 
         if (result.success) {
             showValidationResults(result.data);
         } else {
+            console.error('Validation failed:', result.error);
             showToast(result.error, 'danger');
         }
     } catch (error) {
+        console.error('Validation error:', error);
         showToast('Error validating import: ' + error.message, 'danger');
     } finally {
         validateBtn.disabled = false;
