@@ -442,6 +442,20 @@ def payee_last_used_date(payee_id: str) -> str:
     return result.date if result else None
 
 
+@with_retry
+def get_payee_by_name(name: str):
+    """
+    Get payee by exact name match.
+
+    Args:
+        name: Payee name to search for
+
+    Returns:
+        Payee object if found, None otherwise
+    """
+    return Payee.get_or_none(Payee.name == name)
+
+
 # ==================== BUDGET TEMPLATE CRUD ====================
 
 @with_transaction
@@ -572,6 +586,41 @@ def category_has_budget_entries_for_year(category_id: str, year: int) -> bool:
         (BudgetEntry.category_id == category_id) &
         (BudgetEntry.year == year)
     ).exists()
+
+
+@with_transaction
+def create_or_update_budget_entry(data: dict) -> BudgetEntry:
+    """
+    Create or update budget entry.
+
+    Checks if entry exists by (category_id, year, month).
+    If exists: updates amount, comment, updated_at
+    If not: creates new entry
+
+    Args:
+        data: Budget entry data dict with all fields
+
+    Returns:
+        BudgetEntry object (created or updated)
+    """
+    existing = BudgetEntry.get_or_none(
+        (BudgetEntry.category_id == data["category_id"]) &
+        (BudgetEntry.year == data["year"]) &
+        (BudgetEntry.month == data["month"])
+    )
+
+    if existing:
+        existing.amount = data["amount"]
+        existing.comment = data["comment"]
+        existing.updated_at = data["updated_at"]
+        existing.save()
+        logger.info(f"Updated budget entry: {existing.id}")
+        return existing
+    else:
+        entry = BudgetEntry(**data)
+        entry.save(force_insert=True)
+        logger.info(f"Created budget entry: {entry.id}")
+        return entry
 
 
 # ==================== TRANSACTION CRUD ====================
