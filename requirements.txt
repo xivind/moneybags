@@ -15,3 +15,6 @@ python-dateutil==2.8.2
 
 # Testing
 pytest==7.4.3
+
+# Excel file parsing
+openpyxl==3.1.5
