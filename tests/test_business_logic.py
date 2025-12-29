@@ -6,6 +6,59 @@ Tests for formula parsing helper function.
 
 import pytest
 import business_logic
+import pymysql
+from database_model import database, Category, Payee, BudgetEntry, BudgetTemplate, Transaction, Configuration
+import database_manager as db
+
+
+@pytest.fixture(scope="session", autouse=True)
+def create_test_database():
+    """Create test database once at session start."""
+    conn = pymysql.connect(
+        host="sandbox",
+        port=3306,
+        user="root",
+        password="devpassword"
+    )
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("CREATE DATABASE IF NOT EXISTS moneybags_test")
+        conn.commit()
+    finally:
+        conn.close()
+
+
+@pytest.fixture(scope="function")
+def setup_test_db():
+    """Setup test database before each test, teardown after."""
+    # Initialize test database
+    db.initialize_connection(
+        host="sandbox",
+        port=3306,
+        database_name="moneybags_test",
+        user="root",
+        password="devpassword",
+        pool_size=5
+    )
+
+    # Create tables
+    db.create_tables_if_not_exist()
+
+    yield
+
+    # Cleanup - truncate all tables and close connection
+    try:
+        # Truncate tables instead of dropping them (faster and preserves schema)
+        Transaction.delete().execute()
+        BudgetEntry.delete().execute()
+        BudgetTemplate.delete().execute()
+        Payee.delete().execute()
+        Category.delete().execute()
+        Configuration.delete().execute()
+    except:
+        pass  # Ignore errors during cleanup
+    finally:
+        db.close_connection()
 
 
 def test_extract_amounts_from_formula_simple_addition():
@@ -100,10 +153,8 @@ def test_parse_excel_file(tmp_path):
     assert isinstance(first_cat["actuals"], dict)
 
 
-def test_ensure_import_payee():
+def test_ensure_import_payee(setup_test_db):
     """Test getting or creating import payee."""
-    import database_manager as db
-
     # First call should create payee
     payee_id = business_logic._ensure_import_payee()
     assert payee_id is not None
@@ -119,9 +170,8 @@ def test_ensure_import_payee():
     assert payee_id_2 == payee_id
 
 
-def test_validate_import():
+def test_validate_import(setup_test_db):
     """Test import validation."""
-    import database_manager as db
     from datetime import datetime
 
     # Create test categories
@@ -160,7 +210,7 @@ def test_validate_import():
     assert result["summary"]["transaction_count"] == 1
 
 
-def test_validate_import_missing_category():
+def test_validate_import_missing_category(setup_test_db):
     """Test validation fails for missing category."""
     parsed_data = {
         "year": 2024,
@@ -182,14 +232,13 @@ def test_validate_import_missing_category():
 
     assert result["valid"] is False
     assert len(result["errors"]) > 0
-    assert any("not found" in err.lower() for err in result["errors"])
+    # Check for error about category not existing (contains "does not exist" message)
+    assert any("does not exist" in err.lower() for err in result["errors"])
 
 
-def test_import_budget_and_transactions():
+def test_import_budget_and_transactions(setup_test_db):
     """Test full import execution."""
-    import database_manager as db
     from datetime import datetime
-    from database_model import Transaction
 
     # Create test category
     cat_data = {
@@ -241,4 +290,5 @@ def test_import_budget_and_transactions():
     import_payee = db.get_payee_by_name("Import - Google Sheets")
     assert import_payee is not None
     for tx in transactions:
-        assert tx.payee_id == import_payee.id
+        # tx.payee_id is a Payee object (PeeWee foreign key), so access .id
+        assert tx.payee_id.id == import_payee.id

@@ -1001,23 +1001,44 @@ async def execute_import(request: Request):
     """
     try:
         data = await request.json()
+        logger.info(f"Import execute request received: {data.keys()}")
+
+        # Validate required fields
+        if "parsed_data" not in data:
+            logger.error("Missing 'parsed_data' in request")
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "error": "Missing required field: parsed_data"}
+            )
+        if "category_mapping" not in data:
+            logger.error("Missing 'category_mapping' in request")
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "error": "Missing required field: category_mapping"}
+            )
+
+        logger.info(f"Parsed data structure: year={data['parsed_data'].get('year')}, categories count={len(data['parsed_data'].get('sheet_categories', []))}")
+        logger.info(f"Category mapping: {data['category_mapping']}")
+
         result = business_logic.import_budget_and_transactions(
             parsed_data=data["parsed_data"],
             category_mapping=data["category_mapping"]
         )
         return {"success": True, "data": result}
     except ValueError as e:
+        logger.error(f"ValueError in import execution: {e}")
         return JSONResponse(
             status_code=400,
             content={"success": False, "error": str(e)}
         )
     except KeyError as e:
+        logger.error(f"KeyError in import execution: {e}")
         return JSONResponse(
             status_code=400,
             content={"success": False, "error": f"Missing required field: {e}"}
         )
     except Exception as e:
-        logger.error(f"Error executing import: {e}")
+        logger.error(f"Error executing import: {e}", exc_info=True)
         return JSONResponse(
             status_code=500,
             content={"success": False, "error": str(e)}
