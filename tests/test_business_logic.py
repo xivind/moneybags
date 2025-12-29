@@ -183,3 +183,62 @@ def test_validate_import_missing_category():
     assert result["valid"] is False
     assert len(result["errors"]) > 0
     assert any("not found" in err.lower() for err in result["errors"])
+
+
+def test_import_budget_and_transactions():
+    """Test full import execution."""
+    import database_manager as db
+    from datetime import datetime
+    from database_model import Transaction
+
+    # Create test category
+    cat_data = {
+        "id": "cat_import",
+        "name": "Test Import Cat",
+        "type": "income",
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    db.create_category(cat_data)
+
+    # Parsed data
+    parsed_data = {
+        "year": 2024,
+        "sheet_categories": [
+            {
+                "name": "Test Import Cat",
+                "type": "income",
+                "budget": {1: 50000, 2: 52000},
+                "actuals": {1: [55000, 1000], 2: [53000]}
+            }
+        ]
+    }
+
+    category_mapping = {
+        "Test Import Cat": "cat_import"
+    }
+
+    result = business_logic.import_budget_and_transactions(parsed_data, category_mapping)
+
+    assert result["budget_count"] == 2
+    assert result["transaction_count"] == 3
+
+    # Verify budget entries created
+    budget_jan = db.get_budget_entry("cat_import", 2024, 1)
+    assert budget_jan is not None
+    assert budget_jan.amount == 50000
+
+    budget_feb = db.get_budget_entry("cat_import", 2024, 2)
+    assert budget_feb is not None
+    assert budget_feb.amount == 52000
+
+    # Verify transactions created
+    transactions = list(Transaction.select().where(
+        Transaction.category_id == "cat_import"
+    ))
+    assert len(transactions) == 3
+
+    # Verify payee
+    import_payee = db.get_payee_by_name("Import - Google Sheets")
+    assert import_payee is not None
+    for tx in transactions:
+        assert tx.payee_id == import_payee.id

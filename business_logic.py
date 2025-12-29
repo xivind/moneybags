@@ -1828,3 +1828,74 @@ def validate_import(parsed_data: dict, category_mapping: dict) -> dict:
             "transaction_count": transaction_count
         }
     }
+
+
+def import_budget_and_transactions(parsed_data: dict, category_mapping: dict) -> dict:
+    """
+    Create BudgetEntry and Transaction records from parsed data.
+
+    Prerequisites: validate_import() should pass before calling this
+
+    Args:
+        parsed_data: Parsed Excel data structure
+        category_mapping: Dict mapping sheet category names to Moneybags category IDs
+
+    Returns:
+        {
+            "budget_count": 120,
+            "transaction_count": 347,
+            "message": "Successfully imported data"
+        }
+
+    Raises:
+        ValueError: On errors
+    """
+    import_payee_id = _ensure_import_payee()
+
+    budget_count = 0
+    transaction_count = 0
+
+    year = parsed_data["year"]
+
+    for sheet_category in parsed_data["sheet_categories"]:
+        category_id = category_mapping[sheet_category["name"]]
+
+        # Import budget entries
+        for month, amount in sheet_category["budget"].items():
+            data = {
+                "id": generate_uid(),
+                "category_id": category_id,
+                "year": year,
+                "month": month,
+                "amount": amount,
+                "comment": empty_to_none(None),
+                "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            db.create_or_update_budget_entry(data)
+            budget_count += 1
+
+        # Import transactions
+        for month, amounts in sheet_category["actuals"].items():
+            for amount in amounts:
+                date_str = f"{year}-{month:02d}-01"
+                data = {
+                    "id": generate_uid(),
+                    "category_id": category_id,
+                    "payee_id": import_payee_id,
+                    "date": date_str,
+                    "amount": amount,
+                    "comment": empty_to_none(None),
+                    "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
+                db.create_transaction(data)
+                transaction_count += 1
+
+    logger.info(f"Imported {budget_count} budget entries and {transaction_count} transactions")
+
+    return {
+        "budget_count": budget_count,
+        "transaction_count": transaction_count,
+        "message": "Successfully imported data"
+    }
