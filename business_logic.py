@@ -1699,8 +1699,8 @@ def parse_excel_file(file_path: str, year: int) -> dict:
         category_cell = sheet[f'B{row_idx}']
         category_name = category_cell.value
 
-        # Skip if no category name or if it's a header row
-        if not category_name or category_name in ["Inntekter", "Utgifter", "Balanse"]:
+        # Skip if no category name or if it's a header row or row label
+        if not category_name or category_name in ["Inntekter", "Utgifter", "Balanse", "Budsjett", "Resultat", "Differanse"]:
             continue
 
         category_name = str(category_name).strip()
