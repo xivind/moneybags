@@ -1872,27 +1872,27 @@ async function loadBudgetProgress() {
         }
 
         // Filter expense categories only
-        const expenseCategories = data.categories.filter(cat => cat.category_type === 'expense');
+        const expenseCategories = data.categories.filter(cat => cat.type === 'expenses');
 
         // Sort alphabetically
-        expenseCategories.sort((a, b) => a.category_name.localeCompare(b.category_name));
+        expenseCategories.sort((a, b) => a.name.localeCompare(b.name));
 
         // Generate progress bars for each period
         let monthHTML = '';
         let yearHTML = '';
 
         for (const category of expenseCategories) {
-            const monthTotals = calculateCategoryTotals(data, category.category_id, 'month');
-            const yearTotals = calculateCategoryTotals(data, category.category_id, 'year');
+            const monthTotals = calculateCategoryTotals(data, category.id, 'month');
+            const yearTotals = calculateCategoryTotals(data, category.id, 'year');
 
             const monthBar = generateProgressBarHTML(
-                category.category_name,
+                category.name,
                 monthTotals.budgetTotal,
                 monthTotals.actualTotal
             );
 
             const yearBar = generateProgressBarHTML(
-                category.category_name,
+                category.name,
                 yearTotals.budgetTotal,
                 yearTotals.actualTotal
             );
