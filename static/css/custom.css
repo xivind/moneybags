@@ -815,3 +815,64 @@ body {
 .year-input {
     max-width: 150px;
 }
+
+/* Budget Progress Widget */
+.budget-progress-list {
+    max-height: 400px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.progress-row {
+    margin-bottom: 1rem;
+}
+
+.progress-row-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+    font-size: 0.875rem;
+}
+
+.category-name {
+    font-weight: 500;
+    color: #2d3748;
+}
+
+.progress-percentage {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #4a5568;
+}
+
+.over-budget-text {
+    font-size: 0.75rem;
+    color: #dc3545;
+    margin-top: 0.25rem;
+    font-weight: 500;
+}
+
+/* Progress bar customization */
+.budget-progress-bar {
+    height: 1.5rem;
+}
+
+/* Scrollbar styling */
+.budget-progress-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.budget-progress-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.budget-progress-list::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.budget-progress-list::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
