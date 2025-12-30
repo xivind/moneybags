@@ -1830,7 +1830,6 @@ function generateProgressBarHTML(categoryName, budgetTotal, actualTotal) {
     const percentage = Math.min((actualTotal / budgetTotal) * 100, 100);
     const isOverBudget = actualTotal > budgetTotal;
     const barColor = isOverBudget ? 'bg-danger' : 'bg-success';
-    const percentageText = Math.round((actualTotal / budgetTotal) * 100);
     const remaining = budgetTotal - actualTotal;
 
     // Label text
