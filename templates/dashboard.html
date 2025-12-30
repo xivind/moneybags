@@ -94,6 +94,55 @@
             </div>
         </div>
     </div>
+
+    <!-- Budget Progress Widget -->
+    <div class="col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-speedometer me-2"></i>Budget Progress
+                </h5>
+
+                <!-- Nav tabs -->
+                <ul class="nav nav-tabs mb-3" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="month-progress-tab" data-bs-toggle="tab" data-bs-target="#month-progress" type="button" role="tab" aria-controls="month-progress" aria-selected="true">
+                            This Month
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="year-progress-tab" data-bs-toggle="tab" data-bs-target="#year-progress" type="button" role="tab" aria-controls="year-progress" aria-selected="false">
+                            This Year
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Tab content -->
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="month-progress" role="tabpanel" aria-labelledby="month-progress-tab">
+                        <div class="budget-progress-list" id="month-progress-content">
+                            <div class="text-center text-muted py-3">
+                                <div class="spinner-border spinner-border-sm" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="small mt-2 mb-0">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="year-progress" role="tabpanel" aria-labelledby="year-progress-tab">
+                        <div class="budget-progress-list" id="year-progress-content">
+                            <div class="text-center text-muted py-3">
+                                <div class="spinner-border spinner-border-sm" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="small mt-2 mb-0">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endif %}
 {% endblock %}
