@@ -6,6 +6,7 @@ Tests for formula parsing helper function.
 
 import pytest
 import business_logic
+import import_logic
 import pymysql
 from database_model import database, Category, Payee, BudgetEntry, BudgetTemplate, Transaction, Configuration
 import database_manager as db
@@ -63,37 +64,37 @@ def setup_test_db():
 
 def test_extract_amounts_from_formula_simple_addition():
     """Test extracting amounts from simple addition formula."""
-    result = business_logic._extract_amounts_from_formula("=575+2182", 10, "C")
+    result = import_logic._extract_amounts_from_formula("=575+2182", 10, "C")
     assert result == [575, 2182]
 
 
 def test_extract_amounts_from_formula_single_value():
     """Test extracting single value from formula."""
-    result = business_logic._extract_amounts_from_formula("=104571", 10, "C")
+    result = import_logic._extract_amounts_from_formula("=104571", 10, "C")
     assert result == [104571]
 
 
 def test_extract_amounts_from_formula_plain_number():
     """Test extracting plain number (no formula)."""
-    result = business_logic._extract_amounts_from_formula("55615.0", 10, "C")
+    result = import_logic._extract_amounts_from_formula("55615.0", 10, "C")
     assert result == [55615]
 
-    result = business_logic._extract_amounts_from_formula(55615.0, 10, "C")
+    result = import_logic._extract_amounts_from_formula(55615.0, 10, "C")
     assert result == [55615]
 
 
 def test_extract_amounts_from_formula_zero():
     """Test that zero values are included."""
-    result = business_logic._extract_amounts_from_formula("0", 10, "C")
+    result = import_logic._extract_amounts_from_formula("0", 10, "C")
     assert result == [0]
 
 
 def test_extract_amounts_from_formula_empty():
     """Test that empty cells are skipped."""
-    result = business_logic._extract_amounts_from_formula("", 10, "C")
+    result = import_logic._extract_amounts_from_formula("", 10, "C")
     assert result == []
 
-    result = business_logic._extract_amounts_from_formula(None, 10, "C")
+    result = import_logic._extract_amounts_from_formula(None, 10, "C")
     assert result == []
 
 
@@ -102,10 +103,10 @@ def test_extract_amounts_from_formula_rejects_complex():
     import pytest
 
     with pytest.raises(ValueError, match="Complex formula not supported \\(IF\\)"):
-        business_logic._extract_amounts_from_formula("=IF(A1>0,100,200)", 10, "C")
+        import_logic._extract_amounts_from_formula("=IF(A1>0,100,200)", 10, "C")
 
     with pytest.raises(ValueError, match="Complex formula not supported \\(SUM\\)"):
-        business_logic._extract_amounts_from_formula("=SUM(A1:A5)", 10, "C")
+        import_logic._extract_amounts_from_formula("=SUM(A1:A5)", 10, "C")
 
 
 def test_extract_amounts_from_formula_rejects_negative():
@@ -113,10 +114,10 @@ def test_extract_amounts_from_formula_rejects_negative():
     import pytest
 
     with pytest.raises(ValueError, match="Negative value not allowed"):
-        business_logic._extract_amounts_from_formula("=-500", 10, "C")
+        import_logic._extract_amounts_from_formula("=-500", 10, "C")
 
     with pytest.raises(ValueError, match="Negative value not allowed"):
-        business_logic._extract_amounts_from_formula("=100+-600", 10, "C")
+        import_logic._extract_amounts_from_formula("=100+-600", 10, "C")
 
 
 def test_extract_amounts_from_formula_rejects_multiplication():
@@ -124,28 +125,28 @@ def test_extract_amounts_from_formula_rejects_multiplication():
     import pytest
 
     with pytest.raises(ValueError, match="Only addition \\(\\+\\) supported"):
-        business_logic._extract_amounts_from_formula("=43*2", 10, "C")
+        import_logic._extract_amounts_from_formula("=43*2", 10, "C")
 
 
 def test_extract_amounts_from_formula_nested_parentheses():
     """Test that nested parentheses are allowed and stripped correctly."""
-    result = business_logic._extract_amounts_from_formula("=((427+275)+7292)+200", 10, "C")
+    result = import_logic._extract_amounts_from_formula("=((427+275)+7292)+200", 10, "C")
     assert result == [427, 275, 7292, 200]
 
     # Also test single-level parentheses
-    result = business_logic._extract_amounts_from_formula("=(100+200)+300", 10, "C")
+    result = import_logic._extract_amounts_from_formula("=(100+200)+300", 10, "C")
     assert result == [100, 200, 300]
 
 
 def test_extract_amounts_from_formula_budget_formulas():
     """Test that budget formulas are correctly parsed and can be summed."""
     # Budget cell with formula
-    result = business_logic._extract_amounts_from_formula("=1000+5200", 10, "C")
+    result = import_logic._extract_amounts_from_formula("=1000+5200", 10, "C")
     assert result == [1000, 5200]
     assert sum(result) == 6200  # Should sum to 6200 for budget total
 
     # Budget cell with more complex formula
-    result = business_logic._extract_amounts_from_formula("=2500+3000+1500", 10, "C")
+    result = import_logic._extract_amounts_from_formula("=2500+3000+1500", 10, "C")
     assert result == [2500, 3000, 1500]
     assert sum(result) == 7000
 
@@ -156,7 +157,7 @@ def test_parse_excel_file(tmp_path):
     # For unit testing, we'd use openpyxl to create a minimal test file
     # But for now, we'll test with the actual file structure
 
-    result = business_logic.parse_excel_file("/home/xivind/code/moneybags/test.xlsx", 2024)
+    result = import_logic.parse_excel_file("/home/xivind/code/moneybags/test.xlsx", 2024)
 
     assert result["year"] == 2024
     assert "sheet_categories" in result
@@ -178,7 +179,7 @@ def test_parse_excel_file(tmp_path):
 
 def test_parse_excel_file_new_format(tmp_path):
     """Test parsing Excel file with new Hovedark format."""
-    result = business_logic.parse_excel_file("/home/xivind/code/moneybags/new_format.xlsx", 2023)
+    result = import_logic.parse_excel_file("/home/xivind/code/moneybags/new_format.xlsx", 2023)
 
     assert result["year"] == 2023
     assert "sheet_categories" in result
@@ -224,7 +225,7 @@ def test_parse_excel_file_new_format(tmp_path):
 def test_ensure_import_payee(setup_test_db):
     """Test getting or creating import payee."""
     # First call should create payee
-    payee_id = business_logic._ensure_import_payee()
+    payee_id = import_logic._ensure_import_payee()
     assert payee_id is not None
 
     # Verify payee exists
@@ -234,7 +235,7 @@ def test_ensure_import_payee(setup_test_db):
     assert payee.type == "Generic"
 
     # Second call should return same payee
-    payee_id_2 = business_logic._ensure_import_payee()
+    payee_id_2 = import_logic._ensure_import_payee()
     assert payee_id_2 == payee_id
 
 
@@ -268,7 +269,7 @@ def test_validate_import(setup_test_db):
         "Lønn": "cat1"
     }
 
-    result = business_logic.validate_import(parsed_data, category_mapping)
+    result = import_logic.validate_import(parsed_data, category_mapping)
 
     assert result["valid"] is True
     assert isinstance(result["errors"], list)
@@ -296,7 +297,7 @@ def test_validate_import_missing_category(setup_test_db):
         "Lønn": "nonexistent123"
     }
 
-    result = business_logic.validate_import(parsed_data, category_mapping)
+    result = import_logic.validate_import(parsed_data, category_mapping)
 
     assert result["valid"] is False
     assert len(result["errors"]) > 0
@@ -334,7 +335,7 @@ def test_import_budget_and_transactions(setup_test_db):
         "Test Import Cat": "cat_import"
     }
 
-    result = business_logic.import_budget_and_transactions(parsed_data, category_mapping)
+    result = import_logic.import_budget_and_transactions(parsed_data, category_mapping)
 
     assert result["budget_count"] == 2
     assert result["transaction_count"] == 3

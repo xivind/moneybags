@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import logging
 import business_logic
+import import_logic
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -936,8 +937,8 @@ async def parse_import_file(file: UploadFile = File(...), year: int = Form(...))
             tmp_path = tmp.name
 
         try:
-            # Call business logic for parsing
-            result = business_logic.parse_excel_file(tmp_path, year)
+            # Call import logic for parsing
+            result = import_logic.parse_excel_file(tmp_path, year)
             return {"success": True, "data": result}
         finally:
             # Clean up temp file
@@ -995,8 +996,8 @@ async def validate_import_data(request: Request):
         logger.info(f"category_mapping type: {type(data['category_mapping'])}")
         logger.info(f"category_mapping keys: {list(data['category_mapping'].keys()) if isinstance(data['category_mapping'], dict) else 'N/A'}")
 
-        # Call business logic
-        result = business_logic.validate_import(
+        # Call import logic
+        result = import_logic.validate_import(
             parsed_data=data["parsed_data"],
             category_mapping=data["category_mapping"]
         )
@@ -1050,7 +1051,7 @@ async def execute_import(request: Request):
         logger.info(f"Parsed data structure: year={data['parsed_data'].get('year')}, categories count={len(data['parsed_data'].get('sheet_categories', []))}")
         logger.info(f"Category mapping: {data['category_mapping']}")
 
-        result = business_logic.import_budget_and_transactions(
+        result = import_logic.import_budget_and_transactions(
             parsed_data=data["parsed_data"],
             category_mapping=data["category_mapping"]
         )
