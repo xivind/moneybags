@@ -1833,9 +1833,9 @@ function generateProgressBarHTML(categoryName, budgetTotal, actualTotal) {
     const percentageText = Math.round((actualTotal / budgetTotal) * 100);
     const remaining = budgetTotal - actualTotal;
 
-    // Label text with warning indicator if over budget
+    // Label text
     const labelText = isOverBudget
-        ? `⚠️ ${escapeHtml(categoryName)} - Budget exceeded by ${formatCurrency(actualTotal - budgetTotal)}`
+        ? `${escapeHtml(categoryName)} - Budget exceeded by ${formatCurrency(actualTotal - budgetTotal)}`
         : `${escapeHtml(categoryName)} - ${formatCurrency(remaining)} remaining`;
 
     let html = `
