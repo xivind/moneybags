@@ -59,6 +59,7 @@ def _extract_amounts_from_formula(cell_value, row_num: int, col_name: str) -> li
     Examples:
         "=575+2182" → [575, 2182]
         "=104571" → [104571]
+        "=((427+275)+7292)+200" → [427, 275, 7292, 200]
         "55615.0" → [55615]
         "0" → [0]
         "" → []
@@ -78,8 +79,11 @@ def _extract_amounts_from_formula(cell_value, row_num: int, col_name: str) -> li
     if formula_str.startswith("="):
         formula_str = formula_str[1:]
 
+    # Remove all parentheses (they're just grouping for addition, which is allowed)
+    formula_str = formula_str.replace("(", "").replace(")", "")
+
     # Check for forbidden operations/functions
-    forbidden = ["IF", "SUM", "AVERAGE", "COUNT", "MIN", "MAX", "*", "/", "-", "(", ")"]
+    forbidden = ["IF", "SUM", "AVERAGE", "COUNT", "MIN", "MAX", "*", "/", "-"]
     for forbidden_item in forbidden:
         if forbidden_item in formula_str:
             if forbidden_item in ["IF", "SUM", "AVERAGE", "COUNT", "MIN", "MAX"]:
@@ -1631,15 +1635,21 @@ def parse_excel_file(file_path: str, year: int) -> dict:
     """
     Parse Google Sheets Excel file and extract budget/actual data.
 
-    Expected structure:
+    Supports two formats:
+
+    Format 1 (Original - active sheet):
     - Row 3: Headers ("Balanse", "Januar", ..., "Desember")
     - Row 7: "Inntekter" section
     - Row 16+: "Utgifter" section
-    - Category blocks every 4 rows:
-      - Row N: Category name
-      - Row N+1: "Budsjett" (budget values)
-      - Row N+2: "Resultat" (actual formulas)
-      - Row N+3: "Differanse" (skip)
+    - Category blocks every 4 rows (income) or 3 rows (expenses)
+
+    Format 2 (Hovedark sheet):
+    - Sheet name: "Hovedark"
+    - Month columns: F-Q (Jan-Dec)
+    - Category row: Col C = name, Col D = "Budsjett"
+    - Budget row: Row N, values in F-Q
+    - Actual row: Row N+1, formulas in F-Q
+    - Skip rows: N+2, N+3 (computed)
 
     Args:
         file_path: Path to .xlsx file
@@ -1673,6 +1683,165 @@ def parse_excel_file(file_path: str, year: int) -> dict:
     except Exception as e:
         raise ValueError(f"Failed to load Excel file: {e}")
 
+    # Detect format by checking structure
+    # New format has: category name in Col C, "Budsjett" in Col D
+    # Old format has: category name in Col B, "Budsjett" in next row Col B
+    if "Hovedark" in wb.sheetnames:
+        sheet = wb["Hovedark"]
+        # Check if new format: scan for a row with "Budsjett" in Col D
+        is_new_format = False
+        for row_idx in range(1, 100):
+            col_d_value = sheet.cell(row_idx, 4).value
+            if col_d_value == "Budsjett":
+                is_new_format = True
+                break
+
+        if is_new_format:
+            return _parse_hovedark_format(wb, year)
+        else:
+            return _parse_original_format(wb, year)
+    else:
+        return _parse_original_format(wb, year)
+
+
+def _parse_hovedark_format(wb, year: int) -> dict:
+    """
+    Parse Hovedark Excel format.
+
+    Structure:
+    - Sheet: "Hovedark"
+    - Month columns: F-Q (columns 6-17, Jan-Dec)
+    - Category identification: Col C = category name, Col D = "Budsjett"
+    - Row N: Budget row (category name in C, "Budsjett" in D, values in F-Q)
+    - Row N+1: Actual row ("Resultat" in D, formulas in F-Q)
+    - Row N+2, N+3: Computed rows (skip)
+    - Sections: "Utgifter" (expenses) and "Inntekter" (income)
+    - Skip categories with "Total" in name
+    """
+    from openpyxl.utils import get_column_letter
+
+    sheet = wb["Hovedark"]
+
+    # Month column mapping for Hovedark format (F=1, G=2, ..., Q=12)
+    month_columns = {
+        6: 1,   # F = January
+        7: 2,   # G = February
+        8: 3,   # H = March
+        9: 4,   # I = April
+        10: 5,  # J = May
+        11: 6,  # K = June
+        12: 7,  # L = July
+        13: 8,  # M = August
+        14: 9,  # N = September
+        15: 10, # O = October
+        16: 11, # P = November
+        17: 12  # Q = December
+    }
+
+    # Find section boundaries
+    utgifter_row = None
+    inntekter_row = None
+
+    for row_idx in range(1, 100):
+        cell_c = sheet.cell(row_idx, 3).value  # Column C
+        if cell_c:
+            if "Utgifter" in str(cell_c):
+                utgifter_row = row_idx
+            elif "Inntekter" in str(cell_c):
+                inntekter_row = row_idx
+
+    if not utgifter_row:
+        raise ValueError("Could not find 'Utgifter' section in Hovedark sheet")
+    if not inntekter_row:
+        raise ValueError("Could not find 'Inntekter' section in Hovedark sheet")
+
+    logger.info(f"Found Utgifter at row {utgifter_row}, Inntekter at row {inntekter_row}")
+
+    sheet_categories = []
+
+    # Scan all rows looking for categories (where Col D = "Budsjett")
+    for row_idx in range(1, 100):
+        col_c = sheet.cell(row_idx, 3).value  # Category name
+        col_d = sheet.cell(row_idx, 4).value  # Should be "Budsjett"
+
+        # A category row has a name in Col C and "Budsjett" in Col D
+        if not col_c or col_d != "Budsjett":
+            continue
+
+        category_name = str(col_c).strip()
+
+        # Skip total rows
+        if "Total" in category_name or "Totale" in category_name:
+            logger.info(f"Skipping total row: {category_name}")
+            continue
+
+        # Determine type based on section
+        if row_idx > utgifter_row and (row_idx < inntekter_row or inntekter_row < utgifter_row):
+            category_type = "expenses"  # Plural to match database and old format
+        elif row_idx > inntekter_row:
+            category_type = "income"
+        else:
+            # Skip categories before both sections
+            logger.info(f"Skipping category before sections: {category_name}")
+            continue
+
+        # Extract budget values from this row (cols F-Q)
+        budget = {}
+        for col_idx, month in month_columns.items():
+            cell = sheet.cell(row_idx, col_idx)
+            if cell.value:
+                try:
+                    # Budget cells can be formulas (e.g., =1000+5200) or plain numbers
+                    col_letter = get_column_letter(col_idx)
+                    amounts = _extract_amounts_from_formula(cell.value, row_idx, col_letter)
+                    if amounts:
+                        # Sum all amounts for budget total
+                        amount = sum(amounts)
+                        if amount != 0:
+                            budget[month] = amount
+                except (ValueError, TypeError):
+                    # Skip invalid values
+                    pass
+
+        # Extract actual values from row N+1 (cols F-Q)
+        actuals = {}
+        actuals_row = row_idx + 1
+        for col_idx, month in month_columns.items():
+            cell = sheet.cell(actuals_row, col_idx)
+            if cell.value:
+                try:
+                    col_letter = get_column_letter(col_idx)
+                    amounts = _extract_amounts_from_formula(cell.value, actuals_row, col_letter)
+                    if amounts:
+                        actuals[month] = amounts
+                except ValueError as e:
+                    raise ValueError(f"Category '{category_name}': {e}")
+
+        # Skip categories with no data
+        if not budget and not actuals:
+            logger.info(f"Skipping category with no data: {category_name}")
+            continue
+
+        logger.info(f"Found category: {category_name} ({category_type}), budget months: {len(budget)}, actual months: {len(actuals)}")
+
+        sheet_categories.append({
+            "name": category_name,
+            "type": category_type,
+            "budget": budget,
+            "actuals": actuals
+        })
+
+    if not sheet_categories:
+        raise ValueError("No categories found in Hovedark sheet")
+
+    return {
+        "year": year,
+        "sheet_categories": sheet_categories
+    }
+
+
+def _parse_original_format(wb, year: int) -> dict:
+    """Parse original Excel format (active sheet with columns C-N)."""
     sheet = wb.active
 
     # Month column mapping (C=1, D=2, ..., N=12)
@@ -1714,8 +1883,10 @@ def parse_excel_file(file_path: str, year: int) -> dict:
             cell = sheet[f'{col}{budget_row}']
             if cell.value:
                 try:
-                    amount = int(float(cell.value)) if cell.value else 0
-                    budget[month] = amount
+                    # Budget cells can be formulas (e.g., =1000+5200) or plain numbers
+                    amounts = _extract_amounts_from_formula(cell.value, budget_row, col)
+                    if amounts:
+                        budget[month] = sum(amounts)  # Sum for total budget
                 except (ValueError, TypeError):
                     # Skip invalid values
                     pass
@@ -1764,8 +1935,10 @@ def parse_excel_file(file_path: str, year: int) -> dict:
             cell = sheet[f'{col}{budget_row}']
             if cell.value:
                 try:
-                    amount = int(float(cell.value)) if cell.value else 0
-                    budget[month] = amount
+                    # Budget cells can be formulas (e.g., =1000+5200) or plain numbers
+                    amounts = _extract_amounts_from_formula(cell.value, budget_row, col)
+                    if amounts:
+                        budget[month] = sum(amounts)  # Sum for total budget
                 except (ValueError, TypeError):
                     # Skip invalid values
                     pass
@@ -1947,8 +2120,25 @@ def import_budget_and_transactions(parsed_data: dict, category_mapping: dict) ->
 
     logger.info(f"Imported {budget_count} budget entries and {transaction_count} transactions")
 
+    # Ensure all imported categories are in the budget template for this year
+    template_count = 0
+    unique_category_ids = set(category_mapping.values())
+    for category_id in unique_category_ids:
+        # Only create if it doesn't already exist
+        if not db.budget_template_exists(year, category_id):
+            template_data = {
+                'id': generate_uid(),
+                'year': year,
+                'category_id': category_id,
+                'created_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            db.create_budget_template(template_data)
+            template_count += 1
+            logger.info(f"Added category {category_id} to budget template for {year}")
+
     return {
         "budget_count": budget_count,
         "transaction_count": transaction_count,
+        "template_count": template_count,
         "message": "Successfully imported data"
     }

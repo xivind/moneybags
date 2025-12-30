@@ -380,6 +380,13 @@ function showErrorModal(message) {
     modal.show();
 }
 
+function showSuccessModal(title, message) {
+    document.getElementById('successModalTitle').textContent = title;
+    document.getElementById('successModalMessage').innerHTML = message;
+    const modal = new bootstrap.Modal(document.getElementById('successModal'));
+    modal.show();
+}
+
 function showConfirmModal(title, message, confirmText = 'Confirm') {
     return new Promise((resolve) => {
         document.getElementById('confirmModalTitle').textContent = title;
@@ -1224,10 +1231,12 @@ async function populateCategoriesTable() {
                 <td>${typeBadge}</td>
                 <td>${yearsText}</td>
                 <td class="text-end">
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editCategory('${cat.id}', '${cat.name}', '${cat.type}')">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    ${deleteBtn}
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-primary" onclick="editCategory('${cat.id}', '${cat.name}', '${cat.type}')">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        ${deleteBtn}
+                    </div>
                 </td>
             </tr>
         `;
@@ -1264,10 +1273,12 @@ async function populatePayeesTable() {
                 <td>${payee.transaction_count || 0}</td>
                 <td>${lastUsedText}</td>
                 <td class="text-end">
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editPayee('${payee.id}', '${payee.name}', '${payee.type}')">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    ${deleteBtn}
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-primary" onclick="editPayee('${payee.id}', '${payee.name}', '${payee.type}')">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        ${deleteBtn}
+                    </div>
                 </td>
             </tr>
         `;
@@ -2006,8 +2017,8 @@ async function saveNewYear() {
     const year = parseInt(document.getElementById('newYear').value);
     const copyFromPrevious = document.getElementById('copyFromPreviousYear').checked;
 
-    if (!year || year < 2020 || year > 2100) {
-        showErrorModal('Please enter a valid year between 2020 and 2100');
+    if (!year || year < 2000 || year > 2100) {
+        showErrorModal('Please enter a valid year between 2000 and 2100');
         return;
     }
 
@@ -2217,7 +2228,36 @@ function showCategoryMapping(sheetCategories) {
         container.appendChild(row);
     });
 
+    // Add change listeners to highlight duplicates in real-time
+    const selects = container.querySelectorAll('.category-mapping');
+    selects.forEach(select => {
+        select.addEventListener('change', highlightDuplicateMappings);
+    });
+
     document.getElementById('mapping-section').classList.remove('d-none');
+}
+
+function highlightDuplicateMappings() {
+    const selects = document.querySelectorAll('.category-mapping');
+    const selectedValues = {};
+
+    // Count occurrences of each selected value
+    selects.forEach(select => {
+        if (select.value) {
+            selectedValues[select.value] = (selectedValues[select.value] || 0) + 1;
+        }
+    });
+
+    // Highlight duplicates
+    selects.forEach(select => {
+        if (select.value && selectedValues[select.value] > 1) {
+            select.classList.add('border-danger');
+            select.classList.add('border-2');
+        } else {
+            select.classList.remove('border-danger');
+            select.classList.remove('border-2');
+        }
+    });
 }
 
 async function handleValidate() {
@@ -2238,6 +2278,27 @@ async function handleValidate() {
 
     if (!allMapped) {
         showToast('Please map all categories', 'danger');
+        return;
+    }
+
+    // Check for duplicate mappings
+    const mappedCategories = Object.values(categoryMapping);
+    const uniqueMapped = new Set(mappedCategories);
+    if (mappedCategories.length !== uniqueMapped.size) {
+        // Find which categories are duplicated
+        const counts = {};
+        const duplicates = [];
+        mappedCategories.forEach(catId => {
+            counts[catId] = (counts[catId] || 0) + 1;
+            if (counts[catId] === 2) {
+                // Find the category name
+                const category = existingCategories.find(c => c.id === catId);
+                if (category) {
+                    duplicates.push(category.name);
+                }
+            }
+        });
+        showToast(`Duplicate mapping detected: ${duplicates.join(', ')} is mapped multiple times. Each Moneybags category can only be used once.`, 'danger');
         return;
     }
 
@@ -2409,12 +2470,27 @@ async function handleImport() {
             console.log('Import response data:', result);
 
             if (result.success) {
-                showToast(`Successfully imported ${result.data.budget_count} budget entries and ${result.data.transaction_count} transactions!`, 'success');
+                // Build success message HTML
+                const templateMsg = result.data.template_count > 0
+                    ? `<li><strong>${result.data.template_count}</strong> categories added to budget template</li>`
+                    : '';
 
-                // Reset form after 2 seconds
-                setTimeout(() => {
+                const message = `
+                    <p class="mb-3">Import completed successfully!</p>
+                    <ul class="mb-0">
+                        <li><strong>${result.data.budget_count}</strong> budget entries imported</li>
+                        <li><strong>${result.data.transaction_count}</strong> transactions imported</li>
+                        ${templateMsg}
+                    </ul>
+                `;
+
+                showSuccessModal('Import Complete', message);
+
+                // Reload page when modal is closed
+                const successModal = document.getElementById('successModal');
+                successModal.addEventListener('hidden.bs.modal', () => {
                     location.reload();
-                }, 2000);
+                }, { once: true });
             } else {
                 console.error('Import failed:', result.error);
                 showToast(result.error || 'Import failed', 'danger');

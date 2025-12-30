@@ -48,10 +48,10 @@
                         <a class="nav-link" href="/analysis"><i class="bi bi-bar-chart-line me-1"></i> Analysis</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/config"><i class="bi bi-gear me-1"></i> Configuration</a>
+                        <a class="nav-link" href="/import"><i class="bi bi-upload me-1"></i> Import</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/import"><i class="bi bi-upload me-1"></i> Import</a>
+                        <a class="nav-link" href="/config"><i class="bi bi-gear me-1"></i> Configuration</a>
                     </li>
                 </ul>
             </div>
@@ -101,6 +101,26 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="confirmCancelBtn">Cancel</button>
                     <button type="button" class="btn btn-danger" id="confirmActionBtn">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="successModalLabel">
+                        <i class="bi bi-check-circle-fill me-2"></i><span id="successModalTitle">Success</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="successModalMessage">
+                    <!-- Success message will be inserted here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" data-bs-dismiss="modal">OK</button>
                 </div>
             </div>
         </div>

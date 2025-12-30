@@ -127,6 +127,29 @@ def test_extract_amounts_from_formula_rejects_multiplication():
         business_logic._extract_amounts_from_formula("=43*2", 10, "C")
 
 
+def test_extract_amounts_from_formula_nested_parentheses():
+    """Test that nested parentheses are allowed and stripped correctly."""
+    result = business_logic._extract_amounts_from_formula("=((427+275)+7292)+200", 10, "C")
+    assert result == [427, 275, 7292, 200]
+
+    # Also test single-level parentheses
+    result = business_logic._extract_amounts_from_formula("=(100+200)+300", 10, "C")
+    assert result == [100, 200, 300]
+
+
+def test_extract_amounts_from_formula_budget_formulas():
+    """Test that budget formulas are correctly parsed and can be summed."""
+    # Budget cell with formula
+    result = business_logic._extract_amounts_from_formula("=1000+5200", 10, "C")
+    assert result == [1000, 5200]
+    assert sum(result) == 6200  # Should sum to 6200 for budget total
+
+    # Budget cell with more complex formula
+    result = business_logic._extract_amounts_from_formula("=2500+3000+1500", 10, "C")
+    assert result == [2500, 3000, 1500]
+    assert sum(result) == 7000
+
+
 def test_parse_excel_file(tmp_path):
     """Test parsing Excel file structure."""
     # Note: This test uses the real test.xlsx file
@@ -151,6 +174,51 @@ def test_parse_excel_file(tmp_path):
 
     # Actuals should be dict of month: [amounts]
     assert isinstance(first_cat["actuals"], dict)
+
+
+def test_parse_excel_file_new_format(tmp_path):
+    """Test parsing Excel file with new Hovedark format."""
+    result = business_logic.parse_excel_file("/home/xivind/code/moneybags/new_format.xlsx", 2023)
+
+    assert result["year"] == 2023
+    assert "sheet_categories" in result
+    assert len(result["sheet_categories"]) == 12  # 10 expenses + 2 income
+
+    # Verify Stronghold (expense)
+    stronghold = next((c for c in result["sheet_categories"] if c["name"] == "Stronghold"), None)
+    assert stronghold is not None
+    assert stronghold["type"] == "expenses"
+    assert 1 in stronghold["budget"]
+    assert stronghold["budget"][1] == 18500
+    assert 1 in stronghold["actuals"]
+    assert stronghold["actuals"][1] == [6571, 6313, 435, 3475, 1418]  # Jan formula
+
+    # Verify IT-systemer (expense with sparse data)
+    it_systemer = next((c for c in result["sheet_categories"] if c["name"] == "IT-systemer"), None)
+    assert it_systemer is not None
+    assert it_systemer["type"] == "expenses"
+    assert 2 in it_systemer["budget"]
+    assert it_systemer["budget"][2] == 3000
+    assert 3 in it_systemer["actuals"]
+    assert it_systemer["actuals"][3] == [2438]
+
+    # Verify Lønn primær arbeidsgiver (income)
+    lonn = next((c for c in result["sheet_categories"] if c["name"] == "Lønn primær arbeidsgiver"), None)
+    assert lonn is not None
+    assert lonn["type"] == "income"
+    assert 1 in lonn["budget"]
+    assert lonn["budget"][1] == 51000
+    assert 6 in lonn["budget"]
+    assert lonn["budget"][6] == 80000  # Different amount in June
+    assert 1 in lonn["actuals"]
+    assert lonn["actuals"][1] == [52557]
+
+    # Verify Diverse inntekter (income with formulas)
+    diverse = next((c for c in result["sheet_categories"] if c["name"] == "Diverse inntekter og overføringer"), None)
+    assert diverse is not None
+    assert diverse["type"] == "income"
+    assert 1 in diverse["actuals"]
+    assert diverse["actuals"][1] == [1271, 883, 1947, 1288]  # Formula with multiple values
 
 
 def test_ensure_import_payee(setup_test_db):
@@ -270,6 +338,7 @@ def test_import_budget_and_transactions(setup_test_db):
 
     assert result["budget_count"] == 2
     assert result["transaction_count"] == 3
+    assert result["template_count"] == 1  # Should auto-create budget template entry
 
     # Verify budget entries created
     budget_jan = db.get_budget_entry("cat_import", 2024, 1)
@@ -292,3 +361,6 @@ def test_import_budget_and_transactions(setup_test_db):
     for tx in transactions:
         # tx.payee_id is a Payee object (PeeWee foreign key), so access .id
         assert tx.payee_id.id == import_payee.id
+
+    # Verify budget template entry was created
+    assert db.budget_template_exists(2024, "cat_import") is True
