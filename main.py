@@ -8,7 +8,6 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import logging
-import json
 import business_logic
 import import_logic
 
@@ -724,13 +723,7 @@ async def get_recurring_categories():
     Returns empty array if no configuration exists (defaults to "monitor all").
     """
     try:
-        config_value = business_logic.get_configuration_value('recurring_payment_categories')
-
-        if config_value:
-            category_ids = json.loads(config_value)
-        else:
-            category_ids = []
-
+        category_ids = business_logic.get_recurring_payment_categories()
         return {"success": True, "data": {"category_ids": category_ids}}
     except Exception as e:
         logger.error(f"Error getting recurring categories: {e}")
@@ -755,15 +748,8 @@ async def update_recurring_categories(request: Request):
         data = await request.json()
         category_ids = data.get('category_ids', [])
 
-        # Validate that it's a list
-        if not isinstance(category_ids, list):
-            raise ValueError("category_ids must be an array")
-
-        # Store as JSON string in configuration
-        config_data = {
-            'recurring_payment_categories': json.dumps(category_ids)
-        }
-        business_logic.update_configuration(config_data)
+        # Update via business logic (handles validation and serialization)
+        business_logic.update_recurring_payment_categories(category_ids)
 
         return {"success": True, "data": {"message": "Recurring payment categories updated"}}
     except ValueError as e:
@@ -937,11 +923,13 @@ def get_recurring_payments():
     """
     try:
         # Load category filter from configuration
-        config_value = business_logic.get_configuration_value('recurring_payment_categories')
-        category_filter = json.loads(config_value) if config_value else None
+        category_filter = business_logic.get_recurring_payment_categories()
+
+        # Pass None if empty list (means monitor all)
+        filter_to_apply = category_filter if category_filter else None
 
         # Get recurring payments with filter
-        recurring_payments = business_logic.get_recurring_payment_status(category_filter)
+        recurring_payments = business_logic.get_recurring_payment_status(filter_to_apply)
         return {"success": True, "data": recurring_payments}
     except Exception as e:
         logger.error(f"Error getting recurring payments: {e}")

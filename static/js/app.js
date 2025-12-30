@@ -2481,15 +2481,24 @@ function updateRecurringCategoriesBadges(selectedIds) {
     let html = '';
     selectedIds.forEach(catId => {
         const category = allCategories.find(c => c.id === catId);
-        if (category && category.type === 'expenses') {
-            html += `
-                <div class="badge badge-expense d-flex align-items-center gap-2">
-                    ${escapeHtml(category.name)}
-                    <button type="button" class="btn-close btn-close-white btn-close-small"
-                            onclick="removeRecurringCategory('${catId}')"></button>
-                </div>
-            `;
+
+        if (!category) {
+            console.warn(`Recurring payments config: Category ${catId} is selected but no longer exists (may have been deleted)`);
+            return;
         }
+
+        if (category.type !== 'expenses') {
+            console.warn(`Recurring payments config: Category ${catId} (${category.name}) is not an expense category`);
+            return;
+        }
+
+        html += `
+            <div class="badge badge-expense d-flex align-items-center gap-2">
+                ${escapeHtml(category.name)}
+                <button type="button" class="btn-close btn-close-white btn-close-small"
+                        onclick="removeRecurringCategory('${catId}')"></button>
+            </div>
+        `;
     });
 
     container.innerHTML = html;

@@ -1509,6 +1509,64 @@ def get_configuration_value(key: str) -> str:
         raise
 
 
+def get_recurring_payment_categories() -> list:
+    """
+    Get list of category IDs for recurring payment monitoring.
+
+    Returns:
+        List of category IDs (strings), or empty list if no configuration exists.
+        Empty list means monitor all expense categories (default behavior).
+    """
+    try:
+        import json
+        config_value = get_configuration_value('recurring_payment_categories')
+
+        if not config_value:
+            return []
+
+        try:
+            category_ids = json.loads(config_value)
+            if not isinstance(category_ids, list):
+                logger.warning(f"Invalid recurring_payment_categories format: expected list, got {type(category_ids)}")
+                return []
+            return category_ids
+        except json.JSONDecodeError as e:
+            logger.warning(f"Corrupted recurring_payment_categories config: {e}")
+            return []  # Fallback to default behavior (monitor all)
+
+    except Exception as e:
+        logger.error(f"Failed to get recurring payment categories: {e}")
+        raise
+
+
+def update_recurring_payment_categories(category_ids: list) -> None:
+    """
+    Update list of category IDs for recurring payment monitoring.
+
+    Args:
+        category_ids: List of category ID strings to monitor.
+                     Empty list means monitor all expense categories.
+
+    Raises:
+        ValueError: If category_ids is not a list
+    """
+    try:
+        import json
+
+        if not isinstance(category_ids, list):
+            raise ValueError("category_ids must be a list")
+
+        config_data = {
+            'recurring_payment_categories': json.dumps(category_ids)
+        }
+        update_configuration(config_data)
+        logger.info(f"Updated recurring payment categories: {len(category_ids)} categories")
+
+    except Exception as e:
+        logger.error(f"Failed to update recurring payment categories: {e}")
+        raise
+
+
 def update_configuration(config_data: dict) -> dict:
     """
     Update configuration settings.
