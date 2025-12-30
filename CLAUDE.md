@@ -163,11 +163,11 @@ pip install -r requirements.txt
 The configuration is saved to `moneybags_db_config.json` (excluded from Git in `.gitignore`):
 ```json
 {
-  "db_host": "sandbox",
+  "db_host": "your-mariadb-host",
   "db_port": 3306,
-  "db_name": "MASTERDB",
-  "db_user": "root",
-  "db_password": "devpassword",
+  "db_name": "your-db-name",
+  "db_user": "your-username",
+  "db_password": "your-password",
   "db_pool_size": 10
 }
 ```
@@ -210,7 +210,7 @@ uvicorn main:app --host 0.0.0.0 --port 8009 --log-config uvicorn_log_config.ini 
    {
      "db_host": "your-mariadb-host",
      "db_port": 3306,
-     "db_name": "MASTERDB",
+     "db_name": "your-db-name",
      "db_user": "your-username",
      "db_password": "your-password",
      "db_pool_size": 10
