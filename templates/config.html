@@ -77,7 +77,7 @@
             <div class="card-body">
                 <p class="text-muted mb-3">Manage payees that appear in your transactions.</p>
                 <div class="mb-3">
-                    <input type="text" class="form-control" id="payeeSearch" placeholder="Search payees...">
+                    <input type="text" class="form-control" id="payeeSearch" placeholder="Search payees..." autocomplete="off">
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover" id="payeesTable">
@@ -136,32 +136,32 @@
                     <div class="row">
                         <div class="col-md-8 mb-3">
                             <label for="dbHost" class="form-label">Database Host</label>
-                            <input type="text" class="form-control" id="dbHost" placeholder="localhost or mariadb" value="localhost">
+                            <input type="text" class="form-control" id="dbHost" placeholder="localhost or mariadb" value="localhost" autocomplete="url">
                         </div>
                         <div class="col-md-4 mb-3">
                             <label for="dbPort" class="form-label">Port</label>
-                            <input type="number" class="form-control" id="dbPort" value="3306">
+                            <input type="number" class="form-control" id="dbPort" value="3306" autocomplete="off">
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label for="dbName" class="form-label">Database Name</label>
-                        <input type="text" class="form-control" id="dbName" value="moneybags">
+                        <input type="text" class="form-control" id="dbName" value="moneybags" autocomplete="off">
                     </div>
 
                     <div class="mb-3">
                         <label for="dbUser" class="form-label">Database User</label>
-                        <input type="text" class="form-control" id="dbUser" value="moneybags_user">
+                        <input type="text" class="form-control" id="dbUser" value="moneybags_user" autocomplete="username">
                     </div>
 
                     <div class="mb-3">
                         <label for="dbPassword" class="form-label">Database Password</label>
-                        <input type="password" class="form-control" id="dbPassword" placeholder="Enter password">
+                        <input type="password" class="form-control" id="dbPassword" placeholder="Enter password" autocomplete="current-password">
                     </div>
 
                     <div class="mb-3">
                         <label for="dbPoolSize" class="form-label">Connection Pool Size</label>
-                        <input type="number" class="form-control" id="dbPoolSize" value="10" min="1" max="50">
+                        <input type="number" class="form-control" id="dbPoolSize" value="10" min="1" max="50" autocomplete="off">
                         <div class="form-text">Number of connections to maintain in pool (default: 10)</div>
                     </div>
 
@@ -191,7 +191,7 @@
                 <form id="categoryForm">
                     <div class="mb-3">
                         <label for="categoryName" class="form-label">Category Name</label>
-                        <input type="text" class="form-control" id="categoryName" required>
+                        <input type="text" class="form-control" id="categoryName" required autocomplete="off">
                     </div>
                     <div class="mb-3">
                         <label for="categoryType" class="form-label">Type</label>
@@ -223,7 +223,7 @@
                 <form id="payeeForm">
                     <div class="mb-3">
                         <label for="payeeName" class="form-label">Payee Name</label>
-                        <input type="text" class="form-control" id="payeeName" required>
+                        <input type="text" class="form-control" id="payeeName" required autocomplete="off">
                     </div>
                 </form>
             </div>
@@ -247,7 +247,7 @@
                 <form id="addYearForm">
                     <div class="mb-3">
                         <label for="newYear" class="form-label">Year</label>
-                        <input type="number" class="form-control" id="newYear" min="2000" max="2100" required>
+                        <input type="number" class="form-control" id="newYear" min="2000" max="2100" required autocomplete="off">
                     </div>
                     <div class="mb-3">
                         <div class="form-check">
