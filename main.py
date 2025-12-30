@@ -913,6 +913,44 @@ def get_recent_transactions_api():
         )
 
 
+@app.get("/api/dashboard/expense-categories")
+def get_expense_categories(period: str = "month"):
+    """
+    Get expense category breakdown for dashboard pie charts.
+
+    Args:
+        period: 'month' (current month) or 'year' (current year)
+
+    Response format:
+    {
+        "success": true,
+        "data": [
+            {
+                "category_id": "uuid",
+                "category_name": "Groceries",
+                "total_amount": 45000,
+                "transaction_count": 12
+            }
+        ]
+    }
+    """
+    try:
+        expense_data = business_logic.get_expense_category_breakdown(period)
+        return {"success": True, "data": expense_data}
+    except ValueError as e:
+        logger.error(f"Validation error in expense categories: {e}")
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": str(e)}
+        )
+    except Exception as e:
+        logger.error(f"Error getting expense categories: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
 # ==================== IMPORT API ====================
 
 @app.post("/api/import/parse")

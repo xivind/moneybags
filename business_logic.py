@@ -1383,6 +1383,48 @@ def get_recent_transactions(limit: int = 5) -> list:
         raise
 
 
+def get_expense_category_breakdown(period: str) -> list:
+    """
+    Get expense category breakdown for dashboard pie charts.
+
+    Args:
+        period: 'month' (current month) or 'year' (current year)
+
+    Returns:
+        list: [
+            {
+                'category_id': str,
+                'category_name': str,
+                'total_amount': int,
+                'transaction_count': int
+            }
+        ]
+        Only includes expense categories with transactions > 0.
+        Sorted by total_amount descending.
+    """
+    try:
+        from datetime import date
+
+        # Validate period parameter
+        if period not in ['month', 'year']:
+            raise ValueError("Period must be 'month' or 'year'")
+
+        # Get current date
+        today = date.today()
+        current_year = today.year
+        current_month = today.month if period == 'month' else None
+
+        # Get aggregated data from database
+        result = db.get_expense_category_totals(current_year, current_month)
+
+        logger.info(f"Business logic: Retrieved {len(result)} expense categories for {period}")
+        return result
+
+    except Exception as e:
+        logger.error(f"Failed to get expense category breakdown: {e}")
+        raise
+
+
 # ==================== CONFIGURATION BUSINESS LOGIC ====================
 
 def _invalidate_config_cache():

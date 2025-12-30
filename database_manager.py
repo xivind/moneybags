@@ -740,6 +740,71 @@ def get_transactions_by_date_range(start_date: date, end_date: date) -> list:
                 .order_by(Transaction.date.desc()))
 
 
+@with_retry
+def get_expense_category_totals(year: int, month: int = None) -> list:
+    """
+    Get aggregated expense totals by category for a time period.
+
+    Args:
+        year: Year to filter transactions
+        month: Optional month (1-12) to filter transactions
+
+    Returns:
+        List of dicts: [
+            {
+                'category_id': str,
+                'category_name': str,
+                'total_amount': int,
+                'transaction_count': int
+            }
+        ]
+        Only includes expense categories with transactions > 0.
+    """
+    from peewee import fn
+
+    # Build date range
+    if month:
+        start_date = date(year, month, 1)
+        if month == 12:
+            end_date = date(year + 1, 1, 1)
+        else:
+            end_date = date(year, month + 1, 1)
+    else:
+        start_date = date(year, 1, 1)
+        end_date = date(year + 1, 1, 1)
+
+    # Query with aggregation - use .dicts() to get results as dictionaries
+    # Convert to list immediately to release the database connection
+    results = list((Transaction
+                    .select(
+                        Category.id.alias('category_id'),
+                        Category.name.alias('category_name'),
+                        fn.SUM(Transaction.amount).alias('total_amount'),
+                        fn.COUNT(Transaction.id).alias('transaction_count')
+                    )
+                    .join(Category)
+                    .where(
+                        (Transaction.date >= start_date) &
+                        (Transaction.date < end_date) &
+                        (Category.type == 'expenses')
+                    )
+                    .group_by(Category.id, Category.name)
+                    .order_by(fn.SUM(Transaction.amount).desc())
+                    .dicts()))
+
+    # Convert to list of dicts with proper types
+    result_list = []
+    for row in results:
+        result_list.append({
+            'category_id': row['category_id'],
+            'category_name': row['category_name'],
+            'total_amount': int(row['total_amount']),
+            'transaction_count': int(row['transaction_count'])
+        })
+
+    return result_list
+
+
 # ==================== CONFIGURATION CRUD ====================
 
 @with_transaction

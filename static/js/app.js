@@ -1663,14 +1663,129 @@ async function loadRecentTransactions() {
     }
 }
 
+async function loadExpensePieCharts() {
+    // Load both charts in parallel
+    await Promise.all([
+        createExpensePieChart('expenseMonthChart', 'month', 'expense-month-chart-container'),
+        createExpensePieChart('expenseYearChart', 'year', 'expense-year-chart-container')
+    ]);
+}
+
+async function createExpensePieChart(canvasId, period, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    try {
+        const data = await apiCall(`/api/dashboard/expense-categories?period=${period}`, { suppressError: true });
+
+        // Handle empty state
+        if (!data || data.length === 0) {
+            const periodLabel = period === 'month' ? 'this month' : 'this year';
+            container.innerHTML = `
+                <div class="text-center text-muted py-3">
+                    <i class="bi bi-info-circle" style="font-size: 2rem;"></i>
+                    <p class="small mt-2 mb-0">No expense data for ${periodLabel}</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Restore canvas if it was replaced
+        if (!document.getElementById(canvasId)) {
+            container.innerHTML = `<canvas id="${canvasId}" height="60"></canvas>`;
+        }
+
+        // Prepare data for Chart.js
+        const labels = data.map(item => item.category_name);
+        const amounts = data.map(item => item.total_amount);
+        const transactionCounts = data.map(item => item.transaction_count);
+
+        // Color palette (12 distinct colors)
+        const colorPalette = [
+            '#0d6efd', // primary
+            '#198754', // success
+            '#dc3545', // danger
+            '#ffc107', // warning
+            '#0dcaf0', // info
+            '#6f42c1', // purple
+            '#d63384', // pink
+            '#fd7e14', // orange
+            '#20c997', // teal
+            '#6610f2', // indigo
+            '#adb5bd', // secondary
+            '#495057'  // dark
+        ];
+
+        const backgroundColors = data.map((_, index) => colorPalette[index % colorPalette.length]);
+
+        // Create Chart.js pie chart
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: amounts,
+                    backgroundColor: backgroundColors,
+                    borderWidth: 1,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 8,
+                            font: {
+                                size: 10
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                const transactionCount = transactionCounts[context.dataIndex];
+
+                                return [
+                                    label,
+                                    formatCurrency(value),
+                                    `${percentage}%`,
+                                    `${transactionCount} transaction${transactionCount !== 1 ? 's' : ''}`
+                                ];
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error(`Failed to load ${period} expense chart:`, error);
+        container.innerHTML = `
+            <div class="alert alert-danger mb-0" role="alert">
+                <i class="bi bi-exclamation-circle me-2"></i>Failed to load chart
+            </div>
+        `;
+    }
+}
+
 async function initializeDashboard() {
     // Load currency format first (needed for formatting)
     await loadCurrencyFormat();
 
-    // Load both widgets in parallel
+    // Load all widgets in parallel
     await Promise.all([
         loadRecurringPayments(),
-        loadRecentTransactions()
+        loadRecentTransactions(),
+        loadExpensePieCharts()
     ]);
 }
 
@@ -2200,4 +2315,4 @@ async function removeCategoryFromYear(year, categoryId) {
 
 // ==================== IMPORT PAGE ====================
 
-// Global state for import workflow
+// See import.js for import page functions

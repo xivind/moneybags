@@ -68,12 +68,29 @@
         </div>
     </div>
 
-    <!-- Placeholder for Future Widget -->
+    <!-- Expense Categories Pie Charts Widget -->
     <div class="col-lg-4">
         <div class="card h-100">
-            <div class="card-body text-center text-muted d-flex flex-column justify-content-center">
-                <i class="bi bi-plus-circle dashboard-placeholder-icon"></i>
-                <p class="mt-2 mb-0">Future widget</p>
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-pie-chart me-2"></i>Expense Categories
+                </h5>
+
+                <!-- Current Month Chart -->
+                <div class="mb-4">
+                    <h6 class="text-muted small mb-2">This Month</h6>
+                    <div id="expense-month-chart-container">
+                        <canvas id="expenseMonthChart" height="60"></canvas>
+                    </div>
+                </div>
+
+                <!-- Current Year Chart -->
+                <div>
+                    <h6 class="text-muted small mb-2">This Year</h6>
+                    <div id="expense-year-chart-container">
+                        <canvas id="expenseYearChart" height="60"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
