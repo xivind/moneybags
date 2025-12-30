@@ -1831,26 +1831,23 @@ function generateProgressBarHTML(categoryName, budgetTotal, actualTotal) {
     const isOverBudget = actualTotal > budgetTotal;
     const barColor = isOverBudget ? 'bg-danger' : 'bg-success';
     const percentageText = Math.round((actualTotal / budgetTotal) * 100);
-    const overAmount = actualTotal - budgetTotal;
+    const remaining = budgetTotal - actualTotal;
 
-    // Tooltip content
-    const tooltipContent = `Budget: ${formatCurrency(budgetTotal)} | Actual: ${formatCurrency(actualTotal)}`;
+    // Label text with warning indicator if over budget
+    const labelText = isOverBudget
+        ? `⚠️ ${escapeHtml(categoryName)} - Budget exceeded by ${formatCurrency(actualTotal - budgetTotal)}`
+        : `${escapeHtml(categoryName)} - ${formatCurrency(remaining)} remaining`;
 
     let html = `
-        <div class="progress-row" data-bs-toggle="tooltip" data-bs-placement="top" title="${tooltipContent}">
-            <div class="progress-row-header">
-                <span class="category-name">${escapeHtml(categoryName)}</span>
-                <span class="progress-percentage">${percentageText}%</span>
+        <div class="progress-row">
+            <span class="fw-bold">${labelText}</span>
+            <div class="progress mt-2" role="progressbar" aria-label="${escapeHtml(categoryName)} progress">
+                <div class="progress-bar progress-bar-striped ${barColor}" style="width: ${percentage}%" aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="100"></div>
             </div>
-            <div class="progress budget-progress-bar">
-                <div class="progress-bar ${barColor}" role="progressbar" style="width: ${percentage}%" aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="100"></div>
-            </div>`;
-
-    if (isOverBudget) {
-        html += `<div class="over-budget-text">Over by ${formatCurrency(overAmount)}</div>`;
-    }
-
-    html += `</div>`;
+            <p class="small text-muted text-end mb-4">
+                <strong>Budget:</strong> ${formatCurrency(budgetTotal)} / <strong>Actual:</strong> ${formatCurrency(actualTotal)}
+            </p>
+        </div>`;
 
     return html;
 }
@@ -1913,10 +1910,6 @@ async function loadBudgetProgress() {
         // Update containers
         monthContainer.innerHTML = monthHTML;
         yearContainer.innerHTML = yearHTML;
-
-        // Initialize Bootstrap tooltips
-        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-        [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 
     } catch (error) {
         console.error('Failed to load budget progress:', error);
