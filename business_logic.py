@@ -1233,7 +1233,7 @@ def delete_transaction(transaction_id: str) -> None:
 
 # ==================== DASHBOARD BUSINESS LOGIC ====================
 
-def get_recurring_payment_status() -> list:
+def get_recurring_payment_status(category_filter: list = None) -> list:
     """
     Identify recurring payments (expenses only) and their status for current month.
 
@@ -1242,6 +1242,10 @@ def get_recurring_payment_status() -> list:
     - Income transactions are excluded (only expenses tracked)
     - Check if each payee has a transaction in current month
     - Return list with payee name, status, and last payment details
+
+    Args:
+        category_filter: Optional list of category IDs to filter by.
+                        If None or empty, all expense categories are included.
 
     Returns:
         list: [
@@ -1284,6 +1288,12 @@ def get_recurring_payment_status() -> list:
             # Only include expense transactions (skip income)
             if t.category_id and t.category_id.type == 'income':
                 continue
+
+            # Apply category filter if provided
+            if category_filter and len(category_filter) > 0:
+                category_id = t.category_id.id if hasattr(t.category_id, 'id') else str(t.category_id)
+                if category_id not in category_filter:
+                    continue  # Skip transactions not in selected categories
 
             payee_id = t.payee_id.id if hasattr(t.payee_id, 'id') else str(t.payee_id)
             month_key = f"{t.date.year}-{t.date.month:02d}"
@@ -1478,6 +1488,24 @@ def get_all_configuration() -> dict:
         return result
     except Exception as e:
         logger.error(f"Failed to get configuration: {e}")
+        raise
+
+
+def get_configuration_value(key: str) -> str:
+    """
+    Get a single configuration value by key.
+
+    Args:
+        key: Configuration key to retrieve
+
+    Returns:
+        Configuration value as string, or None if not found
+    """
+    try:
+        config = get_all_configuration()
+        return config.get(key)
+    except Exception as e:
+        logger.error(f"Failed to get configuration value for key '{key}': {e}")
         raise
 
 

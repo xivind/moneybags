@@ -1986,6 +1986,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             await populateCategoriesTable();
             await populatePayeesTable();
             await loadBudgetTemplates();
+            await loadRecurringCategories();
             hideLoading();
         } else {
             // Database not configured - show message and focus on database connection section
@@ -2449,6 +2450,118 @@ async function removeCategoryFromYear(year, categoryId) {
         await loadBudgetTemplates();
         hideLoading();
         showSuccess('Category removed from year');
+    } catch (error) {
+        hideLoading();
+    }
+}
+
+// ==================== RECURRING CATEGORIES CONFIGURATION ====================
+
+async function loadRecurringCategories() {
+    try {
+        const result = await apiCall('/api/config/recurring-categories', { suppressError: true });
+        const selectedIds = result?.category_ids || [];
+
+        updateRecurringCategoriesBadges(selectedIds);
+        updateRecurringCategorySelect(selectedIds);
+    } catch (error) {
+        console.error('Failed to load recurring categories:', error);
+    }
+}
+
+function updateRecurringCategoriesBadges(selectedIds) {
+    const container = document.getElementById('recurringCategoriesBadges');
+    if (!container) return;
+
+    if (selectedIds.length === 0) {
+        container.innerHTML = '<span class="text-muted small">No categories selected - monitoring all expenses</span>';
+        return;
+    }
+
+    let html = '';
+    selectedIds.forEach(catId => {
+        const category = allCategories.find(c => c.id === catId);
+        if (category && category.type === 'expenses') {
+            html += `
+                <div class="badge badge-expense d-flex align-items-center gap-2">
+                    ${escapeHtml(category.name)}
+                    <button type="button" class="btn-close btn-close-white btn-close-small"
+                            onclick="removeRecurringCategory('${catId}')"></button>
+                </div>
+            `;
+        }
+    });
+
+    container.innerHTML = html;
+}
+
+function updateRecurringCategorySelect(selectedIds) {
+    const select = document.getElementById('addRecurringCategory');
+    if (!select) return;
+
+    select.innerHTML = '<option value="">Select expense category to add...</option>';
+
+    // Add expense categories not yet selected
+    allCategories
+        .filter(c => c.type === 'expenses' && !selectedIds.includes(c.id))
+        .forEach(cat => {
+            select.innerHTML += `<option value="${cat.id}">${escapeHtml(cat.name)}</option>`;
+        });
+}
+
+async function addRecurringCategory() {
+    const select = document.getElementById('addRecurringCategory');
+    const categoryId = select.value;
+
+    if (!categoryId) {
+        showErrorModal('Please select a category');
+        return;
+    }
+
+    try {
+        showLoading('Adding category...');
+
+        // Get current list
+        const result = await apiCall('/api/config/recurring-categories', { suppressError: true });
+        const selectedIds = result?.category_ids || [];
+
+        // Add new category
+        selectedIds.push(categoryId);
+
+        // Save
+        await apiCall('/api/config/recurring-categories', {
+            method: 'PUT',
+            body: JSON.stringify({ category_ids: selectedIds })
+        });
+
+        await loadRecurringCategories();
+        hideLoading();
+        showSuccess('Category added');
+    } catch (error) {
+        hideLoading();
+    }
+}
+
+async function removeRecurringCategory(categoryId) {
+    try {
+        showLoading('Removing category...');
+
+        // Get current list
+        const result = await apiCall('/api/config/recurring-categories', { suppressError: true });
+        const selectedIds = result?.category_ids || [];
+
+        // Remove category
+        const newIds = selectedIds.filter(id => id !== categoryId);
+
+        // Save
+        await apiCall('/api/config/recurring-categories', {
+            method: 'PUT',
+            body: JSON.stringify({ category_ids: newIds })
+        });
+
+        await loadRecurringCategories();
+        hideLoading();
+        showSuccess('Category removed');
     } catch (error) {
         hideLoading();
     }

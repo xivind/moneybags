@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import logging
+import json
 import business_logic
 import import_logic
 
@@ -715,6 +716,68 @@ async def update_currency_configuration(request: Request):
             content={"success": False, "error": str(e)}
         )
 
+@app.get("/api/config/recurring-categories")
+async def get_recurring_categories():
+    """
+    Get selected category IDs for recurring payment monitoring.
+
+    Returns empty array if no configuration exists (defaults to "monitor all").
+    """
+    try:
+        config_value = business_logic.get_configuration_value('recurring_payment_categories')
+
+        if config_value:
+            category_ids = json.loads(config_value)
+        else:
+            category_ids = []
+
+        return {"success": True, "data": {"category_ids": category_ids}}
+    except Exception as e:
+        logger.error(f"Error getting recurring categories: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+@app.put("/api/config/recurring-categories")
+async def update_recurring_categories(request: Request):
+    """
+    Update selected category IDs for recurring payment monitoring.
+
+    Request body:
+    {
+        "category_ids": ["cat-id-1", "cat-id-2"]
+    }
+
+    Empty array means monitor all expense categories.
+    """
+    try:
+        data = await request.json()
+        category_ids = data.get('category_ids', [])
+
+        # Validate that it's a list
+        if not isinstance(category_ids, list):
+            raise ValueError("category_ids must be an array")
+
+        # Store as JSON string in configuration
+        config_data = {
+            'recurring_payment_categories': json.dumps(category_ids)
+        }
+        business_logic.update_configuration(config_data)
+
+        return {"success": True, "data": {"message": "Recurring payment categories updated"}}
+    except ValueError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": str(e)}
+        )
+    except Exception as e:
+        logger.error(f"Error updating recurring categories: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
 @app.post("/api/config/test-db-connection")
 async def test_db_connection(request: Request):
     """Test database connection with provided settings."""
@@ -855,6 +918,9 @@ def get_recurring_payments():
     Returns list of expense payees that appeared in both of the previous 2 months,
     with status indicating if they've been paid this month. Income is excluded.
 
+    Applies category filter from configuration if set (recurring_payment_categories).
+    If no filter configured, monitors all expense categories.
+
     Response format:
     {
         "success": true,
@@ -870,7 +936,12 @@ def get_recurring_payments():
     }
     """
     try:
-        recurring_payments = business_logic.get_recurring_payment_status()
+        # Load category filter from configuration
+        config_value = business_logic.get_configuration_value('recurring_payment_categories')
+        category_filter = json.loads(config_value) if config_value else None
+
+        # Get recurring payments with filter
+        recurring_payments = business_logic.get_recurring_payment_status(category_filter)
         return {"success": True, "data": recurring_payments}
     except Exception as e:
         logger.error(f"Error getting recurring payments: {e}")

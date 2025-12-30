@@ -120,6 +120,43 @@
 
         <div class="card mb-4">
             <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-arrow-repeat me-2"></i>Recurring Payments Widget
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">
+                    Select which expense categories to monitor for recurring payments on the dashboard.
+                </p>
+
+                <div class="mb-3">
+                    <label class="form-label">Active Categories for Recurring Payments</label>
+                    <div class="d-flex flex-wrap gap-2" id="recurringCategoriesBadges">
+                        <!-- Populated by JavaScript -->
+                        <span class="text-muted small">No categories selected - monitoring all expenses</span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="addRecurringCategory" class="form-label">Add Category</label>
+                    <select class="form-select" id="addRecurringCategory">
+                        <option value="">Select expense category to add...</option>
+                        <!-- Populated by JavaScript -->
+                    </select>
+                    <button type="button" class="btn btn-sm btn-primary mt-2" onclick="addRecurringCategory()">
+                        <i class="bi bi-plus-circle me-1"></i>Add
+                    </button>
+                </div>
+
+                <div class="form-text">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Leave empty to monitor all expense categories automatically.
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-database me-2"></i>Database Connection</h5>
             </div>
             <div class="card-body">
