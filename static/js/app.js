@@ -1855,6 +1855,76 @@ function generateProgressBarHTML(categoryName, budgetTotal, actualTotal) {
     return html;
 }
 
+async function loadBudgetProgress() {
+    const monthContainer = document.getElementById('month-progress-content');
+    const yearContainer = document.getElementById('year-progress-content');
+
+    if (!monthContainer || !yearContainer) return;
+
+    try {
+        // Fetch budget data for current year
+        const data = await apiCall(`/api/budget/${currentYear}`, { suppressError: true });
+
+        if (!data) {
+            monthContainer.innerHTML = `<p class="text-muted text-center small">No budget data available</p>`;
+            yearContainer.innerHTML = `<p class="text-muted text-center small">No budget data available</p>`;
+            return;
+        }
+
+        // Filter expense categories only
+        const expenseCategories = data.categories.filter(cat => cat.category_type === 'expense');
+
+        // Sort alphabetically
+        expenseCategories.sort((a, b) => a.category_name.localeCompare(b.category_name));
+
+        // Generate progress bars for each period
+        let monthHTML = '';
+        let yearHTML = '';
+
+        for (const category of expenseCategories) {
+            const monthTotals = calculateCategoryTotals(data, category.category_id, 'month');
+            const yearTotals = calculateCategoryTotals(data, category.category_id, 'year');
+
+            const monthBar = generateProgressBarHTML(
+                category.category_name,
+                monthTotals.budgetTotal,
+                monthTotals.actualTotal
+            );
+
+            const yearBar = generateProgressBarHTML(
+                category.category_name,
+                yearTotals.budgetTotal,
+                yearTotals.actualTotal
+            );
+
+            monthHTML += monthBar;
+            yearHTML += yearBar;
+        }
+
+        // Handle empty states
+        if (!monthHTML) {
+            monthHTML = `<p class="text-muted text-center small">No budget entries for this month</p>`;
+        }
+
+        if (!yearHTML) {
+            yearHTML = `<p class="text-muted text-center small">No budget entries for this year</p>`;
+        }
+
+        // Update containers
+        monthContainer.innerHTML = monthHTML;
+        yearContainer.innerHTML = yearHTML;
+
+        // Initialize Bootstrap tooltips
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+    } catch (error) {
+        console.error('Failed to load budget progress:', error);
+        monthContainer.innerHTML = `<p class="text-muted text-center small">Failed to load data</p>`;
+        yearContainer.innerHTML = `<p class="text-muted text-center small">Failed to load data</p>`;
+    }
+}
+
 async function initializeDashboard() {
     // Load currency format first (needed for formatting)
     await loadCurrencyFormat();
