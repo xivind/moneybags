@@ -1933,7 +1933,8 @@ async function initializeDashboard() {
     await Promise.all([
         loadRecurringPayments(),
         loadRecentTransactions(),
-        loadExpensePieCharts()
+        loadExpensePieCharts(),
+        loadBudgetProgress()
     ]);
 }
 
