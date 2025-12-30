@@ -39,6 +39,18 @@ let payeeSelect = null;
 // Tempus Dominus instance
 let datePicker = null;
 
+// HTML escaping helper
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+}
+
 // ==================== API FUNCTIONS ====================
 
 async function apiCall(url, options = {}) {
@@ -1816,7 +1828,7 @@ function generateProgressBarHTML(categoryName, budgetTotal, actualTotal) {
     }
 
     const percentage = Math.min((actualTotal / budgetTotal) * 100, 100);
-    const isOverBudget = actualTotal >= budgetTotal;
+    const isOverBudget = actualTotal > budgetTotal;
     const barColor = isOverBudget ? 'bg-danger' : 'bg-success';
     const percentageText = Math.round((actualTotal / budgetTotal) * 100);
     const overAmount = actualTotal - budgetTotal;
@@ -1827,7 +1839,7 @@ function generateProgressBarHTML(categoryName, budgetTotal, actualTotal) {
     let html = `
         <div class="progress-row" data-bs-toggle="tooltip" data-bs-placement="top" title="${tooltipContent}">
             <div class="progress-row-header">
-                <span class="category-name">${categoryName}</span>
+                <span class="category-name">${escapeHtml(categoryName)}</span>
                 <span class="progress-percentage">${percentageText}%</span>
             </div>
             <div class="progress budget-progress-bar">
