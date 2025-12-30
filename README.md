@@ -23,6 +23,7 @@ The core application is fully implemented and tested with 34 passing tests. Dash
 - ✅ Budget template management by year
 - ✅ Transaction tracking with date, amount, payee, and comments
 - ✅ Dynamic currency support (NOK, USD, EUR) - symbol before amount with space
+- ✅ Excel import (Google Sheets → budget entries & transactions)
 - ✅ CSV export functionality
 - ✅ Comprehensive form validation (client + server + database)
 - ✅ Error handling with toast notifications
@@ -36,10 +37,21 @@ The core application is fully implemented and tested with 34 passing tests. Dash
 ## Features
 
 - **Budget & Actuals** - Side-by-side budget planning and actual tracking with automatic save
+- **Import** - Bulk-load budget and transaction data from Excel files (Google Sheets)
 - **Configuration** - Manage categories, payees, currency settings, and budget templates
 - **Dynamic Currency** - Choose between NOK, USD, or EUR with proper formatting
 - **Dashboard** _(placeholder)_ - Visual overview with charts and key metrics
 - **Analysis** _(placeholder)_ - Deep dive into spending patterns with multiple views
+
+## Import
+
+The application includes an Excel import feature for bulk-loading budget and transaction data from Google Sheets. Users export their spreadsheet as `.xlsx`, upload it via the Import page, map spreadsheet categories to Moneybags categories, validate the data, and execute the import.
+
+**Supported formats:**
+- Original format (active sheet, columns C-N)
+- Hovedark format (sheet "Hovedark", columns F-Q)
+
+**How to extend:** To add a new import format (CSV, JSON, other Excel formats), add a new parser function to `import_logic.py` following the same pattern as existing parsers. The validation and import execution logic is format-agnostic.
 
 ## Tech Stack
 
@@ -145,11 +157,14 @@ Moneybags requires a MariaDB database. The application will automatically:
 moneybags/
 ├── main.py                    # FastAPI routes
 ├── business_logic.py          # Business logic and validation
+├── import_logic.py            # Excel import parsing and execution
 ├── database_manager.py        # Database CRUD operations
 ├── database_model.py          # PeeWee ORM models
 ├── utils.py                   # Helper functions
 ├── static/
-│   ├── js/app.js             # Frontend JavaScript (single file)
+│   ├── js/
+│   │   ├── app.js            # Frontend JavaScript (shared)
+│   │   └── import.js         # Import page JavaScript
 │   └── css/custom.css        # Custom styles (single file)
 ├── templates/                 # Jinja2 HTML templates
 ├── migrations/                # Database migration scripts
