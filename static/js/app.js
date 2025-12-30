@@ -1741,6 +1741,90 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (document.getElementById('recurring-payments-content') || document.getElementById('recent-transactions-content')) {
         await initializeDashboard();
     }
+
+    // ==================== EVENT LISTENERS ====================
+
+    // Budget page event listeners
+    const yearSelector = document.getElementById('yearSelector');
+    if (yearSelector) {
+        yearSelector.addEventListener('change', changeYear);
+    }
+
+    const deleteBudgetBtn = document.getElementById('deleteBudgetBtn');
+    if (deleteBudgetBtn) {
+        deleteBudgetBtn.addEventListener('click', deleteBudgetEntry);
+    }
+
+    const saveBudgetBtn = document.getElementById('saveBudgetBtn');
+    if (saveBudgetBtn) {
+        saveBudgetBtn.addEventListener('click', saveBudget);
+    }
+
+    const addTransactionBtn = document.getElementById('addTransactionBtn');
+    if (addTransactionBtn) {
+        addTransactionBtn.addEventListener('click', showAddTransactionForm);
+    }
+
+    const saveTransactionBtn = document.getElementById('saveTransactionBtn');
+    if (saveTransactionBtn) {
+        saveTransactionBtn.addEventListener('click', saveTransaction);
+    }
+
+    // Config page event listeners
+    const addYearBtn = document.getElementById('addYearBtn');
+    if (addYearBtn) {
+        addYearBtn.addEventListener('click', openAddYearModal);
+    }
+
+    const addCategoryBtn = document.getElementById('addCategoryBtn');
+    if (addCategoryBtn) {
+        addCategoryBtn.addEventListener('click', openAddCategoryModal);
+    }
+
+    const addPayeeBtn = document.getElementById('addPayeeBtn');
+    if (addPayeeBtn) {
+        addPayeeBtn.addEventListener('click', openAddPayeeModal);
+    }
+
+    const payeeSearch = document.getElementById('payeeSearch');
+    if (payeeSearch) {
+        payeeSearch.addEventListener('keyup', filterPayees);
+    }
+
+    const currencyFormat = document.getElementById('currencyFormat');
+    if (currencyFormat) {
+        currencyFormat.addEventListener('change', enableCurrencySaveButton);
+    }
+
+    const saveCurrencyBtn = document.getElementById('saveCurrencyBtn');
+    if (saveCurrencyBtn) {
+        saveCurrencyBtn.addEventListener('click', saveCurrencySettings);
+    }
+
+    const testDbConnectionBtn = document.getElementById('testDbConnectionBtn');
+    if (testDbConnectionBtn) {
+        testDbConnectionBtn.addEventListener('click', testDatabaseConnection);
+    }
+
+    const saveDbConnectionBtn = document.getElementById('saveDbConnectionBtn');
+    if (saveDbConnectionBtn) {
+        saveDbConnectionBtn.addEventListener('click', saveDatabaseConnection);
+    }
+
+    const saveCategoryModalBtn = document.getElementById('saveCategoryModalBtn');
+    if (saveCategoryModalBtn) {
+        saveCategoryModalBtn.addEventListener('click', saveCategory);
+    }
+
+    const savePayeeModalBtn = document.getElementById('savePayeeModalBtn');
+    if (savePayeeModalBtn) {
+        savePayeeModalBtn.addEventListener('click', savePayee);
+    }
+
+    const saveNewYearBtn = document.getElementById('saveNewYearBtn');
+    if (saveNewYearBtn) {
+        saveNewYearBtn.addEventListener('click', saveNewYear);
+    }
 });
 
 // ==================== CURRENCY SETTINGS FUNCTIONS ====================

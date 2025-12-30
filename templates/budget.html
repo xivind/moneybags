@@ -9,7 +9,7 @@
     </div>
     <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
         <label for="yearSelector" class="mb-0 me-2 fw-bold year-selector-label">Year:</label>
-        <select id="yearSelector" class="form-select d-inline-block w-auto" onchange="changeYear()">
+        <select id="yearSelector" class="form-select d-inline-block w-auto">
             <!-- Will be populated by JavaScript -->
         </select>
     </div>
@@ -58,11 +58,11 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger me-auto" id="deleteBudgetBtn" onclick="deleteBudgetEntry()" style="display: none;">
+                <button type="button" class="btn btn-danger me-auto d-none" id="deleteBudgetBtn">
                     <i class="bi bi-trash"></i> Delete
                 </button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveBudget()">Save</button>
+                <button type="button" class="btn btn-primary" id="saveBudgetBtn">Save</button>
             </div>
         </div>
     </div>
@@ -88,7 +88,7 @@
                 </div>
             </div>
             <div class="btn-add-transaction">
-                <button class="btn btn-success w-100" onclick="showAddTransactionForm()">
+                <button class="btn btn-success w-100" id="addTransactionBtn">
                     <i class="bi bi-plus-circle"></i> Add transaction
                 </button>
             </div>
@@ -139,7 +139,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveTransaction()">Save</button>
+                <button type="button" class="btn btn-primary" id="saveTransactionBtn">Save</button>
             </div>
         </div>
     </div>

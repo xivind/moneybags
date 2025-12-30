@@ -12,7 +12,7 @@
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-calendar-range me-2"></i>Budget Templates by Year</h5>
-                <button class="btn btn-sm btn-success" onclick="openAddYearModal()">
+                <button class="btn btn-sm btn-success" id="addYearBtn">
                     <i class="bi bi-plus-circle me-1"></i>Add New Year
                 </button>
             </div>
@@ -33,7 +33,7 @@
                     <!-- Will be populated by JavaScript -->
                 </div>
 
-                <div id="noYearsMessage" class="text-center text-muted py-5" style="display: none;">
+                <div id="noYearsMessage" class="text-center text-muted py-5 d-none">
                     <i class="bi bi-calendar-x no-years-icon"></i>
                     <p class="mt-3">No budget template years configured yet.<br>Click "Add New Year" to get started.</p>
                 </div>
@@ -43,7 +43,7 @@
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-tag me-2"></i>Categories</h5>
-                <button class="btn btn-sm btn-primary" onclick="openAddCategoryModal()">
+                <button class="btn btn-sm btn-primary" id="addCategoryBtn">
                     <i class="bi bi-plus-circle me-1"></i>Add category
                 </button>
             </div>
@@ -70,14 +70,14 @@
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-person me-2"></i>Payees</h5>
-                <button class="btn btn-sm btn-primary" onclick="openAddPayeeModal()">
+                <button class="btn btn-sm btn-primary" id="addPayeeBtn">
                     <i class="bi bi-plus-circle me-1"></i>Add payee
                 </button>
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3">Manage payees that appear in your transactions.</p>
                 <div class="mb-3">
-                    <input type="text" class="form-control" id="payeeSearch" placeholder="Search payees..." onkeyup="filterPayees()">
+                    <input type="text" class="form-control" id="payeeSearch" placeholder="Search payees...">
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover" id="payeesTable">
@@ -104,7 +104,7 @@
             <div class="card-body">
                 <div class="mb-3">
                     <label for="currencyFormat" class="form-label">Currency Format</label>
-                    <select class="form-select" id="currencyFormat" onchange="enableCurrencySaveButton()">
+                    <select class="form-select" id="currencyFormat">
                         <option value="" selected>Not selected</option>
                         <option value="nok">NOK (kr)</option>
                         <option value="usd">USD ($)</option>
@@ -112,7 +112,7 @@
                     </select>
                     <div class="form-text">Select the currency format to display amounts throughout the application.</div>
                 </div>
-                <button class="btn btn-primary" id="saveCurrencyBtn" onclick="saveCurrencySettings()" disabled>
+                <button class="btn btn-primary" id="saveCurrencyBtn" disabled>
                     <i class="bi bi-save me-1"></i>Save Currency Settings
                 </button>
             </div>
@@ -166,10 +166,10 @@
                     </div>
 
                     <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-outline-primary" onclick="testDatabaseConnection()">
+                        <button type="button" class="btn btn-outline-primary" id="testDbConnectionBtn">
                             <i class="bi bi-check-circle me-1"></i>Test Connection
                         </button>
-                        <button type="button" class="btn btn-primary" onclick="saveDatabaseConnection()">
+                        <button type="button" class="btn btn-primary" id="saveDbConnectionBtn">
                             <i class="bi bi-save me-1"></i>Save Settings
                         </button>
                     </div>
@@ -205,7 +205,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveCategory()">Save</button>
+                <button type="button" class="btn btn-primary" id="saveCategoryModalBtn">Save</button>
             </div>
         </div>
     </div>
@@ -229,7 +229,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="savePayee()">Save</button>
+                <button type="button" class="btn btn-primary" id="savePayeeModalBtn">Save</button>
             </div>
         </div>
     </div>
@@ -262,7 +262,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success" onclick="saveNewYear()">Create Year</button>
+                <button type="button" class="btn btn-success" id="saveNewYearBtn">Create Year</button>
             </div>
         </div>
     </div>
