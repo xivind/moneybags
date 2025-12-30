@@ -1777,6 +1777,72 @@ async function createExpensePieChart(canvasId, period, containerId) {
     }
 }
 
+function calculateCategoryTotals(budgetData, categoryId, period) {
+    // period: 'month' or 'year'
+    const entries = budgetData.budget_entries[categoryId] || {};
+    const transactions = budgetData.transactions[categoryId] || {};
+
+    let budgetTotal = 0;
+    let actualTotal = 0;
+
+    if (period === 'month') {
+        // Current month only (currentMonth is 0-11, but API uses 1-12)
+        const month = currentMonth + 1;
+        const entry = entries[month];
+        budgetTotal = entry ? entry.amount : 0;
+
+        const monthTransactions = transactions[month] || [];
+        actualTotal = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
+    } else {
+        // Year total (all 12 months)
+        for (let month = 1; month <= 12; month++) {
+            const entry = entries[month];
+            if (entry) {
+                budgetTotal += entry.amount;
+            }
+
+            const monthTransactions = transactions[month] || [];
+            actualTotal += monthTransactions.reduce((sum, t) => sum + t.amount, 0);
+        }
+    }
+
+    return { budgetTotal, actualTotal };
+}
+
+function generateProgressBarHTML(categoryName, budgetTotal, actualTotal) {
+    // Skip if no budget set
+    if (budgetTotal === 0) {
+        return '';
+    }
+
+    const percentage = Math.min((actualTotal / budgetTotal) * 100, 100);
+    const isOverBudget = actualTotal >= budgetTotal;
+    const barColor = isOverBudget ? 'bg-danger' : 'bg-success';
+    const percentageText = Math.round((actualTotal / budgetTotal) * 100);
+    const overAmount = actualTotal - budgetTotal;
+
+    // Tooltip content
+    const tooltipContent = `Budget: ${formatCurrency(budgetTotal)} | Actual: ${formatCurrency(actualTotal)}`;
+
+    let html = `
+        <div class="progress-row" data-bs-toggle="tooltip" data-bs-placement="top" title="${tooltipContent}">
+            <div class="progress-row-header">
+                <span class="category-name">${categoryName}</span>
+                <span class="progress-percentage">${percentageText}%</span>
+            </div>
+            <div class="progress budget-progress-bar">
+                <div class="progress-bar ${barColor}" role="progressbar" style="width: ${percentage}%" aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>`;
+
+    if (isOverBudget) {
+        html += `<div class="over-budget-text">Over by ${formatCurrency(overAmount)}</div>`;
+    }
+
+    html += `</div>`;
+
+    return html;
+}
+
 async function initializeDashboard() {
     // Load currency format first (needed for formatting)
     await loadCurrencyFormat();
