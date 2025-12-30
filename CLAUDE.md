@@ -26,6 +26,7 @@ The core application is fully implemented, tested (34 passing tests), and ready 
 - ✅ Complete Budget & Actuals interface (htmx auto-save, transaction tracking)
 - ✅ Configuration management (categories, payees, currency, budget templates)
 - ✅ Dynamic currency support (NOK/USD/EUR) - symbol before amount with space
+- ✅ Excel import (Google Sheets → budget entries & transactions)
 - ✅ Form validation at all layers (client, server, database)
 - ✅ Error handling with user-friendly toast notifications
 - ✅ Connection pooling, transaction management, retry logic
@@ -36,6 +37,21 @@ The core application is fully implemented, tested (34 passing tests), and ready 
 **What's placeholder (awaiting production data):**
 - 🔲 Dashboard page with charts and visualizations
 - 🔲 Analysis page with deep-dive views
+
+## Excel Import
+
+The application includes an Excel import feature for bulk-loading budget and transaction data from Google Sheets. Users export their spreadsheet as `.xlsx`, upload it via the Import page, map spreadsheet categories to Moneybags categories, validate the data, and execute the import.
+
+**Supported formats:**
+- Original format (active sheet, columns C-N)
+- Hovedark format (sheet "Hovedark", columns F-Q)
+
+**Import logic location:**
+- Backend: `import_logic.py` - All Excel parsing, validation, and import execution
+- Frontend: `static/js/import.js` - Import page UI and workflow
+- API routes: `/api/import/parse`, `/api/import/validate`, `/api/import/execute`
+
+**Extensibility:** The import system is designed to be easily extended. To add a new import format (CSV, JSON, other Excel formats), add a new parser function to `import_logic.py` following the same pattern as `_parse_hovedark_format()` and `_parse_original_format()`. The validation and import execution logic is format-agnostic and will work with any parser that returns the expected data structure.
 
 ## Tech Stack
 
