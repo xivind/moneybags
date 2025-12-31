@@ -806,7 +806,28 @@ body {
     color: #6b7280 !important;
 }
 
-/* Dashboard widgets */
+/* Dashboard widgets - Fixed height cards */
+.dashboard-card-fixed {
+    height: 650px;
+}
+
+.dashboard-card-fixed .card-body {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-card-fixed .tab-content {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.dashboard-card-fixed #recent-transactions-content,
+.dashboard-card-fixed #recurring-payments-content {
+    flex: 1;
+    overflow-y: auto;
+}
+
 .dashboard-placeholder-icon {
     font-size: 3rem;
 }
@@ -818,7 +839,7 @@ body {
 
 /* Budget Progress Widget */
 .budget-progress-list {
-    max-height: 400px;
+    height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
 }

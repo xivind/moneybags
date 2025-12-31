@@ -29,75 +29,11 @@
 </div>
 
 {% if database_configured %}
+<!-- Row 1: Main Widgets -->
 <div class="row g-3 mt-2">
-    <!-- Recurring Payments Widget -->
-    <div class="col-lg-4">
-        <div class="card h-100">
-            <div class="card-body">
-                <h5 class="card-title">
-                    <i class="bi bi-arrow-repeat me-2"></i>Recurring Payments
-                </h5>
-                <div id="recurring-payments-content">
-                    <div class="text-center text-muted py-3">
-                        <div class="spinner-border spinner-border-sm" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="small mt-2 mb-0">Loading...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Recent Transactions Widget -->
-    <div class="col-lg-4">
-        <div class="card h-100">
-            <div class="card-body">
-                <h5 class="card-title">
-                    <i class="bi bi-clock-history me-2"></i>Recent Transactions
-                </h5>
-                <div id="recent-transactions-content">
-                    <div class="text-center text-muted py-3">
-                        <div class="spinner-border spinner-border-sm" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="small mt-2 mb-0">Loading...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Expense Categories Pie Charts Widget -->
-    <div class="col-lg-4">
-        <div class="card h-100">
-            <div class="card-body">
-                <h5 class="card-title">
-                    <i class="bi bi-pie-chart me-2"></i>Expense Categories
-                </h5>
-
-                <!-- Current Month Chart -->
-                <div class="mb-4">
-                    <h6 class="text-muted small mb-2">This Month</h6>
-                    <div id="expense-month-chart-container">
-                        <canvas id="expenseMonthChart" height="60"></canvas>
-                    </div>
-                </div>
-
-                <!-- Current Year Chart -->
-                <div>
-                    <h6 class="text-muted small mb-2">This Year</h6>
-                    <div id="expense-year-chart-container">
-                        <canvas id="expenseYearChart" height="60"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Budget Progress Widget -->
-    <div class="col-lg-3">
-        <div class="card h-100">
+    <div class="col-lg-4">
+        <div class="card dashboard-card-fixed">
             <div class="card-body">
                 <h5 class="card-title">
                     <i class="bi bi-speedometer me-2"></i>Budget Progress
@@ -140,6 +76,106 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expense Categories Widget with Tabs -->
+    <div class="col-lg-4">
+        <div class="card dashboard-card-fixed">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-pie-chart me-2"></i>Expense Categories
+                </h5>
+
+                <!-- Nav tabs -->
+                <ul class="nav nav-tabs mb-3" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="expense-month-tab" data-bs-toggle="tab" data-bs-target="#expense-month" type="button" role="tab" aria-controls="expense-month" aria-selected="true">
+                            This Month
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="expense-year-tab" data-bs-toggle="tab" data-bs-target="#expense-year" type="button" role="tab" aria-controls="expense-year" aria-selected="false">
+                            This Year
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Tab content -->
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="expense-month" role="tabpanel" aria-labelledby="expense-month-tab">
+                        <div id="expense-month-chart-container">
+                            <canvas id="expenseMonthChart" height="60"></canvas>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="expense-year" role="tabpanel" aria-labelledby="expense-year-tab">
+                        <div id="expense-year-chart-container">
+                            <canvas id="expenseYearChart" height="60"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Transactions Widget -->
+    <div class="col-lg-4">
+        <div class="card dashboard-card-fixed">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-clock-history me-2"></i>Recent Transactions
+                </h5>
+                <div id="recent-transactions-content">
+                    <div class="text-center text-muted py-3">
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="small mt-2 mb-0">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Row 2: Secondary Widgets -->
+<div class="row g-3 mt-2">
+    <!-- Recurring Payments Widget -->
+    <div class="col-lg-4">
+        <div class="card dashboard-card-fixed">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-arrow-repeat me-2"></i>Recurring Payments
+                </h5>
+                <div id="recurring-payments-content">
+                    <div class="text-center text-muted py-3">
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="small mt-2 mb-0">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Placeholder Widget 1 -->
+    <div class="col-lg-4">
+        <div class="card dashboard-card-fixed">
+            <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                <i class="bi bi-plus-circle dashboard-placeholder-icon text-muted"></i>
+                <p class="text-muted mt-3 mb-0">Space for additional widget</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Placeholder Widget 2 -->
+    <div class="col-lg-4">
+        <div class="card dashboard-card-fixed">
+            <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                <i class="bi bi-plus-circle dashboard-placeholder-icon text-muted"></i>
+                <p class="text-muted mt-3 mb-0">Space for additional widget</p>
             </div>
         </div>
     </div>
