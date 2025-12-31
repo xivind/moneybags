@@ -2893,17 +2893,9 @@ function renderSupersaverCalendar(data) {
     const firstDay = new Date(startDate);
     firstDay.setDate(firstDay.getDate() - firstDay.getDay());
 
-    // Month labels row
-    const monthLabels = document.createElement('div');
-    monthLabels.className = 'heatmap-months';
+    // Track month positions for labels
+    const monthPositions = [];
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    monthNames.forEach(month => {
-        const label = document.createElement('span');
-        label.className = 'heatmap-month-label';
-        label.textContent = month;
-        monthLabels.appendChild(label);
-    });
-    container.appendChild(monthLabels);
 
     // Create weeks container
     const weeksContainer = document.createElement('div');
@@ -2912,11 +2904,14 @@ function renderSupersaverCalendar(data) {
     let currentDate = new Date(firstDay);
     let currentWeek = document.createElement('div');
     currentWeek.className = 'heatmap-week';
+    let weekIndex = 0;
+    let lastMonth = -1;
 
     while (currentDate <= endDate || currentWeek.children.length > 0) {
         // If we've filled a week (7 days), start a new week
         if (currentWeek.children.length === 7) {
             weeksContainer.appendChild(currentWeek);
+            weekIndex++;
             currentWeek = document.createElement('div');
             currentWeek.className = 'heatmap-week';
         }
@@ -2928,6 +2923,13 @@ function renderSupersaverCalendar(data) {
         if (currentDate >= startDate && currentDate <= endDate) {
             const dateStr = currentDate.toISOString().split('T')[0];
             const amount = data.days[dateStr] || 0;
+            const currentMonth = currentDate.getMonth();
+
+            // Track when a new month starts
+            if (currentMonth !== lastMonth && currentDate.getDate() <= 7) {
+                monthPositions.push({ month: monthNames[currentMonth], weekIndex: weekIndex });
+                lastMonth = currentMonth;
+            }
 
             // Calculate heatmap level (0-4)
             let level = 0;
@@ -2962,6 +2964,19 @@ function renderSupersaverCalendar(data) {
         weeksContainer.appendChild(currentWeek);
     }
 
+    // Create month labels positioned at actual month starts
+    const monthLabels = document.createElement('div');
+    monthLabels.className = 'heatmap-months';
+    monthPositions.forEach(({ month, weekIndex }) => {
+        const label = document.createElement('span');
+        label.className = 'heatmap-month-label';
+        label.textContent = month;
+        label.style.gridColumnStart = weekIndex + 1;
+        monthLabels.appendChild(label);
+    });
+
+    // Insert month labels before weeks
+    container.appendChild(monthLabels);
     container.appendChild(weeksContainer);
 }
 
