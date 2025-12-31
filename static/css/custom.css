@@ -866,3 +866,476 @@ body {
 .budget-progress-list::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
+
+/* ==================== SUPERSAVER STYLES ==================== */
+
+/* Supersaver heatmap header - green gradient matching income */
+.supersaver-heatmap-header {
+    background: linear-gradient(90deg, #86efac 0%, #10b981 50%, #059669 100%);
+    box-shadow: 0 4px 6px rgba(16, 185, 129, 0.25);
+    border-radius: 8px 8px 0 0 !important;
+    padding: 14px 20px;
+    font-weight: bold;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+}
+
+/* Supersaver form styling */
+.supersaver-date-input {
+    height: 38px;
+}
+
+.supersaver-submit-btn {
+    height: 38px;
+    width: 38px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.supersaver-submit-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(5, 150, 105, 0.3);
+}
+
+/* Clickable elements */
+.cursor-pointer {
+    cursor: pointer;
+}
+
+/* Category balance display */
+#categoryBalance {
+    margin-top: 10px;
+}
+
+#balanceAmount {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* Quick entry form radio button groups */
+.btn-check:checked + .btn-outline-success {
+    background-color: #059669;
+    border-color: #059669;
+    color: white;
+}
+
+.btn-check:checked + .btn-outline-danger {
+    background-color: #dc2626;
+    border-color: #dc2626;
+    color: white;
+}
+
+/* Heatmap Calendar (GitHub contribution style) - LARGER */
+.heatmap-container {
+    display: flex;
+    gap: 30px;
+    align-items: flex-start;
+}
+
+.heatmap-calendar {
+    padding: 20px;
+    overflow-x: auto;
+    flex: 1;
+}
+
+.heatmap-legend-sidebar {
+    padding: 20px 20px 20px 0;
+    min-width: 140px;
+}
+
+.legend-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.legend-items {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.legend-label {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.heatmap-legend-box {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    border: 1px solid rgba(27, 31, 35, 0.06);
+    flex-shrink: 0;
+}
+
+.heatmap-months {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 10px;
+    padding-left: 35px;
+}
+
+.heatmap-month-label {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 500;
+    min-width: 52px;
+    text-align: left;
+}
+
+.heatmap-weeks {
+    display: flex;
+    gap: 4px;
+}
+
+.heatmap-week {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.heatmap-day {
+    width: 15px;
+    height: 15px;
+    border-radius: 3px;
+    border: 1px solid rgba(27, 31, 35, 0.06);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.heatmap-day:hover {
+    transform: scale(1.25);
+    border-color: rgba(27, 31, 35, 0.3);
+    z-index: 10;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.heatmap-empty {
+    background-color: transparent;
+    border: none;
+    cursor: default;
+}
+
+.heatmap-empty:hover {
+    transform: none;
+}
+
+/* Heatmap color levels - green gradient */
+.heatmap-level-0 {
+    background-color: #ebedf0;
+}
+
+.heatmap-level-1 {
+    background-color: #9be9a8;
+}
+
+.heatmap-level-2 {
+    background-color: #40c463;
+}
+
+.heatmap-level-3 {
+    background-color: #30a14e;
+}
+
+.heatmap-level-4 {
+    background-color: #216e39;
+    margin: 0;
+}
+
+.month-card-year {
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.month-card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.month-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+}
+
+.month-stat-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.month-stat-label i {
+    font-size: 14px;
+}
+
+.month-stat-label .text-success {
+    color: #059669;
+}
+
+.month-stat-label .text-danger {
+    color: #dc2626;
+}
+
+.month-stat-amount {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.month-stat-amount.text-success {
+    color: #059669;
+}
+
+.month-stat-amount.text-danger {
+    color: #dc2626;
+}
+
+.month-stat-amount.text-muted {
+    color: #9ca3af;
+    font-weight: 500;
+}
+
+.month-card-footer {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.month-net-amount {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.month-net-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.month-net-value {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.month-net-value.text-success {
+    color: #059669;
+}
+
+.month-net-value.text-danger {
+    color: #dc2626;
+}
+
+.month-net-value.text-secondary {
+    color: #6b7280;
+}
+
+/* Empty month card state */
+.month-card.empty-month {
+    background-color: #f9fafb;
+    border-color: #e5e7eb;
+    cursor: default;
+}
+
+.month-card.empty-month:hover {
+    border-color: #e5e7eb;
+    box-shadow: none;
+    transform: none;
+}
+
+.month-empty-state {
+    text-align: center;
+    color: #9ca3af;
+    font-size: 13px;
+    font-style: italic;
+    margin-top: 10px;
+}
+
+/* Future month styling */
+.month-card.future-month {
+    background-color: #f3f4f6;
+    border-color: #d1d5db;
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.month-card.future-month:hover {
+    border-color: #d1d5db;
+    box-shadow: none;
+    transform: none;
+}
+
+/* Month entries modal list */
+#entriesList .list-group-item {
+    border-left: 3px solid #3b82f6;
+    margin-bottom: 10px;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#entriesList .list-group-item:hover {
+    background-color: #e9ecef;
+}
+
+#entriesList .list-group-item.deposit-entry {
+    border-left-color: #059669;
+}
+
+#entriesList .list-group-item.withdrawal-entry {
+    border-left-color: #dc2626;
+}
+
+.entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.entry-type-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.entry-type-badge.deposit {
+    background-color: #d1fae5;
+    color: #059669;
+}
+
+.entry-type-badge.withdrawal {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+
+.entry-date {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.entry-amount {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.entry-amount.deposit {
+    color: #059669;
+}
+
+.entry-amount.withdrawal {
+    color: #dc2626;
+}
+
+.entry-comment {
+    font-size: 13px;
+    color: #4b5563;
+    font-style: italic;
+    margin-top: 4px;
+}
+
+.entry-comment.no-comment {
+    color: #9ca3af;
+}
+
+/* No entries state */
+.no-entries {
+    text-align: center;
+    padding: 40px 20px;
+    color: #9ca3af;
+}
+
+.no-entries i {
+    font-size: 3rem;
+    margin-bottom: 10px;
+    opacity: 0.5;
+}
+
+/* Supersaver date picker styling */
+#quickDate,
+#editDate {
+    background-color: #ffffff;
+    border: 2px solid #d1d5db;
+    border-radius: 8px;
+    padding: 12px 16px;
+    transition: all 0.2s ease;
+}
+
+#quickDate:focus,
+#editDate:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Responsive heatmap adjustments */
+@media (max-width: 768px) {
+    .heatmap-container {
+        flex-direction: column;
+    }
+
+    .heatmap-calendar {
+        padding: 10px;
+    }
+
+    .heatmap-legend-sidebar {
+        padding: 0 10px 10px 10px;
+        min-width: auto;
+        width: 100%;
+    }
+
+    .legend-items {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .heatmap-day {
+        width: 11px;
+        height: 11px;
+    }
+
+    .heatmap-week {
+        gap: 3px;
+    }
+
+    .heatmap-weeks {
+        gap: 3px;
+    }
+
+    .heatmap-month-label {
+        font-size: 10px;
+        min-width: 38px;
+    }
+
+    .supersaver-submit-btn {
+        width: 100%;
+        margin-top: 10px;
+    }
+}

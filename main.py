@@ -53,10 +53,10 @@ def budget_page(request: Request):
         "request": request
     })
 
-@app.get("/analysis", response_class=HTMLResponse)
-def analysis_page(request: Request):
-    """Analysis page with charts and deep dives"""
-    return templates.TemplateResponse("analysis.html", {
+@app.get("/supersaver", response_class=HTMLResponse)
+def supersaver_page(request: Request):
+    """Supersaver page for tracking savings goals"""
+    return templates.TemplateResponse("supersaver.html", {
         "request": request
     })
 
@@ -888,6 +888,276 @@ async def save_db_connection(request: Request):
         )
     except Exception as e:
         logger.error(f"Error saving database configuration: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
+# ==================== SUPERSAVER API ====================
+
+@app.get("/api/supersaver-categories")
+async def get_supersaver_categories():
+    """Get all supersaver categories with balance and usage stats."""
+    try:
+        import supersaver_business_logic as ssbl
+        categories = ssbl.get_all_supersaver_categories()
+        return {"success": True, "data": categories}
+    except Exception as e:
+        logger.error(f"Error getting supersaver categories: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
+@app.post("/api/supersaver-category")
+async def create_supersaver_category(request: Request):
+    """
+    Create new supersaver category.
+
+    Request body:
+    {
+        "name": "Emergency Fund"
+    }
+    """
+    try:
+        import supersaver_business_logic as ssbl
+        data = await request.json()
+        result = ssbl.create_supersaver_category(name=data["name"])
+        return {"success": True, "data": result}
+    except ValueError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": str(e)}
+        )
+    except KeyError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": f"Missing required field: {e}"}
+        )
+    except Exception as e:
+        logger.error(f"Error creating supersaver category: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
+@app.put("/api/supersaver-category/{category_id}")
+async def update_supersaver_category(category_id: str, request: Request):
+    """Update supersaver category (rename only)."""
+    try:
+        import supersaver_business_logic as ssbl
+        data = await request.json()
+        result = ssbl.update_supersaver_category(
+            category_id=category_id,
+            name=data["name"]
+        )
+        return {"success": True, "data": result}
+    except ValueError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": str(e)}
+        )
+    except KeyError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": f"Missing required field: {e}"}
+        )
+    except Exception as e:
+        logger.error(f"Error updating supersaver category: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
+@app.delete("/api/supersaver-category/{category_id}")
+async def delete_supersaver_category(category_id: str):
+    """Delete supersaver category (only if no entries)."""
+    try:
+        import supersaver_business_logic as ssbl
+        ssbl.delete_supersaver_category(category_id)
+        return {"success": True}
+    except ValueError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": str(e)}
+        )
+    except Exception as e:
+        logger.error(f"Error deleting supersaver category: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
+@app.get("/api/supersaver/calendar/{category_id}/{year}")
+async def get_supersaver_calendar(category_id: str, year: int):
+    """
+    Get supersaver calendar for entire year (12 months).
+
+    Returns aggregated deposits/withdrawals per month + running balance.
+    """
+    try:
+        import supersaver_business_logic as ssbl
+        calendar = ssbl.get_supersaver_calendar_year(category_id, year)
+        return {"success": True, "data": calendar}
+    except ValueError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": str(e)}
+        )
+    except Exception as e:
+        logger.error(f"Error getting supersaver calendar: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
+@app.get("/api/supersaver/{category_id}/{year}/{month}")
+async def get_supersaver_entries(category_id: str, year: int, month: int):
+    """Get all supersaver entries for category/year/month."""
+    try:
+        import supersaver_business_logic as ssbl
+        entries = ssbl.get_supersaver_entries_for_month(category_id, year, month)
+        return {"success": True, "data": entries}
+    except ValueError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": str(e)}
+        )
+    except Exception as e:
+        logger.error(f"Error getting supersaver entries: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
+@app.post("/api/supersaver")
+async def create_supersaver_entry(request: Request):
+    """
+    Create supersaver entry (savings deposit).
+
+    Request body:
+    {
+        "category_id": "abc123",
+        "amount": 50000,
+        "date": "2025-01-15",
+        "comment": "Monthly save"  # optional
+    }
+    """
+    try:
+        import supersaver_business_logic as ssbl
+        data = await request.json()
+        result = ssbl.create_supersaver_entry(
+            category_id=data["category_id"],
+            amount=data["amount"],
+            date_str=data["date"],
+            comment=data.get("comment")
+        )
+        return {"success": True, "data": result}
+    except ValueError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": str(e)}
+        )
+    except KeyError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": f"Missing required field: {e}"}
+        )
+    except Exception as e:
+        logger.error(f"Error creating supersaver entry: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
+@app.put("/api/supersaver/{entry_id}")
+async def update_supersaver_entry(entry_id: str, request: Request):
+    """Update supersaver entry."""
+    try:
+        import supersaver_business_logic as ssbl
+        data = await request.json()
+        result = ssbl.update_supersaver_entry(
+            entry_id=entry_id,
+            category_id=data["category_id"],
+            amount=data["amount"],
+            date_str=data["date"],
+            comment=data.get("comment")
+        )
+        return {"success": True, "data": result}
+    except ValueError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": str(e)}
+        )
+    except KeyError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": f"Missing required field: {e}"}
+        )
+    except Exception as e:
+        logger.error(f"Error updating supersaver entry: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
+@app.delete("/api/supersaver/{entry_id}")
+async def delete_supersaver_entry(entry_id: str):
+    """Delete supersaver entry."""
+    try:
+        import supersaver_business_logic as ssbl
+        ssbl.delete_supersaver_entry(entry_id)
+        return {"success": True}
+    except ValueError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": str(e)}
+        )
+    except Exception as e:
+        logger.error(f"Error deleting supersaver entry: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
+@app.get("/api/supersaver/heatmap/{year}")
+async def get_supersaver_heatmap(year: int):
+    """
+    Get daily heatmap data for entire year (all categories, deposits only).
+
+    Returns deposits aggregated by date for heatmap visualization.
+    """
+    try:
+        import supersaver_business_logic as ssbl
+        heatmap = ssbl.get_supersaver_heatmap_year(year)
+        return {"success": True, "data": heatmap}
+    except Exception as e:
+        logger.error(f"Error getting supersaver heatmap: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
+@app.get("/api/dashboard/supersaver-summary")
+async def get_supersaver_dashboard_summary():
+    """Get supersaver summary for dashboard widget (all categories, deposits only)."""
+    try:
+        import supersaver_business_logic as ssbl
+        summary = ssbl.get_supersaver_dashboard_summary()
+        return {"success": True, "data": summary}
+    except Exception as e:
+        logger.error(f"Error getting supersaver summary: {e}")
         return JSONResponse(
             status_code=500,
             content={"success": False, "error": str(e)}

@@ -191,6 +191,51 @@ class Configuration(BaseModel):
         table_name = 'moneybags_configuration'
 
 
+class SupersaverCategory(BaseModel):
+    """
+    Supersaver-specific categories (independent from budget categories).
+
+    Each supersaver category represents a savings goal with its own name and history.
+    Categories are completely separate from transaction categories to keep domains clean.
+
+    Business rules (enforced in supersaver_business_logic.py):
+    - Name must be unique (case-insensitive comparison)
+    - Cannot delete if referenced by supersaver entries
+    - Renaming updates all entry references
+    """
+    name = CharField(max_length=255, unique=True)
+    updated_at = DateTimeField()
+
+    class Meta:
+        table_name = 'moneybags_supersaver_categories'
+
+
+class Supersaver(BaseModel):
+    """
+    Supersaver entries (savings deposits only).
+
+    Records savings deposits for supersaver categories.
+    Amount stored as integer (no decimals). Comment is optional.
+
+    Business rules (enforced in supersaver_business_logic.py):
+    - amount must be positive integer (no negative amounts)
+    - date must be valid
+    - comment stored as NULL if empty (via utils.empty_to_none)
+    - updated_at set by supersaver_business_logic.py on create/update
+    """
+    category_id = ForeignKeyField(SupersaverCategory, column_name='category_id')
+    amount = IntegerField()
+    date = DateField()
+    comment = TextField(null=True)
+    updated_at = DateTimeField()
+
+    class Meta:
+        table_name = 'moneybags_supersaver'
+        indexes = (
+            (('category_id', 'date'), False),  # Composite index for monthly queries
+        )
+
+
 # List of all models for easy reference
 ALL_MODELS = [
     Category,
@@ -199,4 +244,6 @@ ALL_MODELS = [
     BudgetEntry,
     Transaction,
     Configuration,
+    SupersaverCategory,
+    Supersaver,
 ]

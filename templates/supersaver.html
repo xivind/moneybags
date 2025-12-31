@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Supersaver - Moneybags{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="mb-0"><i class="bi bi-piggy-bank me-2"></i>Supersaver</h2>
+        <p class="text-muted mt-1">Track your savings for the current year</p>
+    </div>
+</div>
+
+<!-- Quick Add Savings Form -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-piggy-bank-fill me-2"></i>Add Savings</h5>
+            </div>
+            <div class="card-body">
+                <form id="quickEntryForm">
+                    <div class="row g-3 align-items-end">
+                        <!-- Category -->
+                        <div class="col-md-3">
+                            <label for="quickCategory" class="form-label">Category</label>
+                            <select id="quickCategory" class="form-select" required>
+                                <option value="">Select category...</option>
+                                <!-- Populated by JavaScript -->
+                            </select>
+                        </div>
+
+                        <!-- Amount -->
+                        <div class="col-md-3">
+                            <label for="quickAmount" class="form-label">Amount</label>
+                            <input type="number" id="quickAmount" class="form-control" required min="0" step="1" placeholder="0">
+                        </div>
+
+                        <!-- Comment -->
+                        <div class="col-md-3">
+                            <label for="quickComment" class="form-label">Comment</label>
+                            <input type="text" id="quickComment" class="form-control" placeholder="Optional">
+                        </div>
+
+                        <!-- Date -->
+                        <div class="col-md-2">
+                            <label for="quickDate" class="form-label">Date</label>
+                            <input type="text" id="quickDate" class="form-control supersaver-date-input" required>
+                        </div>
+
+                        <!-- Button -->
+                        <div class="col-md-1 text-end">
+                            <button type="submit" class="btn btn-success btn-sm supersaver-submit-btn">
+                                <i class="bi bi-check-circle"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Daily Heatmap Calendar -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header supersaver-heatmap-header text-white">
+                <h5 class="mb-0"><i class="bi bi-calendar-week me-2"></i><span id="calendarYearDisplay">2025</span> Savings Heatmap</h5>
+            </div>
+            <div class="card-body">
+                <div id="calendarContainer" class="d-none">
+                    <div class="heatmap-container">
+                        <div id="heatmapCalendar" class="heatmap-calendar">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                        <div class="heatmap-legend-sidebar">
+                            <div class="legend-title">Savings Amount</div>
+                            <div class="legend-items">
+                                <div class="legend-item">
+                                    <span class="heatmap-legend-box heatmap-level-0"></span>
+                                    <span class="legend-label">None</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="heatmap-legend-box heatmap-level-1"></span>
+                                    <span class="legend-label">Low</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="heatmap-legend-box heatmap-level-2"></span>
+                                    <span class="legend-label">Medium</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="heatmap-legend-box heatmap-level-3"></span>
+                                    <span class="legend-label">High</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="heatmap-legend-box heatmap-level-4"></span>
+                                    <span class="legend-label">Very High</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="calendarLoading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted mt-3">Loading calendar data...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Month Entries Modal -->
+<div class="modal fade" id="monthEntriesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="monthEntriesTitle">Entries</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="entriesList" class="list-group">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Entry Edit Modal -->
+<div class="modal fade" id="entryEditModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Entry</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="entryEditForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editCategory" class="form-label">Category</label>
+                        <select id="editCategory" class="form-select" required>
+                            <option value="">Select category...</option>
+                            <!-- Populated by JavaScript -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editAmount" class="form-label">Amount</label>
+                        <input type="number" id="editAmount" class="form-control" required min="0" step="1">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editDate" class="form-label">Date</label>
+                        <input type="text" id="editDate" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editComment" class="form-label">Comment</label>
+                        <textarea class="form-control" id="editComment" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger me-auto" id="deleteEntryBtn">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1299,6 +1299,48 @@ async function populatePayeesTable() {
     tbody.innerHTML = html || '<tr><td colspan="4" class="text-center text-muted">No payees yet</td></tr>';
 }
 
+async function populateSupersaverCategoriesTable() {
+    const tbody = document.querySelector('#supersaverCategoriesTable tbody');
+    if (!tbody) return;
+
+    try {
+        const categories = await apiCall('/api/supersaver-categories');
+
+        let html = '';
+        categories.forEach(cat => {
+            const balanceFormatted = formatCurrency(cat.balance);
+            const deleteBtn = cat.entry_count > 0
+                ? `<button class="btn btn-sm btn-outline-secondary" disabled title="Cannot delete - category has ${cat.entry_count} entries">
+                    <i class="bi bi-trash"></i>
+                   </button>`
+                : `<button class="btn btn-sm btn-outline-danger" onclick="deleteSupersaverCategory('${cat.id}')">
+                    <i class="bi bi-trash"></i>
+                   </button>`;
+
+            html += `
+                <tr>
+                    <td>${escapeHtml(cat.name)}</td>
+                    <td>${cat.entry_count || 0}</td>
+                    <td>${balanceFormatted}</td>
+                    <td class="text-end">
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-sm btn-outline-primary" onclick="editSupersaverCategory('${cat.id}', '${escapeHtml(cat.name)}')">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            ${deleteBtn}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html || '<tr><td colspan="4" class="text-center text-muted">No supersaver categories yet</td></tr>';
+    } catch (error) {
+        console.error('Failed to load supersaver categories:', error);
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Failed to load categories</td></tr>';
+    }
+}
+
 function filterPayees() {
     const searchTerm = document.getElementById('payeeSearch').value.toLowerCase();
     const rows = document.querySelectorAll('.payee-row');
@@ -1481,6 +1523,89 @@ async function deletePayee(payeeId) {
         await populatePayeesTable();
         hideLoading();
         showSuccess('Payee deleted');
+    } catch (error) {
+        hideLoading();
+    }
+}
+
+// ==================== SUPERSAVER CONFIG FUNCTIONS ====================
+
+let currentEditingSupersaverCategory = null;
+
+function openAddSupersaverCategoryModal() {
+    currentEditingSupersaverCategory = null;
+    document.getElementById('supersaverCategoryModalTitle').textContent = 'Add Supersaver Category';
+    document.getElementById('supersaverCategoryName').value = '';
+
+    const modal = new bootstrap.Modal(document.getElementById('supersaverCategoryModal'));
+    modal.show();
+}
+
+function editSupersaverCategory(id, name) {
+    currentEditingSupersaverCategory = { id, name };
+    document.getElementById('supersaverCategoryModalTitle').textContent = 'Edit Supersaver Category';
+    document.getElementById('supersaverCategoryName').value = name;
+
+    const modal = new bootstrap.Modal(document.getElementById('supersaverCategoryModal'));
+    modal.show();
+}
+
+async function saveSupersaverCategory() {
+    const name = document.getElementById('supersaverCategoryName').value.trim();
+
+    if (!name) {
+        showErrorModal('Please enter a category name');
+        return;
+    }
+
+    try {
+        showLoading('Saving category...');
+
+        if (currentEditingSupersaverCategory) {
+            // Update existing category
+            await apiCall(`/api/supersaver-category/${currentEditingSupersaverCategory.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ name })
+            });
+        } else {
+            // Create new category
+            await apiCall('/api/supersaver-category', {
+                method: 'POST',
+                body: JSON.stringify({ name })
+            });
+        }
+
+        bootstrap.Modal.getInstance(document.getElementById('supersaverCategoryModal')).hide();
+        await populateSupersaverCategoriesTable();
+        hideLoading();
+        showSuccess('Supersaver category saved');
+    } catch (error) {
+        hideLoading();
+    }
+}
+
+async function deleteSupersaverCategory(categoryId) {
+    try {
+        // Get category data first
+        const categories = await apiCall('/api/supersaver-categories');
+        const category = categories.find(c => c.id === categoryId);
+
+        const confirmed = await showConfirmModal(
+            'Delete Supersaver Category',
+            `Are you sure you want to delete the category "${category.name}"?`,
+            'Delete'
+        );
+        if (!confirmed) {
+            return;
+        }
+
+        showLoading('Deleting category...');
+        await apiCall(`/api/supersaver-category/${categoryId}`, {
+            method: 'DELETE'
+        });
+        await populateSupersaverCategoriesTable();
+        hideLoading();
+        showSuccess('Supersaver category deleted');
     } catch (error) {
         hideLoading();
     }
@@ -1926,7 +2051,8 @@ async function initializeDashboard() {
         loadRecurringPayments(),
         loadRecentTransactions(),
         loadExpensePieCharts(),
-        loadBudgetProgress()
+        loadBudgetProgress(),
+        loadSupersaverDashboardWidget()
     ]);
 }
 
@@ -1985,6 +2111,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             await loadCurrencySettings();
             await populateCategoriesTable();
             await populatePayeesTable();
+            await populateSupersaverCategoriesTable();
             await loadBudgetTemplates();
             await loadRecurringCategories();
             hideLoading();
@@ -1997,6 +2124,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Initialize dashboard page
     if (document.getElementById('recurring-payments-content') || document.getElementById('recent-transactions-content')) {
         await initializeDashboard();
+    }
+
+    // Initialize supersaver page
+    if (document.getElementById('quickCategory')) {
+        initSupersaver();
     }
 
     // ==================== EVENT LISTENERS ====================
@@ -2046,6 +2178,16 @@ document.addEventListener('DOMContentLoaded', async function() {
     const payeeSearch = document.getElementById('payeeSearch');
     if (payeeSearch) {
         payeeSearch.addEventListener('keyup', filterPayees);
+    }
+
+    const addSupersaverCategoryBtn = document.getElementById('addSupersaverCategoryBtn');
+    if (addSupersaverCategoryBtn) {
+        addSupersaverCategoryBtn.addEventListener('click', openAddSupersaverCategoryModal);
+    }
+
+    const saveSupersaverCategoryBtn = document.getElementById('saveSupersaverCategoryBtn');
+    if (saveSupersaverCategoryBtn) {
+        saveSupersaverCategoryBtn.addEventListener('click', saveSupersaverCategory);
     }
 
     const currencyFormat = document.getElementById('currencyFormat');
@@ -2579,3 +2721,508 @@ async function removeRecurringCategory(categoryId) {
 // ==================== IMPORT PAGE ====================
 
 // See import.js for import page functions
+
+// ==================== SUPERSAVER ====================
+
+let supersaverCategories = [];
+let supersaverCurrentYear = new Date().getFullYear();
+let supersaverCalendarData = null;
+let supersaverCurrentEntryId = null;
+let supersaverAllEntriesByMonth = {}; // Store entries by month number
+
+/**
+ * Initialize supersaver page
+ */
+async function initSupersaver() {
+    // Set current year
+    supersaverCurrentYear = new Date().getFullYear();
+    document.getElementById('calendarYearDisplay').textContent = supersaverCurrentYear;
+
+    setupSupersaverEventListeners();
+    await loadSupersaverCategories();
+    initializeDatePickers();
+    loadSupersaverCalendar(); // Load calendar immediately (all categories)
+}
+
+/**
+ * Initialize date pickers for supersaver forms
+ */
+function initializeDatePickers() {
+    const quickDateInput = document.getElementById('quickDate');
+    const editDateInput = document.getElementById('editDate');
+
+    if (quickDateInput && typeof tempusDominus !== 'undefined') {
+        new tempusDominus.TempusDominus(quickDateInput, {
+            display: {
+                theme: 'light',
+                components: {
+                    clock: false
+                }
+            },
+            localization: {
+                format: 'yyyy-MM-dd'
+            }
+        });
+        // Set today's date
+        quickDateInput.value = new Date().toISOString().split('T')[0];
+    }
+
+    if (editDateInput && typeof tempusDominus !== 'undefined') {
+        new tempusDominus.TempusDominus(editDateInput, {
+            display: {
+                theme: 'light',
+                components: {
+                    clock: false
+                }
+            },
+            localization: {
+                format: 'yyyy-MM-dd'
+            }
+        });
+    }
+}
+
+/**
+ * Setup event listeners for supersaver
+ */
+function setupSupersaverEventListeners() {
+    // Quick entry form
+    const quickForm = document.getElementById('quickEntryForm');
+    if (quickForm) {
+        quickForm.addEventListener('submit', handleQuickEntrySubmit);
+    }
+
+    // Entry edit form
+    const editForm = document.getElementById('entryEditForm');
+    if (editForm) {
+        editForm.addEventListener('submit', handleEntryEditSubmit);
+    }
+
+    // Delete entry button
+    const deleteBtn = document.getElementById('deleteEntryBtn');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', handleEntryDelete);
+    }
+}
+
+/**
+ * Load supersaver categories and populate dropdowns
+ */
+async function loadSupersaverCategories() {
+    try {
+        const data = await apiCall('/api/supersaver-categories');
+        supersaverCategories = data;
+
+        // Populate quick entry dropdown
+        const quickCategorySelect = document.getElementById('quickCategory');
+        if (quickCategorySelect) {
+            quickCategorySelect.innerHTML = '<option value="">Select category...</option>';
+            data.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat.id;
+                option.textContent = cat.name;
+                quickCategorySelect.appendChild(option);
+            });
+        }
+
+        // Populate edit entry dropdown
+        const editCategorySelect = document.getElementById('editCategory');
+        if (editCategorySelect) {
+            editCategorySelect.innerHTML = '<option value="">No category</option>';
+            data.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat.id;
+                option.textContent = cat.name;
+                editCategorySelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        showError('Failed to load supersaver categories');
+    }
+}
+
+/**
+ * Load supersaver heatmap calendar (all categories combined, deposits only)
+ */
+async function loadSupersaverCalendar() {
+    try {
+        // Show loading
+        const loadingEl = document.getElementById('calendarLoading');
+        const containerEl = document.getElementById('calendarContainer');
+
+        if (loadingEl) loadingEl.classList.remove('d-none');
+        if (containerEl) containerEl.classList.add('d-none');
+
+        // Load heatmap data for the year
+        const heatmapData = await apiCall(`/api/supersaver/heatmap/${supersaverCurrentYear}`);
+
+        supersaverCalendarData = heatmapData;
+
+        // Render heatmap calendar
+        renderSupersaverCalendar(heatmapData);
+
+        // Hide loading, show calendar
+        if (loadingEl) loadingEl.classList.add('d-none');
+        if (containerEl) containerEl.classList.remove('d-none');
+    } catch (error) {
+        console.error('Failed to load calendar data:', error);
+        showError('Failed to load calendar data: ' + (error.message || error));
+        const loadingEl = document.getElementById('calendarLoading');
+        if (loadingEl) loadingEl.classList.add('d-none');
+    }
+}
+
+/**
+ * Render daily heatmap calendar (GitHub contribution style)
+ */
+function renderSupersaverCalendar(data) {
+    const container = document.getElementById('heatmapCalendar');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    // Calculate color levels based on amounts
+    const amounts = Object.values(data.days);
+    const maxAmount = amounts.length > 0 ? Math.max(...amounts) : 0;
+
+    // Generate all days of the year
+    const startDate = new Date(data.year, 0, 1);
+    const endDate = new Date(data.year, 11, 31);
+
+    // Start from first Sunday before Jan 1 (or Jan 1 if it's Sunday)
+    const firstDay = new Date(startDate);
+    firstDay.setDate(firstDay.getDate() - firstDay.getDay());
+
+    // Month labels row
+    const monthLabels = document.createElement('div');
+    monthLabels.className = 'heatmap-months';
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    monthNames.forEach(month => {
+        const label = document.createElement('span');
+        label.className = 'heatmap-month-label';
+        label.textContent = month;
+        monthLabels.appendChild(label);
+    });
+    container.appendChild(monthLabels);
+
+    // Create weeks container
+    const weeksContainer = document.createElement('div');
+    weeksContainer.className = 'heatmap-weeks';
+
+    let currentDate = new Date(firstDay);
+    let currentWeek = document.createElement('div');
+    currentWeek.className = 'heatmap-week';
+
+    while (currentDate <= endDate || currentWeek.children.length > 0) {
+        // If we've filled a week (7 days), start a new week
+        if (currentWeek.children.length === 7) {
+            weeksContainer.appendChild(currentWeek);
+            currentWeek = document.createElement('div');
+            currentWeek.className = 'heatmap-week';
+        }
+
+        const day = document.createElement('div');
+        day.className = 'heatmap-day';
+
+        // Only show data for days in the actual year
+        if (currentDate >= startDate && currentDate <= endDate) {
+            const dateStr = currentDate.toISOString().split('T')[0];
+            const amount = data.days[dateStr] || 0;
+
+            // Calculate heatmap level (0-4)
+            let level = 0;
+            if (amount > 0 && maxAmount > 0) {
+                const percentage = amount / maxAmount;
+                if (percentage > 0.75) level = 4;
+                else if (percentage > 0.5) level = 3;
+                else if (percentage > 0.25) level = 2;
+                else level = 1;
+            }
+
+            day.classList.add(`heatmap-level-${level}`);
+            day.setAttribute('data-date', dateStr);
+            day.setAttribute('data-amount', amount);
+            day.title = `${dateStr}: ${formatCurrency(amount)}`;
+        } else {
+            // Empty day (before Jan 1 or after Dec 31)
+            day.classList.add('heatmap-empty');
+        }
+
+        currentWeek.appendChild(day);
+        currentDate.setDate(currentDate.getDate() + 1);
+
+        // Stop after we've passed the end date and filled the current week
+        if (currentDate > endDate && currentWeek.children.length === 7) {
+            break;
+        }
+    }
+
+    // Append last week if not empty
+    if (currentWeek.children.length > 0) {
+        weeksContainer.appendChild(currentWeek);
+    }
+
+    container.appendChild(weeksContainer);
+}
+
+/**
+ * Show entries for a specific month (ALL categories)
+ */
+async function showMonthEntries(month, monthName) {
+    try {
+        showLoading();
+
+        // Load entries for all categories for this month
+        const entryPromises = supersaverCategories.map(cat =>
+            apiCall(`/api/supersaver/${cat.id}/${supersaverCurrentYear}/${month}`)
+        );
+
+        const allEntriesArrays = await Promise.all(entryPromises);
+        const allEntries = allEntriesArrays.flat();
+
+        // Sort by date (newest first)
+        allEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        document.getElementById('monthEntriesTitle').textContent = `${monthName} ${supersaverCurrentYear} - All Categories`;
+
+        const list = document.getElementById('entriesList');
+        list.innerHTML = '';
+
+        if (allEntries.length === 0) {
+            list.innerHTML = '<p class="text-muted text-center p-3">No entries for this month</p>';
+        } else {
+            allEntries.forEach(entry => {
+                const item = document.createElement('div');
+                item.className = 'list-group-item list-group-item-action cursor-pointer';
+
+                const categoryName = entry.category_name || 'No category';
+
+                item.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="bi bi-piggy-bank-fill text-success me-2"></i>
+                            <strong>${entry.date}</strong>
+                            <span class="badge bg-success ms-2">
+                                ${formatCurrency(entry.amount)}
+                            </span>
+                            <small class="text-muted ms-2">${categoryName}</small>
+                        </div>
+                        <small class="text-muted">${entry.comment || 'No comment'}</small>
+                    </div>
+                `;
+
+                item.addEventListener('click', () => openEditEntryModal(entry));
+                list.appendChild(item);
+            });
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('monthEntriesModal'));
+        modal.show();
+    } catch (error) {
+        showError('Failed to load entries');
+    } finally {
+        hideLoading();
+    }
+}
+
+/**
+ * Handle quick entry form submission
+ */
+async function handleQuickEntrySubmit(e) {
+    e.preventDefault();
+
+    try {
+        showLoading();
+
+        const category_id = document.getElementById('quickCategory').value;
+        const amount = parseInt(document.getElementById('quickAmount').value);
+        const dateValue = document.getElementById('quickDate').value;
+        const comment = document.getElementById('quickComment').value || null;
+
+        // Validate category
+        if (!category_id) {
+            showError('Please select a category');
+            hideLoading();
+            return;
+        }
+
+        // Extract just the date part if it includes time
+        const date = dateValue.split(' ')[0];
+
+        await apiCall('/api/supersaver', {
+            method: 'POST',
+            body: JSON.stringify({
+                category_id: category_id,
+                amount: amount,
+                date: date,
+                comment: comment
+            })
+        });
+
+        // Reset form
+        document.getElementById('quickEntryForm').reset();
+        document.getElementById('quickDate').value = new Date().toISOString().split('T')[0];
+
+        // Reload calendar and categories (to update balance)
+        await Promise.all([
+            loadSupersaverCalendar(),
+            loadSupersaverCategories()
+        ]);
+
+        showSuccess('Savings added successfully');
+    } catch (error) {
+        showError(error.message || 'Failed to add savings');
+    } finally {
+        hideLoading();
+    }
+}
+
+/**
+ * Open edit entry modal
+ */
+function openEditEntryModal(entry) {
+    supersaverCurrentEntryId = entry.id;
+
+    // Populate form
+    const editCategorySelect = document.getElementById('editCategory');
+    editCategorySelect.value = entry.category_id;
+
+    document.getElementById('editAmount').value = entry.amount;
+    document.getElementById('editDate').value = entry.date;
+    document.getElementById('editComment').value = entry.comment || '';
+
+    // Close month entries modal
+    const monthModal = bootstrap.Modal.getInstance(document.getElementById('monthEntriesModal'));
+    if (monthModal) monthModal.hide();
+
+    // Show edit modal
+    const editModal = new bootstrap.Modal(document.getElementById('entryEditModal'));
+    editModal.show();
+}
+
+/**
+ * Handle entry edit form submission
+ */
+async function handleEntryEditSubmit(e) {
+    e.preventDefault();
+
+    if (!supersaverCurrentEntryId) return;
+
+    try {
+        showLoading();
+
+        const category_id = document.getElementById('editCategory').value;
+        const amount = parseInt(document.getElementById('editAmount').value);
+        const dateValue = document.getElementById('editDate').value;
+        const comment = document.getElementById('editComment').value || null;
+
+        // Validate category
+        if (!category_id) {
+            showError('Please select a category');
+            hideLoading();
+            return;
+        }
+
+        // Extract just the date part
+        const date = dateValue.split(' ')[0];
+
+        await apiCall(`/api/supersaver/${supersaverCurrentEntryId}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                category_id: category_id,
+                amount: amount,
+                date: date,
+                comment: comment
+            })
+        });
+
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('entryEditModal'));
+        if (modal) modal.hide();
+
+        // Reload data
+        await Promise.all([
+            loadSupersaverCalendar(),
+            loadSupersaverCategories()
+        ]);
+
+        showSuccess('Entry updated successfully');
+    } catch (error) {
+        showError(error.message || 'Failed to update entry');
+    } finally {
+        hideLoading();
+    }
+}
+
+/**
+ * Handle entry deletion
+ */
+async function handleEntryDelete() {
+    if (!supersaverCurrentEntryId) return;
+
+    if (!confirm('Are you sure you want to delete this entry?')) return;
+
+    try {
+        showLoading();
+
+        await apiCall(`/api/supersaver/${supersaverCurrentEntryId}`, {
+            method: 'DELETE'
+        });
+
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('entryEditModal'));
+        if (modal) modal.hide();
+
+        // Reload data
+        await Promise.all([
+            loadSupersaverCalendar(),
+            loadSupersaverCategories()
+        ]);
+
+        showSuccess('Entry deleted successfully');
+    } catch (error) {
+        showError(error.message || 'Failed to delete entry');
+    } finally {
+        hideLoading();
+    }
+}
+
+/**
+ * Load supersaver summary for dashboard widget
+ */
+async function loadSupersaverDashboardWidget() {
+    const widget = document.getElementById('supersaver-widget-content');
+    if (!widget) return;
+
+    try {
+        const data = await apiCall('/api/dashboard/supersaver-summary');
+
+        // Determine trend icon
+        let trendIcon = '';
+        if (data.month_trend === 'up') {
+            trendIcon = '<i class="bi bi-arrow-up-circle text-success ms-2"></i>';
+        } else if (data.month_trend === 'down') {
+            trendIcon = '<i class="bi bi-arrow-down-circle text-danger ms-2"></i>';
+        } else {
+            trendIcon = '<i class="bi bi-dash-circle text-secondary ms-2"></i>';
+        }
+
+        widget.innerHTML = `
+            <div class="row g-3">
+                <div class="col-6">
+                    <small class="text-muted d-block">Saved This Month</small>
+                    <div class="fs-5 fw-bold text-success">
+                        ${formatCurrency(data.saved_this_month)}
+                        ${trendIcon}
+                    </div>
+                </div>
+                <div class="col-6">
+                    <small class="text-muted d-block">Saved This Year</small>
+                    <div class="fs-5 fw-bold text-success">${formatCurrency(data.saved_this_year)}</div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        widget.innerHTML = '<p class="text-muted">Failed to load supersaver data</p>';
+    }
+}
