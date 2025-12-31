@@ -2210,6 +2210,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         saveDbConnectionBtn.addEventListener('click', saveDatabaseConnection);
     }
 
+    const addRecurringCategoryBtn = document.getElementById('addRecurringCategoryBtn');
+    if (addRecurringCategoryBtn) {
+        addRecurringCategoryBtn.addEventListener('click', addRecurringCategory);
+    }
+
     const saveCategoryModalBtn = document.getElementById('saveCategoryModalBtn');
     if (saveCategoryModalBtn) {
         saveCategoryModalBtn.addEventListener('click', saveCategory);
@@ -2728,7 +2733,6 @@ let supersaverCategories = [];
 let supersaverCurrentYear = new Date().getFullYear();
 let supersaverCalendarData = null;
 let supersaverCurrentEntryId = null;
-let supersaverAllEntriesByMonth = {}; // Store entries by month number
 
 /**
  * Initialize supersaver page
@@ -2739,6 +2743,7 @@ async function initSupersaver() {
     document.getElementById('calendarYearDisplay').textContent = supersaverCurrentYear;
 
     setupSupersaverEventListeners();
+    await loadCurrencyFormat(); // Load currency format for formatCurrency()
     await loadSupersaverCategories();
     initializeDatePickers();
     loadSupersaverCalendar(); // Load calendar immediately (all categories)
@@ -2945,6 +2950,11 @@ function renderSupersaverCalendar(data) {
             day.setAttribute('data-date', dateStr);
             day.setAttribute('data-amount', amount);
             day.title = `${dateStr}: ${formatCurrency(amount)}`;
+
+            // Add click handler to show entries for this day
+            day.addEventListener('click', () => {
+                showDayEntries(dateStr);
+            });
         } else {
             // Empty day (before Jan 1 or after Dec 31)
             day.classList.add('heatmap-empty');
@@ -3021,6 +3031,80 @@ async function showMonthEntries(month, monthName) {
                                 ${formatCurrency(entry.amount)}
                             </span>
                             <small class="text-muted ms-2">${categoryName}</small>
+                        </div>
+                        <small class="text-muted">${entry.comment || 'No comment'}</small>
+                    </div>
+                `;
+
+                item.addEventListener('click', () => openEditEntryModal(entry));
+                list.appendChild(item);
+            });
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('monthEntriesModal'));
+        modal.show();
+    } catch (error) {
+        showError('Failed to load entries');
+    } finally {
+        hideLoading();
+    }
+}
+
+/**
+ * Show entries for a specific day (ALL categories)
+ */
+async function showDayEntries(dateStr) {
+    try {
+        showLoading();
+
+        // Parse the date to get year and month
+        const clickedDate = new Date(dateStr);
+        const year = clickedDate.getFullYear();
+        const month = clickedDate.getMonth() + 1; // Convert to 1-indexed
+
+        // Load entries for all categories for the month containing this day
+        const entryPromises = supersaverCategories.map(cat =>
+            apiCall(`/api/supersaver/${cat.id}/${year}/${month}`)
+        );
+
+        const allEntriesArrays = await Promise.all(entryPromises);
+        const allEntries = allEntriesArrays.flat();
+
+        // Filter to only entries matching this specific date
+        const dayEntries = allEntries.filter(entry => entry.date === dateStr);
+
+        // Sort by category name, then amount
+        dayEntries.sort((a, b) => {
+            const catCompare = (a.category_name || '').localeCompare(b.category_name || '');
+            if (catCompare !== 0) return catCompare;
+            return b.amount - a.amount; // Larger amounts first
+        });
+
+        // Format title with readable date
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        const readableDate = clickedDate.toLocaleDateString('en-US', options);
+        document.getElementById('monthEntriesTitle').textContent = `${readableDate} - All Categories`;
+
+        const list = document.getElementById('entriesList');
+        list.innerHTML = '';
+
+        if (dayEntries.length === 0) {
+            list.innerHTML = '<p class="text-muted text-center p-3">No entries for this day</p>';
+        } else {
+            dayEntries.forEach(entry => {
+                const item = document.createElement('div');
+                item.className = 'list-group-item list-group-item-action cursor-pointer';
+
+                const categoryName = entry.category_name || 'No category';
+
+                item.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="bi bi-piggy-bank-fill text-success me-2"></i>
+                            <strong>${categoryName}</strong>
+                            <span class="badge bg-success ms-2">
+                                ${formatCurrency(entry.amount)}
+                            </span>
                         </div>
                         <small class="text-muted">${entry.comment || 'No comment'}</small>
                     </div>

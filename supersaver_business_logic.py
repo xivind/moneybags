@@ -353,17 +353,15 @@ def get_supersaver_heatmap_year(year: int) -> dict:
         raise
 
 
-def get_supersaver_dashboard_summary(year: int = None) -> dict:
+def get_supersaver_dashboard_summary() -> dict:
     """
     Get supersaver summary for dashboard widget.
 
     Returns aggregated data across all categories for current month and year.
     Includes trend comparison with previous month.
+    Always uses current date/time (not parameterized).
     """
     try:
-        if year is None:
-            year = datetime.now().year
-
         current_month = datetime.now().month
         current_year = datetime.now().year
 

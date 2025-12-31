@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 import logging
 import business_logic
 import import_logic
+import supersaver_business_logic as ssbl
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -900,7 +901,6 @@ async def save_db_connection(request: Request):
 async def get_supersaver_categories():
     """Get all supersaver categories with balance and usage stats."""
     try:
-        import supersaver_business_logic as ssbl
         categories = ssbl.get_all_supersaver_categories()
         return {"success": True, "data": categories}
     except Exception as e:
@@ -922,7 +922,6 @@ async def create_supersaver_category(request: Request):
     }
     """
     try:
-        import supersaver_business_logic as ssbl
         data = await request.json()
         result = ssbl.create_supersaver_category(name=data["name"])
         return {"success": True, "data": result}
@@ -948,7 +947,6 @@ async def create_supersaver_category(request: Request):
 async def update_supersaver_category(category_id: str, request: Request):
     """Update supersaver category (rename only)."""
     try:
-        import supersaver_business_logic as ssbl
         data = await request.json()
         result = ssbl.update_supersaver_category(
             category_id=category_id,
@@ -977,7 +975,6 @@ async def update_supersaver_category(category_id: str, request: Request):
 async def delete_supersaver_category(category_id: str):
     """Delete supersaver category (only if no entries)."""
     try:
-        import supersaver_business_logic as ssbl
         ssbl.delete_supersaver_category(category_id)
         return {"success": True}
     except ValueError as e:
@@ -997,7 +994,6 @@ async def delete_supersaver_category(category_id: str):
 async def get_supersaver_entries(category_id: str, year: int, month: int):
     """Get all supersaver entries for category/year/month."""
     try:
-        import supersaver_business_logic as ssbl
         entries = ssbl.get_supersaver_entries_for_month(category_id, year, month)
         return {"success": True, "data": entries}
     except ValueError as e:
@@ -1027,7 +1023,6 @@ async def create_supersaver_entry(request: Request):
     }
     """
     try:
-        import supersaver_business_logic as ssbl
         data = await request.json()
         result = ssbl.create_supersaver_entry(
             category_id=data["category_id"],
@@ -1058,7 +1053,6 @@ async def create_supersaver_entry(request: Request):
 async def update_supersaver_entry(entry_id: str, request: Request):
     """Update supersaver entry."""
     try:
-        import supersaver_business_logic as ssbl
         data = await request.json()
         result = ssbl.update_supersaver_entry(
             entry_id=entry_id,
@@ -1090,7 +1084,6 @@ async def update_supersaver_entry(entry_id: str, request: Request):
 async def delete_supersaver_entry(entry_id: str):
     """Delete supersaver entry."""
     try:
-        import supersaver_business_logic as ssbl
         ssbl.delete_supersaver_entry(entry_id)
         return {"success": True}
     except ValueError as e:
@@ -1114,7 +1107,6 @@ async def get_supersaver_heatmap(year: int):
     Returns deposits aggregated by date for heatmap visualization.
     """
     try:
-        import supersaver_business_logic as ssbl
         heatmap = ssbl.get_supersaver_heatmap_year(year)
         return {"success": True, "data": heatmap}
     except Exception as e:
@@ -1129,7 +1121,6 @@ async def get_supersaver_heatmap(year: int):
 async def get_supersaver_dashboard_summary():
     """Get supersaver summary for dashboard widget (all categories, deposits only)."""
     try:
-        import supersaver_business_logic as ssbl
         summary = ssbl.get_supersaver_dashboard_summary()
         return {"success": True, "data": summary}
     except Exception as e:
