@@ -993,30 +993,6 @@ async def delete_supersaver_category(category_id: str):
         )
 
 
-@app.get("/api/supersaver/calendar/{category_id}/{year}")
-async def get_supersaver_calendar(category_id: str, year: int):
-    """
-    Get supersaver calendar for entire year (12 months).
-
-    Returns aggregated deposits/withdrawals per month + running balance.
-    """
-    try:
-        import supersaver_business_logic as ssbl
-        calendar = ssbl.get_supersaver_calendar_year(category_id, year)
-        return {"success": True, "data": calendar}
-    except ValueError as e:
-        return JSONResponse(
-            status_code=400,
-            content={"success": False, "error": str(e)}
-        )
-    except Exception as e:
-        logger.error(f"Error getting supersaver calendar: {e}")
-        return JSONResponse(
-            status_code=500,
-            content={"success": False, "error": str(e)}
-        )
-
-
 @app.get("/api/supersaver/{category_id}/{year}/{month}")
 async def get_supersaver_entries(category_id: str, year: int, month: int):
     """Get all supersaver entries for category/year/month."""

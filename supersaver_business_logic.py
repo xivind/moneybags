@@ -312,55 +312,6 @@ def get_supersaver_entries_for_month(
         raise
 
 
-def get_supersaver_calendar_year(category_id: str, year: int) -> dict:
-    """
-    Get supersaver calendar data for entire year (12 months).
-
-    Returns aggregated deposit/withdrawal totals per month.
-    Format:
-    {
-        'year': 2025,
-        'category_id': 'abc123',
-        'category_name': 'Emergency Fund',
-        'balance': 500000,
-        'months': {
-            '1': {'deposits': 100000, 'withdrawals': 0},
-            '2': {'deposits': 150000, 'withdrawals': 50000},
-            ...
-        }
-    }
-    """
-    try:
-        category = ssdb.get_supersaver_category_by_id(category_id)
-        if not category:
-            raise ValueError(f"Supersaver category {category_id} not found")
-
-        entries = ssdb.get_supersaver_entries_by_category_year(category_id, year)
-
-        # Aggregate by month
-        months = {}
-        for month in range(1, 13):
-            months[str(month)] = {'deposits': 0}
-
-        for e in entries:
-            month = str(e.date.month)
-            months[month]['deposits'] += e.amount
-
-        # Calculate balance
-        balance = ssdb.get_supersaver_balance(category_id)
-
-        return {
-            'year': year,
-            'category_id': category_id,
-            'category_name': category.name,
-            'balance': balance,
-            'months': months
-        }
-    except Exception as e:
-        logger.error(f"Failed to get supersaver calendar: {e}")
-        raise
-
-
 def get_supersaver_heatmap_year(year: int) -> dict:
     """
     Get daily heatmap data for entire year (all categories, deposits only).

@@ -121,22 +121,6 @@ def get_supersaver_entries_by_category_month(
     ).order_by(Supersaver.date.desc()))
 
 
-@db.with_retry
-def get_supersaver_entries_by_category_year(
-    category_id: str,
-    year: int
-) -> list:
-    """Get all supersaver entries for category/year."""
-    start_date = date(year, 1, 1)
-    end_date = date(year + 1, 1, 1)
-
-    return list(Supersaver.select().where(
-        (Supersaver.category_id == category_id) &
-        (Supersaver.date >= start_date) &
-        (Supersaver.date < end_date)
-    ).order_by(Supersaver.date.desc()))
-
-
 @db.with_transaction
 def update_supersaver_entry(entry_id: str, data: dict) -> Supersaver:
     """Update supersaver entry fields."""
