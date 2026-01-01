@@ -821,7 +821,7 @@ body {
 
 .dashboard-card-tall .tab-content {
     flex: 1;
-    overflow-y: hidden;
+    overflow-y: auto;
 }
 
 .dashboard-card-tall #recurring-payments-content {
@@ -920,6 +920,7 @@ body {
 
 /* Cross-platform scrollbar styling - thin, subtle scrollbars */
 .budget-progress-list,
+.dashboard-card-tall .tab-content,
 #recurring-payments-content {
     /* Modern CSS for Firefox and future browsers */
     scrollbar-width: thin;
@@ -928,22 +929,26 @@ body {
 
 /* Webkit browsers (Chrome, Safari, Edge) - make scrollbars thin and subtle */
 .budget-progress-list::-webkit-scrollbar,
+.dashboard-card-tall .tab-content::-webkit-scrollbar,
 #recurring-payments-content::-webkit-scrollbar {
     width: 6px;
 }
 
 .budget-progress-list::-webkit-scrollbar-track,
+.dashboard-card-tall .tab-content::-webkit-scrollbar-track,
 #recurring-payments-content::-webkit-scrollbar-track {
     background: transparent;
 }
 
 .budget-progress-list::-webkit-scrollbar-thumb,
+.dashboard-card-tall .tab-content::-webkit-scrollbar-thumb,
 #recurring-payments-content::-webkit-scrollbar-thumb {
     background: rgba(0, 0, 0, 0.2);
     border-radius: 3px;
 }
 
 .budget-progress-list::-webkit-scrollbar-thumb:hover,
+.dashboard-card-tall .tab-content::-webkit-scrollbar-thumb:hover,
 #recurring-payments-content::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 0, 0, 0.3);
 }
