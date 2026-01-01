@@ -235,7 +235,7 @@ body {
 .result-future {
     background-color: #e5e7eb !important; /* Grey */
     color: #9ca3af;
-    cursor: not-allowed;
+    cursor: pointer; /* Allow clicking to register anticipated transactions */
 }
 
 .budget-balance-row td {
@@ -983,18 +983,18 @@ body {
 }
 
 .heatmap-months {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: 19px; /* 15px day + 4px gap */
-    gap: 4px;
+    position: relative;
+    height: 20px;
     margin-bottom: 10px;
 }
 
 .heatmap-month-label {
+    position: absolute;
     font-size: 12px;
     color: #6b7280;
     font-weight: 500;
     text-align: left;
+    white-space: nowrap;
 }
 
 .heatmap-weeks {
@@ -1319,7 +1319,6 @@ body {
 
     .heatmap-month-label {
         font-size: 10px;
-        min-width: 38px;
     }
 
     .supersaver-submit-btn {

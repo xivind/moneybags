@@ -690,11 +690,11 @@ function generateSectionRows(sectionType) {
             const monthNum = idx + 1;
             const entry = entries[monthNum];
             const budgetValue = entry ? entry.amount : 0;
-            const isFuture = idx > currentMonth;
             const hasValue = entry ? 'has-value' : '';
             const janClass = idx === 0 ? ' jan-column' : '';
-            const cellClass = isFuture ? 'result-future' : hasValue;
-            const clickHandler = isFuture ? '' : `openBudgetModal('${category.id}', '${category.name}', ${monthNum})`;
+            // Budget cells don't use future logic - can budget for any month
+            const cellClass = hasValue;
+            const clickHandler = `openBudgetModal('${category.id}', '${category.name}', ${monthNum})`;
             // No arrow for individual budget months - only on total
             html += `<td class="${cellClass}${janClass}" onclick="${clickHandler}">`;
             html += entry ? formatCurrency(budgetValue) : '<span class="empty-cell">-</span>';
@@ -721,11 +721,14 @@ function generateSectionRows(sectionType) {
             const resultTotal = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
             const entry = entries[monthNum];
             const budgetValue = entry ? entry.amount : 0;
-            const isFuture = idx > currentMonth;
+            // Only mark as future if viewing current year and month hasn't occurred yet
+            const now = new Date();
+            const isFuture = currentYear > now.getFullYear() || (currentYear === now.getFullYear() && idx > now.getMonth());
 
             const janClass = idx === 0 ? ' jan-column' : '';
             const colorClass = getResultColorClass(resultTotal, budgetValue, sectionType, isFuture, monthTransactions.length > 0);
-            const clickHandler = isFuture ? '' : `openTransactionModal('${category.id}', '${category.name}', ${monthNum})`;
+            // Allow clicking future months to register anticipated transactions
+            const clickHandler = `openTransactionModal('${category.id}', '${category.name}', ${monthNum})`;
             const arrow = getTrendArrowHTML(category.id, monthNum, 'actual');
 
             html += `<td class="${colorClass}${janClass}" onclick="${clickHandler}">`;
@@ -846,9 +849,9 @@ function openBudgetModal(categoryId, categoryName, month) {
     // Show delete button only if entry exists
     const deleteBtn = document.getElementById('deleteBudgetBtn');
     if (entryId) {
-        deleteBtn.style.display = 'block';
+        deleteBtn.classList.remove('d-none');
     } else {
-        deleteBtn.style.display = 'none';
+        deleteBtn.classList.add('d-none');
     }
 
     modal.show();
@@ -2977,11 +2980,19 @@ function renderSupersaverCalendar(data) {
     // Create month labels positioned at actual month starts
     const monthLabels = document.createElement('div');
     monthLabels.className = 'heatmap-months';
+
+    // Calculate week width based on screen size
+    // Desktop: 15px day + 4px gap = 19px per week
+    // Mobile (< 768px): 11px day + 3px gap = 14px per week
+    const isMobile = window.innerWidth < 768;
+    const weekWidth = isMobile ? 14 : 19;
+
     monthPositions.forEach(({ month, weekIndex }) => {
         const label = document.createElement('span');
         label.className = 'heatmap-month-label';
         label.textContent = month;
-        label.style.gridColumnStart = weekIndex + 1;
+        // Position at the left edge of the corresponding week
+        label.style.left = `${weekIndex * weekWidth}px`;
         monthLabels.appendChild(label);
     });
 
@@ -3183,12 +3194,15 @@ function openEditEntryModal(entry) {
     supersaverCurrentEntryId = entry.id;
 
     // Populate form
-    const editCategorySelect = document.getElementById('editCategory');
-    editCategorySelect.value = entry.category_id;
-
     document.getElementById('editAmount').value = entry.amount;
     document.getElementById('editDate').value = entry.date;
     document.getElementById('editComment').value = entry.comment || '';
+
+    // Set category value - use setTimeout to ensure dropdown is populated
+    const editCategorySelect = document.getElementById('editCategory');
+    setTimeout(() => {
+        editCategorySelect.value = entry.category_id || '';
+    }, 50);
 
     // Close month entries modal
     const monthModal = bootstrap.Modal.getInstance(document.getElementById('monthEntriesModal'));
@@ -3259,7 +3273,12 @@ async function handleEntryEditSubmit(e) {
 async function handleEntryDelete() {
     if (!supersaverCurrentEntryId) return;
 
-    if (!confirm('Are you sure you want to delete this entry?')) return;
+    const confirmed = await showConfirmModal(
+        'Delete Entry',
+        'Are you sure you want to delete this savings entry?',
+        'Delete'
+    );
+    if (!confirmed) return;
 
     try {
         showLoading();

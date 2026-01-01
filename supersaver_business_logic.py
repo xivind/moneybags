@@ -199,7 +199,7 @@ def create_supersaver_entry(
 
         return {
             'id': entry.id,
-            'category_id': entry.category_id,
+            'category_id': str(entry.category_id) if entry.category_id else None,
             'category_name': category.name,
             'amount': entry.amount,
             'date': str(entry.date),
@@ -251,7 +251,7 @@ def update_supersaver_entry(
 
         return {
             'id': updated_entry.id,
-            'category_id': updated_entry.category_id,
+            'category_id': str(updated_entry.category_id) if updated_entry.category_id else None,
             'category_name': category.name,
             'amount': updated_entry.amount,
             'date': str(updated_entry.date),
@@ -299,7 +299,7 @@ def get_supersaver_entries_for_month(
         for e in entries:
             result.append({
                 'id': e.id,
-                'category_id': e.category_id,
+                'category_id': str(e.category_id) if e.category_id else None,
                 'category_name': category.name,
                 'amount': e.amount,
                 'date': str(e.date),
