@@ -2800,6 +2800,9 @@ function initializeDatePickers() {
             },
             localization: {
                 format: 'yyyy-MM-dd'
+            },
+            restrictions: {
+                maxDate: new Date()
             }
         });
         // Set today's date
@@ -2816,6 +2819,9 @@ function initializeDatePickers() {
             },
             localization: {
                 format: 'yyyy-MM-dd'
+            },
+            restrictions: {
+                maxDate: new Date()
             }
         });
     }
@@ -2947,6 +2953,17 @@ function renderSupersaverCalendar(data) {
     let lastMonth = -1;
 
     while (currentDate <= endDate || currentWeek.children.length > 0) {
+        // Skip days before the year starts (don't create boxes for previous year)
+        if (currentDate < startDate) {
+            currentDate.setDate(currentDate.getDate() + 1);
+            continue;
+        }
+
+        // Skip days after the year ends (don't create boxes for next year)
+        if (currentDate > endDate) {
+            break;
+        }
+
         // If we've filled a week (7 days), start a new week
         if (currentWeek.children.length === 7) {
             weeksContainer.appendChild(currentWeek);
@@ -2958,49 +2975,39 @@ function renderSupersaverCalendar(data) {
         const day = document.createElement('div');
         day.className = 'heatmap-day';
 
-        // Only show data for days in the actual year
-        if (currentDate >= startDate && currentDate <= endDate) {
-            const dateStr = currentDate.toISOString().split('T')[0];
-            const amount = data.days[dateStr] || 0;
-            const currentMonth = currentDate.getMonth();
+        // Get data for this day
+        const dateStr = currentDate.toISOString().split('T')[0];
+        const amount = data.days[dateStr] || 0;
+        const currentMonth = currentDate.getMonth();
 
-            // Track when a new month starts
-            if (currentMonth !== lastMonth && currentDate.getDate() <= 7) {
-                monthPositions.push({ month: monthNames[currentMonth], weekIndex: weekIndex });
-                lastMonth = currentMonth;
-            }
-
-            // Calculate heatmap level (0-4)
-            let level = 0;
-            if (amount > 0 && maxAmount > 0) {
-                const percentage = amount / maxAmount;
-                if (percentage > 0.75) level = 4;
-                else if (percentage > 0.5) level = 3;
-                else if (percentage > 0.25) level = 2;
-                else level = 1;
-            }
-
-            day.classList.add(`heatmap-level-${level}`);
-            day.setAttribute('data-date', dateStr);
-            day.setAttribute('data-amount', amount);
-            day.title = `${dateStr}: ${formatCurrency(amount)}`;
-
-            // Add click handler to show entries for this day
-            day.addEventListener('click', () => {
-                showDayEntries(dateStr);
-            });
-        } else {
-            // Empty day (before Jan 1 or after Dec 31)
-            day.classList.add('heatmap-empty');
+        // Track when a new month starts
+        if (currentMonth !== lastMonth && currentDate.getDate() <= 7) {
+            monthPositions.push({ month: monthNames[currentMonth], weekIndex: weekIndex });
+            lastMonth = currentMonth;
         }
+
+        // Calculate heatmap level (0-4)
+        let level = 0;
+        if (amount > 0 && maxAmount > 0) {
+            const percentage = amount / maxAmount;
+            if (percentage > 0.75) level = 4;
+            else if (percentage > 0.5) level = 3;
+            else if (percentage > 0.25) level = 2;
+            else level = 1;
+        }
+
+        day.classList.add(`heatmap-level-${level}`);
+        day.setAttribute('data-date', dateStr);
+        day.setAttribute('data-amount', amount);
+        day.title = `${dateStr}: ${formatCurrency(amount)}`;
+
+        // Add click handler to show entries for this day
+        day.addEventListener('click', () => {
+            showDayEntries(dateStr);
+        });
 
         currentWeek.appendChild(day);
         currentDate.setDate(currentDate.getDate() + 1);
-
-        // Stop after we've passed the end date and filled the current week
-        if (currentDate > endDate && currentWeek.children.length === 7) {
-            break;
-        }
     }
 
     // Append last week if not empty
