@@ -72,10 +72,10 @@ def initialize_connection(host: str = "localhost", port: int = 3306,
             timeout=10  # Connection timeout
         )
 
-        # Explicitly connect to initialize the connection pool
-        # This is required for PooledMySQLDatabase to work correctly
-        if database.is_closed():
-            database.connect()
+        # IMPORTANT: Do NOT manually call database.connect() with PooledMySQLDatabase
+        # The pool manages connections automatically. Manual connect() creates
+        # unmanaged connections that leak and never return to the pool.
+        # The first query will automatically initialize the pool.
 
         logger.info(f"Database connection pool initialized: {host}:{port}/{database_name} "
                    f"(pool_size={pool_size}, recycle={pool_recycle}s)")
@@ -102,16 +102,24 @@ def reconnect() -> bool:
     """
     Attempt to reconnect to database.
 
+    For PooledMySQLDatabase, we just close stale connections and let the pool
+    handle creating new ones automatically on the next query.
+
     Returns True if reconnection successful, False otherwise.
     """
     try:
+        # Close existing connection if open (releases back to pool or discards if stale)
         if not database.is_closed():
             database.close()
-        database.connect()
-        logger.info("Database reconnection successful")
+
+        # IMPORTANT: Do NOT manually call database.connect() with PooledMySQLDatabase
+        # The pool will automatically provide a fresh connection on the next query.
+        # Manual connect() creates unmanaged connections that leak.
+
+        logger.info("Database connection reset (pool will provide fresh connection on next query)")
         return True
     except Exception as e:
-        logger.error(f"Database reconnection failed: {e}")
+        logger.error(f"Database connection reset failed: {e}")
         return False
 
 

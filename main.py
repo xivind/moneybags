@@ -1134,7 +1134,7 @@ async def get_supersaver_dashboard_summary():
 # ==================== DASHBOARD API ====================
 
 @app.get("/api/dashboard/recurring-payments")
-def get_recurring_payments():
+async def get_recurring_payments():
     """
     Get recurring payment status for current month (expenses only).
 
@@ -1177,7 +1177,7 @@ def get_recurring_payments():
 
 
 @app.get("/api/dashboard/recent-transactions")
-def get_recent_transactions_api():
+async def get_recent_transactions_api():
     """
     Get most recent transactions for dashboard display.
 
@@ -1210,7 +1210,7 @@ def get_recent_transactions_api():
 
 
 @app.get("/api/dashboard/expense-categories")
-def get_expense_categories(period: str = "month"):
+async def get_expense_categories(period: str = "month"):
     """
     Get expense category breakdown for dashboard pie charts.
 
