@@ -918,23 +918,48 @@ body {
     margin-bottom: 0.5rem;
 }
 
-/* Scrollbar styling */
+/* Overlay-style scrollbar (hidden by default, visible on hover) */
 .budget-progress-list::-webkit-scrollbar {
     width: 8px;
 }
 
 .budget-progress-list::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
+    background: transparent;
 }
 
 .budget-progress-list::-webkit-scrollbar-thumb {
-    background: #888;
+    background: transparent;
     border-radius: 4px;
 }
 
-.budget-progress-list::-webkit-scrollbar-thumb:hover {
-    background: #555;
+.budget-progress-list:hover::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.budget-progress-list:hover::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+/* Recurring Payments - same overlay scrollbar style */
+#recurring-payments-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+#recurring-payments-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#recurring-payments-content::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 4px;
+}
+
+#recurring-payments-content:hover::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+#recurring-payments-content:hover::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.5);
 }
 
 /* ==================== SUPERSAVER STYLES ==================== */

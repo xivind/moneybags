@@ -2930,13 +2930,9 @@ function renderSupersaverCalendar(data) {
     const amounts = Object.values(data.days);
     const maxAmount = amounts.length > 0 ? Math.max(...amounts) : 0;
 
-    // Generate all days of the year
+    // Generate all days of the year - start from Jan 1, not from previous year
     const startDate = new Date(data.year, 0, 1);
     const endDate = new Date(data.year, 11, 31);
-
-    // Start from first Sunday before Jan 1 (or Jan 1 if it's Sunday)
-    const firstDay = new Date(startDate);
-    firstDay.setDate(firstDay.getDate() - firstDay.getDay());
 
     // Track month positions for labels
     const monthPositions = [];
@@ -2946,24 +2942,14 @@ function renderSupersaverCalendar(data) {
     const weeksContainer = document.createElement('div');
     weeksContainer.className = 'heatmap-weeks';
 
-    let currentDate = new Date(firstDay);
+    let currentDate = new Date(startDate);
     let currentWeek = document.createElement('div');
     currentWeek.className = 'heatmap-week';
     let weekIndex = 0;
     let lastMonth = -1;
 
-    while (currentDate <= endDate || currentWeek.children.length > 0) {
-        // Skip days before the year starts (don't create boxes for previous year)
-        if (currentDate < startDate) {
-            currentDate.setDate(currentDate.getDate() + 1);
-            continue;
-        }
-
-        // Skip days after the year ends (don't create boxes for next year)
-        if (currentDate > endDate) {
-            break;
-        }
-
+    // Loop through all days of the year
+    while (currentDate <= endDate) {
         // If we've filled a week (7 days), start a new week
         if (currentWeek.children.length === 7) {
             weeksContainer.appendChild(currentWeek);
@@ -2975,8 +2961,12 @@ function renderSupersaverCalendar(data) {
         const day = document.createElement('div');
         day.className = 'heatmap-day';
 
-        // Get data for this day
-        const dateStr = currentDate.toISOString().split('T')[0];
+        // Get data for this day (use local date string to avoid timezone issues)
+        const year = currentDate.getFullYear();
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const dayOfMonth = String(currentDate.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${dayOfMonth}`;
+
         const amount = data.days[dateStr] || 0;
         const currentMonth = currentDate.getMonth();
 
