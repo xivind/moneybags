@@ -3318,11 +3318,11 @@ async function loadSupersaverDashboardWidget() {
         // Determine trend icon
         let trendIcon = '';
         if (data.month_trend === 'up') {
-            trendIcon = '<i class="bi bi-arrow-up-circle text-success ms-2"></i>';
+            trendIcon = '<i class="bi bi-arrow-up text-success ms-2"></i>';
         } else if (data.month_trend === 'down') {
-            trendIcon = '<i class="bi bi-arrow-down-circle text-danger ms-2"></i>';
+            trendIcon = '<i class="bi bi-arrow-down text-danger ms-2"></i>';
         } else {
-            trendIcon = '<i class="bi bi-dash-circle text-secondary ms-2"></i>';
+            trendIcon = '<i class="bi bi-arrow-right text-secondary ms-2"></i>';
         }
 
         widget.innerHTML = `
