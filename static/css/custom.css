@@ -806,26 +806,96 @@ body {
     color: #6b7280 !important;
 }
 
-/* Dashboard widgets - Fixed height cards */
-.dashboard-card-fixed {
-    height: 650px;
+/* Dashboard widgets - Variable height cards for balanced layout */
+
+/* Tall widget - Budget Progress (882px to match Column 2 with gaps) */
+.dashboard-card-tall {
+    height: 882px;
 }
 
-.dashboard-card-fixed .card-body {
+.dashboard-card-tall .card-body {
     height: 100%;
     display: flex;
     flex-direction: column;
 }
 
-.dashboard-card-fixed .tab-content {
+.dashboard-card-tall .tab-content {
     flex: 1;
     overflow-y: auto;
 }
 
-.dashboard-card-fixed #recent-transactions-content,
-.dashboard-card-fixed #recurring-payments-content {
+.dashboard-card-tall #recurring-payments-content {
     flex: 1;
     overflow-y: auto;
+}
+
+/* Medium widget - Expense Categories (400px) */
+.dashboard-card-medium {
+    height: 400px;
+}
+
+.dashboard-card-medium .card-body {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 1rem 0.5rem 1rem; /* Reduce bottom padding */
+}
+
+.dashboard-card-medium .tab-content {
+    flex: 1;
+    overflow-y: hidden; /* Hide scrollbar - chart doesn't need scrolling */
+    display: flex;
+    align-items: center; /* Center chart vertically */
+}
+
+.dashboard-card-medium .tab-pane {
+    width: 100%;
+}
+
+/* Tighter spacing for chart containers */
+#expense-month-chart-container,
+#expense-year-chart-container {
+    padding: 0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Extra compact widget - Supersaver (100px) */
+.dashboard-card-extra-compact {
+    height: 100px;
+}
+
+.dashboard-card-extra-compact .card-body {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem 1rem 0.25rem 1rem; /* Very tight padding */
+}
+
+.dashboard-card-extra-compact #supersaver-widget-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden; /* Hide horizontal scrollbar */
+}
+
+/* Small widget - Recent Transactions (350px) */
+.dashboard-card-small {
+    height: 350px;
+}
+
+.dashboard-card-small .card-body {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 1rem 0.5rem 1rem; /* Reduce bottom padding */
+}
+
+.dashboard-card-small #recent-transactions-content {
+    flex: 1;
+    overflow-y: hidden; /* Hide vertical scrollbar */
+    padding-bottom: 0; /* Remove bottom whitespace */
 }
 
 .dashboard-placeholder-icon {

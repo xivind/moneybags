@@ -5,7 +5,7 @@
 {% block content %}
 <div class="row">
     <div class="col">
-        <h2 class="mb-4">Dashboard</h2>
+        <h2 class="mb-2">Dashboard</h2>
 
         {% if not database_configured %}
         <div class="alert alert-warning alert-dismissible fade show" role="alert">
@@ -29,11 +29,11 @@
 </div>
 
 {% if database_configured %}
-<!-- Row 1: Main Widgets -->
+<!-- Single Row: Three Balanced Columns (850px each) -->
 <div class="row g-3 mt-2">
-    <!-- Budget Progress Widget -->
+    <!-- Column 1: Budget Progress (850px) -->
     <div class="col-lg-4">
-        <div class="card dashboard-card-fixed">
+        <div class="card dashboard-card-tall">
             <div class="card-body">
                 <h5 class="card-title">
                     <i class="bi bi-speedometer me-2"></i>Budget Progress
@@ -80,9 +80,27 @@
         </div>
     </div>
 
-    <!-- Expense Categories Widget with Tabs -->
+    <!-- Column 2: Supersaver (100px) + Expense Categories (400px) + Recent Transactions (350px) = 850px -->
     <div class="col-lg-4">
-        <div class="card dashboard-card-fixed">
+        <!-- Supersaver Widget -->
+        <div class="card dashboard-card-extra-compact mb-3">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-piggy-bank me-2"></i>Supersaver
+                </h5>
+                <div id="supersaver-widget-content">
+                    <div class="text-center text-muted py-3">
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="small mt-2 mb-0">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expense Categories Widget -->
+        <div class="card dashboard-card-medium mb-3">
             <div class="card-body">
                 <h5 class="card-title">
                     <i class="bi bi-pie-chart me-2"></i>Expense Categories
@@ -117,11 +135,9 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Recent Transactions Widget -->
-    <div class="col-lg-4">
-        <div class="card dashboard-card-fixed">
+        <!-- Recent Transactions Widget -->
+        <div class="card dashboard-card-small">
             <div class="card-body">
                 <h5 class="card-title">
                     <i class="bi bi-clock-history me-2"></i>Recent Transactions
@@ -137,13 +153,11 @@
             </div>
         </div>
     </div>
-</div>
 
-<!-- Row 2: Secondary Widgets -->
-<div class="row g-3 mt-2">
-    <!-- Recurring Payments Widget -->
+    <!-- Column 3: Recurring Payments (850px) -->
     <div class="col-lg-4">
-        <div class="card dashboard-card-fixed">
+        <!-- Recurring Payments Widget -->
+        <div class="card dashboard-card-tall">
             <div class="card-body">
                 <h5 class="card-title">
                     <i class="bi bi-arrow-repeat me-2"></i>Recurring Payments
@@ -156,35 +170,6 @@
                         <p class="small mt-2 mb-0">Loading...</p>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Supersaver Widget -->
-    <div class="col-lg-4">
-        <div class="card dashboard-card-fixed">
-            <div class="card-body">
-                <h5 class="card-title">
-                    <i class="bi bi-piggy-bank me-2"></i>Supersaver
-                </h5>
-                <div id="supersaver-widget-content">
-                    <div class="text-center text-muted py-3">
-                        <div class="spinner-border spinner-border-sm" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="small mt-2 mb-0">Loading...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Placeholder Widget 2 -->
-    <div class="col-lg-4">
-        <div class="card dashboard-card-fixed">
-            <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                <i class="bi bi-plus-circle dashboard-placeholder-icon text-muted"></i>
-                <p class="text-muted mt-3 mb-0">Space for additional widget</p>
             </div>
         </div>
     </div>

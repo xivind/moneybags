@@ -1998,31 +1998,62 @@ async function loadBudgetProgress() {
         // Filter expense categories only
         const expenseCategories = data.categories.filter(cat => cat.type === 'expenses');
 
-        // Sort alphabetically
-        expenseCategories.sort((a, b) => a.name.localeCompare(b.name));
-
-        // Generate progress bars for each period
-        let monthHTML = '';
-        let yearHTML = '';
-
-        for (const category of expenseCategories) {
+        // Calculate totals and progress for each category
+        const categoriesWithTotals = expenseCategories.map(category => {
             const monthTotals = calculateCategoryTotals(data, category.id, 'month');
             const yearTotals = calculateCategoryTotals(data, category.id, 'year');
 
-            const monthBar = generateProgressBarHTML(
-                category.name,
-                monthTotals.budgetTotal,
-                monthTotals.actualTotal
-            );
+            // Calculate progress percentage (actual / budget * 100)
+            const monthProgress = monthTotals.budgetTotal > 0
+                ? (monthTotals.actualTotal / monthTotals.budgetTotal * 100)
+                : 0;
+            const yearProgress = yearTotals.budgetTotal > 0
+                ? (yearTotals.actualTotal / yearTotals.budgetTotal * 100)
+                : 0;
 
-            const yearBar = generateProgressBarHTML(
-                category.name,
-                yearTotals.budgetTotal,
-                yearTotals.actualTotal
-            );
+            return {
+                category,
+                monthTotals,
+                yearTotals,
+                monthProgress,
+                yearProgress
+            };
+        });
 
-            monthHTML += monthBar;
-            yearHTML += yearBar;
+        // Sort for month tab: by progress (descending), then alphabetically
+        const monthSorted = [...categoriesWithTotals].sort((a, b) => {
+            if (b.monthProgress !== a.monthProgress) {
+                return b.monthProgress - a.monthProgress; // Highest progress first
+            }
+            return a.category.name.localeCompare(b.category.name); // Alphabetical tiebreaker
+        });
+
+        // Sort for year tab: by progress (descending), then alphabetically
+        const yearSorted = [...categoriesWithTotals].sort((a, b) => {
+            if (b.yearProgress !== a.yearProgress) {
+                return b.yearProgress - a.yearProgress; // Highest progress first
+            }
+            return a.category.name.localeCompare(b.category.name); // Alphabetical tiebreaker
+        });
+
+        // Generate progress bars for month tab
+        let monthHTML = '';
+        for (const item of monthSorted) {
+            monthHTML += generateProgressBarHTML(
+                item.category.name,
+                item.monthTotals.budgetTotal,
+                item.monthTotals.actualTotal
+            );
+        }
+
+        // Generate progress bars for year tab
+        let yearHTML = '';
+        for (const item of yearSorted) {
+            yearHTML += generateProgressBarHTML(
+                item.category.name,
+                item.yearTotals.budgetTotal,
+                item.yearTotals.actualTotal
+            );
         }
 
         // Handle empty states
