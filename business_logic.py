@@ -1265,6 +1265,7 @@ def get_recurring_payment_status(category_filter: list = None) -> list:
         # Get current date and calculate month boundaries
         today = date.today()
         current_month_start = date(today.year, today.month, 1)
+        current_month_end = (current_month_start + relativedelta(months=1)) - relativedelta(days=1)
 
         # Previous month (month - 1)
         prev_month_start = current_month_start - relativedelta(months=1)
@@ -1274,9 +1275,10 @@ def get_recurring_payment_status(category_filter: list = None) -> list:
         two_months_ago_start = current_month_start - relativedelta(months=2)
         two_months_ago_end = prev_month_start - relativedelta(days=1)
 
-        # Get transactions for the last 3 months
+        # Get transactions for the last 3 months through end of current month
+        # This includes transactions with future dates in the current month
         three_months_ago_start = current_month_start - relativedelta(months=2)
-        transactions = db.get_transactions_by_date_range(three_months_ago_start, today)
+        transactions = db.get_transactions_by_date_range(three_months_ago_start, current_month_end)
 
         # Group transactions by payee and month
         payee_months = {}  # {payee_id: {month_key: [transactions]}}
