@@ -821,7 +821,7 @@ body {
 
 .dashboard-card-tall .tab-content {
     flex: 1;
-    overflow-y: auto;
+    overflow-y: hidden;
 }
 
 .dashboard-card-tall #recurring-payments-content {
