@@ -1950,20 +1950,22 @@ function calculateCategoryTotals(budgetData, categoryId, period) {
 }
 
 function generateProgressBarHTML(categoryName, budgetTotal, actualTotal) {
-    // Skip if no budget set
-    if (budgetTotal === 0) {
+    if (budgetTotal === 0 && actualTotal === 0) {
         return '';
     }
 
-    const percentage = Math.min((actualTotal / budgetTotal) * 100, 100);
-    const isOverBudget = actualTotal > budgetTotal;
-    const barColor = isOverBudget ? 'bg-danger' : 'bg-success';
+    const noBudget = budgetTotal === 0;
+    const percentage = noBudget ? 100 : Math.min((actualTotal / budgetTotal) * 100, 100);
+    const isOverBudget = !noBudget && actualTotal > budgetTotal;
+    const barColor = (noBudget || isOverBudget) ? 'bg-danger' : 'bg-success';
     const remaining = budgetTotal - actualTotal;
 
     // Label text
-    const labelText = isOverBudget
-        ? `${escapeHtml(categoryName)} - Budget exceeded by ${formatCurrency(actualTotal - budgetTotal)}`
-        : `${escapeHtml(categoryName)} - ${formatCurrency(remaining)} remaining`;
+    const labelText = noBudget
+        ? `${escapeHtml(categoryName)} - No budget set — actual: ${formatCurrency(actualTotal)}`
+        : isOverBudget
+            ? `${escapeHtml(categoryName)} - Budget exceeded by ${formatCurrency(actualTotal - budgetTotal)}`
+            : `${escapeHtml(categoryName)} - ${formatCurrency(remaining)} remaining`;
 
     let html = `
         <div class="progress-row">
@@ -2003,13 +2005,13 @@ async function loadBudgetProgress() {
             const monthTotals = calculateCategoryTotals(data, category.id, 'month');
             const yearTotals = calculateCategoryTotals(data, category.id, 'year');
 
-            // Calculate progress percentage (actual / budget * 100)
-            const monthProgress = monthTotals.budgetTotal > 0
-                ? (monthTotals.actualTotal / monthTotals.budgetTotal * 100)
-                : 0;
-            const yearProgress = yearTotals.budgetTotal > 0
-                ? (yearTotals.actualTotal / yearTotals.budgetTotal * 100)
-                : 0;
+            // Calculate progress percentage (actual / budget * 100); no budget + actual = Infinity so it sorts first
+            const monthProgress = monthTotals.budgetTotal === 0
+                ? (monthTotals.actualTotal > 0 ? Infinity : 0)
+                : (monthTotals.actualTotal / monthTotals.budgetTotal * 100);
+            const yearProgress = yearTotals.budgetTotal === 0
+                ? (yearTotals.actualTotal > 0 ? Infinity : 0)
+                : (yearTotals.actualTotal / yearTotals.budgetTotal * 100);
 
             return {
                 category,
