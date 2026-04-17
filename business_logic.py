@@ -1343,8 +1343,9 @@ def get_recurring_payment_status(category_filter: list = None) -> list:
                     'last_amount': last_transaction.amount
                 })
 
-        # Sort: pending first, then paid (alphabetically within each group)
-        recurring_payees.sort(key=lambda p: (p['status'] == 'paid', p['payee_name']))
+        # Sort: pending first, then paid; most recent payment date first within each group
+        recurring_payees.sort(key=lambda p: p['last_payment_date'], reverse=True)
+        recurring_payees.sort(key=lambda p: p['status'] == 'paid')
 
         logger.info(f"Business logic: Found {len(recurring_payees)} recurring payments")
         return recurring_payees
