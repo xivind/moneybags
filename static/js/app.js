@@ -589,10 +589,12 @@ function generateBalanceRows() {
     months.forEach((month, idx) => {
         const janClass = idx === 0 ? ' jan-column' : '';
         const balance = calculateMonthlyBudgetBalance(idx);
-        html += `<td class="balance-white-cell${janClass}">${formatCurrency(balance)}</td>`;
+        const textClass = balance > 0 ? ' balance-positive' : balance < 0 ? ' balance-negative' : '';
+        html += `<td class="balance-white-cell${textClass}${janClass}">${formatCurrency(balance)}</td>`;
     });
     const totalBalance = months.reduce((sum, month, idx) => sum + calculateMonthlyBudgetBalance(idx), 0);
-    html += `<td class="total-column balance-white-cell">${formatCurrency(totalBalance)}</td>`;
+    const totalTextClass = totalBalance > 0 ? ' balance-positive' : totalBalance < 0 ? ' balance-negative' : '';
+    html += `<td class="total-column balance-white-cell${totalTextClass}">${formatCurrency(totalBalance)}</td>`;
     html += '</tr>';
 
     // Result Balance row

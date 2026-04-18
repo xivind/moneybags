@@ -259,6 +259,14 @@ body {
     color: #000000;
 }
 
+.balance-white-cell.balance-positive {
+    color: #047857;
+}
+
+.balance-white-cell.balance-negative {
+    color: #b91c1c;
+}
+
 .positive {
     color: #059669;
 }
