@@ -10,56 +10,6 @@
     </div>
 </div>
 
-<!-- Quick Add Savings Form -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="bi bi-piggy-bank-fill me-2"></i>Add Savings</h5>
-            </div>
-            <div class="card-body">
-                <form id="quickEntryForm">
-                    <div class="row g-3 align-items-end">
-                        <!-- Category -->
-                        <div class="col-md-3">
-                            <label for="quickCategory" class="form-label">Category</label>
-                            <select id="quickCategory" class="form-select" required>
-                                <option value="">Select category...</option>
-                                <!-- Populated by JavaScript -->
-                            </select>
-                        </div>
-
-                        <!-- Amount -->
-                        <div class="col-md-3">
-                            <label for="quickAmount" class="form-label">Amount</label>
-                            <input type="number" id="quickAmount" class="form-control" required min="0" step="1" placeholder="0">
-                        </div>
-
-                        <!-- Comment -->
-                        <div class="col-md-3">
-                            <label for="quickComment" class="form-label">Comment</label>
-                            <input type="text" id="quickComment" class="form-control" placeholder="Optional">
-                        </div>
-
-                        <!-- Date -->
-                        <div class="col-md-2">
-                            <label for="quickDate" class="form-label">Date</label>
-                            <input type="text" id="quickDate" class="form-control supersaver-date-input" required>
-                        </div>
-
-                        <!-- Button -->
-                        <div class="col-md-1 text-end">
-                            <button type="submit" class="btn btn-success btn-sm supersaver-submit-btn">
-                                <i class="bi bi-check-circle"></i>
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Daily Heatmap Calendar -->
 <div class="row">
     <div class="col-12">
@@ -120,8 +70,32 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div id="entriesList" class="list-group">
+                <div id="entriesList" class="list-group mb-3">
                     <!-- Populated by JavaScript -->
+                </div>
+                <div id="calendarAddEntryForm" class="d-none border-top pt-3">
+                    <h6 class="mb-3"><i class="bi bi-piggy-bank-fill me-2"></i>Add Entry</h6>
+                    <form id="calendarQuickEntryForm">
+                        <div class="mb-2">
+                            <label for="calendarCategory" class="form-label">Category</label>
+                            <select id="calendarCategory" class="form-select form-select-sm" required>
+                                <option value="">Select category...</option>
+                            </select>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label for="calendarAmount" class="form-label">Amount</label>
+                                <input type="number" id="calendarAmount" class="form-control form-control-sm" required min="0" step="1" placeholder="0">
+                            </div>
+                            <div class="col-6">
+                                <label for="calendarComment" class="form-label">Comment</label>
+                                <input type="text" id="calendarComment" class="form-control form-control-sm" placeholder="Optional">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success btn-sm">
+                            <i class="bi bi-check-circle"></i> Add
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>

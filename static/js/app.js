@@ -2163,7 +2163,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // Initialize supersaver page
-    if (document.getElementById('quickCategory')) {
+    if (document.getElementById('heatmapCalendar')) {
         initSupersaver();
     }
 
@@ -2789,39 +2789,7 @@ async function initSupersaver() {
  * Initialize date pickers for supersaver forms
  */
 function initializeDatePickers() {
-    const quickDateInput = document.getElementById('quickDate');
     const editDateInput = document.getElementById('editDate');
-
-    if (quickDateInput && typeof tempusDominus !== 'undefined') {
-        new tempusDominus.TempusDominus(quickDateInput, {
-            display: {
-                theme: 'light',
-                components: {
-                    clock: false
-                },
-                icons: {
-                    type: 'icons',
-                    time: 'bi bi-clock',
-                    date: 'bi bi-calendar',
-                    up: 'bi bi-arrow-up',
-                    down: 'bi bi-arrow-down',
-                    previous: 'bi bi-chevron-left',
-                    next: 'bi bi-chevron-right',
-                    today: 'bi bi-calendar-check',
-                    clear: 'bi bi-trash',
-                    close: 'bi bi-x'
-                }
-            },
-            localization: {
-                format: 'yyyy-MM-dd'
-            },
-            restrictions: {
-                maxDate: new Date()
-            }
-        });
-        // Set today's date
-        quickDateInput.value = new Date().toISOString().split('T')[0];
-    }
 
     if (editDateInput && typeof tempusDominus !== 'undefined') {
         new tempusDominus.TempusDominus(editDateInput, {
@@ -2857,12 +2825,6 @@ function initializeDatePickers() {
  * Setup event listeners for supersaver
  */
 function setupSupersaverEventListeners() {
-    // Quick entry form
-    const quickForm = document.getElementById('quickEntryForm');
-    if (quickForm) {
-        quickForm.addEventListener('submit', handleQuickEntrySubmit);
-    }
-
     // Entry edit form
     const editForm = document.getElementById('entryEditForm');
     if (editForm) {
@@ -2874,6 +2836,12 @@ function setupSupersaverEventListeners() {
     if (deleteBtn) {
         deleteBtn.addEventListener('click', handleEntryDelete);
     }
+
+    // Calendar inline add form
+    const calendarForm = document.getElementById('calendarQuickEntryForm');
+    if (calendarForm) {
+        calendarForm.addEventListener('submit', handleCalendarAddEntrySubmit);
+    }
 }
 
 /**
@@ -2884,17 +2852,6 @@ async function loadSupersaverCategories() {
         const data = await apiCall('/api/supersaver-categories');
         supersaverCategories = data;
 
-        // Populate quick entry dropdown
-        const quickCategorySelect = document.getElementById('quickCategory');
-        if (quickCategorySelect) {
-            quickCategorySelect.innerHTML = '<option value="">Select category...</option>';
-            data.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat.id;
-                option.textContent = cat.name;
-                quickCategorySelect.appendChild(option);
-            });
-        }
 
         // Populate edit entry dropdown
         const editCategorySelect = document.getElementById('editCategory');
@@ -3106,6 +3063,9 @@ async function showMonthEntries(month, monthName) {
             });
         }
 
+        // Hide inline add form for month view
+        document.getElementById('calendarAddEntryForm').classList.add('d-none');
+
         const modal = new bootstrap.Modal(document.getElementById('monthEntriesModal'));
         modal.show();
     } catch (error) {
@@ -3180,6 +3140,25 @@ async function showDayEntries(dateStr) {
             });
         }
 
+        // Show inline add form with date pre-filled
+        const addForm = document.getElementById('calendarAddEntryForm');
+        addForm.classList.remove('d-none');
+        addForm.dataset.date = dateStr;
+
+        // Populate category dropdown
+        const catSelect = document.getElementById('calendarCategory');
+        catSelect.innerHTML = '<option value="">Select category...</option>';
+        supersaverCategories.forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat.id;
+            opt.textContent = cat.name;
+            catSelect.appendChild(opt);
+        });
+
+        // Reset amount and comment
+        document.getElementById('calendarAmount').value = '';
+        document.getElementById('calendarComment').value = '';
+
         const modal = new bootstrap.Modal(document.getElementById('monthEntriesModal'));
         modal.show();
     } catch (error) {
@@ -3190,54 +3169,38 @@ async function showDayEntries(dateStr) {
 }
 
 /**
- * Handle quick entry form submission
+ * Handle inline add entry form submission from calendar day modal
  */
-async function handleQuickEntrySubmit(e) {
+async function handleCalendarAddEntrySubmit(e) {
     e.preventDefault();
 
+    const addForm = document.getElementById('calendarAddEntryForm');
+    const dateStr = addForm.dataset.date;
+    const category_id = document.getElementById('calendarCategory').value;
+    const amount = parseInt(document.getElementById('calendarAmount').value);
+    const comment = document.getElementById('calendarComment').value || null;
+
+    if (!category_id) {
+        showError('Please select a category');
+        return;
+    }
+
     try {
-        showLoading();
-
-        const category_id = document.getElementById('quickCategory').value;
-        const amount = parseInt(document.getElementById('quickAmount').value);
-        const dateValue = document.getElementById('quickDate').value;
-        const comment = document.getElementById('quickComment').value || null;
-
-        // Validate category
-        if (!category_id) {
-            showError('Please select a category');
-            hideLoading();
-            return;
-        }
-
-        // Extract just the date part if it includes time
-        const date = dateValue.split(' ')[0];
-
         await apiCall('/api/supersaver', {
             method: 'POST',
-            body: JSON.stringify({
-                category_id: category_id,
-                amount: amount,
-                date: date,
-                comment: comment
-            })
+            body: JSON.stringify({ category_id, amount, date: dateStr, comment })
         });
 
-        // Reset form
-        document.getElementById('quickEntryForm').reset();
-        document.getElementById('quickDate').value = new Date().toISOString().split('T')[0];
-
-        // Reload calendar and categories (to update balance)
         await Promise.all([
             loadSupersaverCalendar(),
             loadSupersaverCategories()
         ]);
 
+        bootstrap.Modal.getInstance(document.getElementById('monthEntriesModal')).hide();
         showSuccess('Savings added successfully');
+        await showDayEntries(dateStr);
     } catch (error) {
         showError(error.message || 'Failed to add savings');
-    } finally {
-        hideLoading();
     }
 }
 
