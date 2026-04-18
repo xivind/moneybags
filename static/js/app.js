@@ -848,8 +848,14 @@ function openBudgetModal(categoryId, categoryName, month) {
     currentCell = { categoryId, categoryName, month, type: 'budget', entryId };
 
     const modal = new bootstrap.Modal(document.getElementById('budgetModal'));
-    document.getElementById('budgetModalTitle').textContent =
-        `${categoryName} - Budget - ${months[month - 1]}`;
+    document.getElementById('budgetModalTitle').textContent = 'Budget';
+
+    const category = getCategoryById(categoryId);
+    const categoryBadgeClass = category.type === 'income' ? 'badge-income' : 'badge-expense';
+    const categoryBadge = document.getElementById('budgetModalCategory');
+    categoryBadge.textContent = categoryName;
+    categoryBadge.className = 'badge me-2 ' + categoryBadgeClass;
+    document.getElementById('budgetModalMonth').textContent = months[month - 1];
 
     const currentValue = entry ? entry.amount : 0;
     document.getElementById('budgetAmount').value = currentValue;
