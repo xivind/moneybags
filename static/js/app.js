@@ -615,7 +615,7 @@ function generateBalanceRows() {
     html += '</tr>';
 
     // Difference row
-    html += '<tr class="difference-row section-tile-row"><td class="category-cell">Difference</td>';
+    html += '<tr class="difference-row section-tile-row section-last-row"><td class="category-cell">Difference</td>';
     months.forEach((month, idx) => {
         const janClass = idx === 0 ? ' jan-column' : '';
         const now = new Date();
@@ -682,7 +682,9 @@ function generateSectionRows(sectionType) {
     let html = '';
     const sectionCategories = budgetData.categories.filter(c => c.type === sectionType);
 
-    sectionCategories.forEach(category => {
+    sectionCategories.forEach((category, catIdx) => {
+        const isLastCategory = catIdx === sectionCategories.length - 1;
+
         // Category header
         html += `<tr class="section-tile-row category-header-row"><td colspan="${months.length + 2}" class="category-header-cell">${category.name}</td></tr>`;
 
@@ -716,7 +718,8 @@ function generateSectionRows(sectionType) {
         html += '</tr>';
 
         // Result row
-        html += `<tr class="result-row section-tile-row">`;
+        const resultRowClass = isLastCategory ? 'result-row section-tile-row section-last-row' : 'result-row section-tile-row';
+        html += `<tr class="${resultRowClass}">`;
         html += `<td class="subcategory-cell">Actuals</td>`;
 
         const transactions = budgetData.transactions[category.id] || {};

@@ -72,15 +72,15 @@ body {
 }
 
 /* Create card shadow effect for sections */
-.budget-table tbody tr.section-tile-row:last-child td {
+.budget-table tbody tr.section-last-row td {
     border-bottom: 2px solid #e5e7eb;
 }
 
-.budget-table tbody tr.section-tile-row:last-child td:first-child {
+.budget-table tbody tr.section-last-row td:first-child {
     border-radius: 0 0 0 8px;
 }
 
-.budget-table tbody tr.section-tile-row:last-child td:last-child {
+.budget-table tbody tr.section-last-row td:last-child {
     border-radius: 0 0 8px 0;
 }
 
