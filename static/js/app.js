@@ -599,14 +599,16 @@ function generateBalanceRows() {
     html += '<tr class="result-balance-row section-tile-row"><td class="category-cell">Result Balance</td>';
     months.forEach((month, idx) => {
         const janClass = idx === 0 ? ' jan-column' : '';
+        const now = new Date();
+        const isFuture = currentYear > now.getFullYear() || (currentYear === now.getFullYear() && idx > now.getMonth());
         const actualResult = calculateMonthlyResult(idx);
         const budgetBalance = calculateMonthlyBudgetBalance(idx);
-        const colorClass = getBalanceColorClass(actualResult, budgetBalance);
+        const colorClass = getBalanceColorClass(actualResult, budgetBalance, isFuture);
         html += `<td class="${colorClass}${janClass}">${formatCurrency(actualResult)}</td>`;
     });
     const totalResult = months.reduce((sum, month, idx) => sum + calculateMonthlyResult(idx), 0);
     const totalBudget = months.reduce((sum, month, idx) => sum + calculateMonthlyBudgetBalance(idx), 0);
-    const totalColorClass = getBalanceColorClass(totalResult, totalBudget);
+    const totalColorClass = getBalanceColorClass(totalResult, totalBudget, false);
     html += `<td class="total-column ${totalColorClass}">${formatCurrency(totalResult)}</td>`;
     html += '</tr>';
 
@@ -614,12 +616,14 @@ function generateBalanceRows() {
     html += '<tr class="difference-row section-tile-row"><td class="category-cell">Difference</td>';
     months.forEach((month, idx) => {
         const janClass = idx === 0 ? ' jan-column' : '';
+        const now = new Date();
+        const isFuture = currentYear > now.getFullYear() || (currentYear === now.getFullYear() && idx > now.getMonth());
         const diff = calculateMonthlyDifference(idx);
-        const colorClass = getDifferenceColorClass(diff);
+        const colorClass = getDifferenceColorClass(diff, isFuture);
         html += `<td class="${colorClass}${janClass}">${formatCurrency(diff)}</td>`;
     });
     const totalDiff = months.reduce((sum, month, idx) => sum + calculateMonthlyDifference(idx), 0);
-    const totalDiffColorClass = getDifferenceColorClass(totalDiff);
+    const totalDiffColorClass = getDifferenceColorClass(totalDiff, false);
     html += `<td class="total-column ${totalDiffColorClass}">${formatCurrency(totalDiff)}</td>`;
     html += '</tr>';
 
@@ -770,12 +774,14 @@ function getTotalColorClass(result, budget, section, hasTransactions) {
     }
 }
 
-function getBalanceColorClass(actualResult, budgetBalance) {
+function getBalanceColorClass(actualResult, budgetBalance, isFuture) {
+    if (isFuture) return 'result-future';
     if (actualResult === 0) return 'balance-white-cell';
     return actualResult >= budgetBalance ? 'result-better' : 'result-worse';
 }
 
-function getDifferenceColorClass(difference) {
+function getDifferenceColorClass(difference, isFuture) {
+    if (isFuture) return 'result-future';
     if (difference === 0) return 'balance-white-cell';
     return difference >= 0 ? 'result-better' : 'result-worse';
 }
