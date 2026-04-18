@@ -2768,7 +2768,6 @@ async function removeRecurringCategory(categoryId) {
 let supersaverCategories = [];
 let supersaverCurrentYear = new Date().getFullYear();
 let supersaverCalendarData = null;
-let supersaverCurrentEntryId = null;
 
 /**
  * Initialize supersaver page
@@ -2789,59 +2788,44 @@ async function initSupersaver() {
  * Initialize date pickers for supersaver forms
  */
 function initializeDatePickers() {
-    const editDateInput = document.getElementById('editDate');
-
-    if (editDateInput && typeof tempusDominus !== 'undefined') {
-        new tempusDominus.TempusDominus(editDateInput, {
-            display: {
-                theme: 'light',
-                components: {
-                    clock: false
-                },
-                icons: {
-                    type: 'icons',
-                    time: 'bi bi-clock',
-                    date: 'bi bi-calendar',
-                    up: 'bi bi-arrow-up',
-                    down: 'bi bi-arrow-down',
-                    previous: 'bi bi-chevron-left',
-                    next: 'bi bi-chevron-right',
-                    today: 'bi bi-calendar-check',
-                    clear: 'bi bi-trash',
-                    close: 'bi bi-x'
-                }
-            },
-            localization: {
-                format: 'yyyy-MM-dd'
-            },
-            restrictions: {
-                maxDate: new Date()
-            }
-        });
-    }
+    // Date pickers removed — dates are set via calendar day selection
 }
 
 /**
  * Setup event listeners for supersaver
  */
 function setupSupersaverEventListeners() {
-    // Entry edit form
-    const editForm = document.getElementById('entryEditForm');
-    if (editForm) {
-        editForm.addEventListener('submit', handleEntryEditSubmit);
-    }
-
-    // Delete entry button
-    const deleteBtn = document.getElementById('deleteEntryBtn');
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', handleEntryDelete);
-    }
+    // Entry edit form listener removed — editing now uses inline calendar form
 
     // Calendar inline add form
     const calendarForm = document.getElementById('calendarQuickEntryForm');
     if (calendarForm) {
         calendarForm.addEventListener('submit', handleCalendarAddEntrySubmit);
     }
+
+    // Calendar delete button
+    const calendarDeleteBtn = document.getElementById('calendarDeleteBtn');
+    if (calendarDeleteBtn) {
+        calendarDeleteBtn.addEventListener('click', handleCalendarDeleteEntry);
+    }
+
+    // Cancel edit — reset form to add mode
+    const calendarCancelEdit = document.getElementById('calendarCancelEdit');
+    if (calendarCancelEdit) {
+        calendarCancelEdit.addEventListener('click', resetCalendarFormToAddMode);
+    }
+}
+
+function resetCalendarFormToAddMode() {
+    const addForm = document.getElementById('calendarAddEntryForm');
+    delete addForm.dataset.entryId;
+    document.getElementById('calendarCategory').value = '';
+    document.getElementById('calendarAmount').value = '';
+    document.getElementById('calendarComment').value = '';
+    document.getElementById('calendarFormTitle').textContent = 'Add Entry';
+    document.getElementById('calendarSubmitLabel').textContent = 'Add';
+    document.getElementById('calendarDeleteBtn').classList.add('d-none');
+    document.getElementById('calendarCancelEdit').classList.add('d-none');
 }
 
 /**
@@ -2853,17 +2837,7 @@ async function loadSupersaverCategories() {
         supersaverCategories = data;
 
 
-        // Populate edit entry dropdown
-        const editCategorySelect = document.getElementById('editCategory');
-        if (editCategorySelect) {
-            editCategorySelect.innerHTML = '<option value="">No category</option>';
-            data.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat.id;
-                option.textContent = cat.name;
-                editCategorySelect.appendChild(option);
-            });
-        }
+
     } catch (error) {
         showError('Failed to load supersaver categories');
     }
@@ -3140,10 +3114,15 @@ async function showDayEntries(dateStr) {
             });
         }
 
-        // Show inline add form with date pre-filled
+        // Show inline add form with date pre-filled, reset to add mode
         const addForm = document.getElementById('calendarAddEntryForm');
         addForm.classList.remove('d-none');
         addForm.dataset.date = dateStr;
+        delete addForm.dataset.entryId;
+        document.getElementById('calendarFormTitle').textContent = 'Add Entry';
+        document.getElementById('calendarSubmitLabel').textContent = 'Add';
+        document.getElementById('calendarDeleteBtn').classList.add('d-none');
+        document.getElementById('calendarCancelEdit').classList.add('d-none');
 
         // Populate category dropdown
         const catSelect = document.getElementById('calendarCategory');
@@ -3176,6 +3155,7 @@ async function handleCalendarAddEntrySubmit(e) {
 
     const addForm = document.getElementById('calendarAddEntryForm');
     const dateStr = addForm.dataset.date;
+    const entryId = addForm.dataset.entryId || null;
     const category_id = document.getElementById('calendarCategory').value;
     const amount = parseInt(document.getElementById('calendarAmount').value);
     const comment = document.getElementById('calendarComment').value || null;
@@ -3186,10 +3166,19 @@ async function handleCalendarAddEntrySubmit(e) {
     }
 
     try {
-        await apiCall('/api/supersaver', {
-            method: 'POST',
-            body: JSON.stringify({ category_id, amount, date: dateStr, comment })
-        });
+        if (entryId) {
+            await apiCall(`/api/supersaver/${entryId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ category_id, amount, date: dateStr, comment })
+            });
+            showSuccess('Entry updated successfully');
+        } else {
+            await apiCall('/api/supersaver', {
+                method: 'POST',
+                body: JSON.stringify({ category_id, amount, date: dateStr, comment })
+            });
+            showSuccess('Savings added successfully');
+        }
 
         await Promise.all([
             loadSupersaverCalendar(),
@@ -3197,98 +3186,45 @@ async function handleCalendarAddEntrySubmit(e) {
         ]);
 
         bootstrap.Modal.getInstance(document.getElementById('monthEntriesModal')).hide();
-        showSuccess('Savings added successfully');
         await showDayEntries(dateStr);
     } catch (error) {
-        showError(error.message || 'Failed to add savings');
+        showError(error.message || 'Failed to save entry');
     }
 }
 
 /**
- * Open edit entry modal
+ * Switch inline form to edit mode for an existing entry
  */
 function openEditEntryModal(entry) {
-    supersaverCurrentEntryId = entry.id;
+    const addForm = document.getElementById('calendarAddEntryForm');
+    addForm.dataset.date = entry.date;
+    addForm.dataset.entryId = entry.id;
 
-    // Populate form
-    document.getElementById('editAmount').value = entry.amount;
-    document.getElementById('editDate').value = entry.date;
-    document.getElementById('editComment').value = entry.comment || '';
+    // Populate fields
+    document.getElementById('calendarAmount').value = entry.amount;
+    document.getElementById('calendarComment').value = entry.comment || '';
+    const catSelect = document.getElementById('calendarCategory');
+    catSelect.value = entry.category_id || '';
 
-    // Set category value - use setTimeout to ensure dropdown is populated
-    const editCategorySelect = document.getElementById('editCategory');
-    setTimeout(() => {
-        editCategorySelect.value = entry.category_id || '';
-    }, 50);
+    // Switch to edit mode UI
+    document.getElementById('calendarFormTitle').textContent = 'Edit Entry';
+    document.getElementById('calendarSubmitLabel').textContent = 'Save Changes';
+    document.getElementById('calendarDeleteBtn').classList.remove('d-none');
+    document.getElementById('calendarCancelEdit').classList.remove('d-none');
+    addForm.classList.remove('d-none');
 
-    // Close month entries modal
-    const monthModal = bootstrap.Modal.getInstance(document.getElementById('monthEntriesModal'));
-    if (monthModal) monthModal.hide();
-
-    // Show edit modal
-    const editModal = new bootstrap.Modal(document.getElementById('entryEditModal'));
-    editModal.show();
+    // Scroll form into view
+    addForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 /**
- * Handle entry edit form submission
+ * Handle entry deletion from inline calendar form
  */
-async function handleEntryEditSubmit(e) {
-    e.preventDefault();
-
-    if (!supersaverCurrentEntryId) return;
-
-    try {
-        showLoading();
-
-        const category_id = document.getElementById('editCategory').value;
-        const amount = parseInt(document.getElementById('editAmount').value);
-        const dateValue = document.getElementById('editDate').value;
-        const comment = document.getElementById('editComment').value || null;
-
-        // Validate category
-        if (!category_id) {
-            showError('Please select a category');
-            hideLoading();
-            return;
-        }
-
-        // Extract just the date part
-        const date = dateValue.split(' ')[0];
-
-        await apiCall(`/api/supersaver/${supersaverCurrentEntryId}`, {
-            method: 'PUT',
-            body: JSON.stringify({
-                category_id: category_id,
-                amount: amount,
-                date: date,
-                comment: comment
-            })
-        });
-
-        // Close modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('entryEditModal'));
-        if (modal) modal.hide();
-
-        // Reload data
-        await Promise.all([
-            loadSupersaverCalendar(),
-            loadSupersaverCategories()
-        ]);
-
-        showSuccess('Entry updated successfully');
-    } catch (error) {
-        showError(error.message || 'Failed to update entry');
-    } finally {
-        hideLoading();
-    }
-}
-
-/**
- * Handle entry deletion
- */
-async function handleEntryDelete() {
-    if (!supersaverCurrentEntryId) return;
+async function handleCalendarDeleteEntry() {
+    const addForm = document.getElementById('calendarAddEntryForm');
+    const entryId = addForm.dataset.entryId;
+    const dateStr = addForm.dataset.date;
+    if (!entryId) return;
 
     const confirmed = await showConfirmModal(
         'Delete Entry',
@@ -3298,27 +3234,18 @@ async function handleEntryDelete() {
     if (!confirmed) return;
 
     try {
-        showLoading();
+        await apiCall(`/api/supersaver/${entryId}`, { method: 'DELETE' });
 
-        await apiCall(`/api/supersaver/${supersaverCurrentEntryId}`, {
-            method: 'DELETE'
-        });
-
-        // Close modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('entryEditModal'));
-        if (modal) modal.hide();
-
-        // Reload data
         await Promise.all([
             loadSupersaverCalendar(),
             loadSupersaverCategories()
         ]);
 
+        bootstrap.Modal.getInstance(document.getElementById('monthEntriesModal')).hide();
         showSuccess('Entry deleted successfully');
+        await showDayEntries(dateStr);
     } catch (error) {
         showError(error.message || 'Failed to delete entry');
-    } finally {
-        hideLoading();
     }
 }
 

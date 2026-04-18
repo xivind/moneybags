@@ -1351,22 +1351,6 @@ body {
     opacity: 0.5;
 }
 
-/* Supersaver date picker styling */
-#quickDate,
-#editDate {
-    background-color: #ffffff;
-    border: 2px solid #d1d5db;
-    border-radius: 8px;
-    padding: 12px 16px;
-    transition: all 0.2s ease;
-}
-
-#quickDate:focus,
-#editDate:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
 
 /* Responsive heatmap adjustments */
 @media (max-width: 768px) {
