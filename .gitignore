@@ -37,8 +37,6 @@ coverage.xml
 # Database
 data/
 
-# Playwright MCP
-.playwright-mcp/
 data
 
 # graphify - local-only cost log
