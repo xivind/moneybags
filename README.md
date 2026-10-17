@@ -15,7 +15,7 @@ Moneybags helps you take control of your personal finances by allowing you to:
 
 **Status:** Production-ready ✅
 
-The core application is fully implemented and tested with 34 passing tests. Dashboard and Analysis pages are intentionally placeholders, pending production data to inform their design.
+The core application is fully implemented and tested with 18 tests. Dashboard and Analysis pages are intentionally placeholders, pending production data to inform their design.
 
 **Implemented features:**
 - ✅ Complete Budget & Actuals interface with htmx auto-save
@@ -63,24 +63,18 @@ The application includes an Excel import feature for bulk-loading budget and tra
 
 ### Local Development
 
-1. **Create virtual environment** (in separate directory):
-   ```bash
-   python3 -m venv /home/xivind/code/moneybags-runtime
-   source /home/xivind/code/moneybags-runtime/bin/activate
-   ```
-
-2. **Install dependencies:**
+1. **Install dependencies** (uv creates `.venv` in the repo from `pyproject.toml` / `uv.lock`):
    ```bash
    cd /home/xivind/code/moneybags
-   pip install -r requirements.txt
+   uv sync
    ```
 
-3. **Start the application:**
+2. **Start the application:**
    ```bash
-   uvicorn main:app --host 0.0.0.0 --port 8009 --log-config uvicorn_log_config.ini --reload
+   uv run uvicorn main:app --host 0.0.0.0 --port 8009 --log-config uvicorn_log_config.ini --reload
    ```
 
-4. **Configure database:**
+3. **Configure database:**
    - Open browser to http://localhost:8009
    - You'll see a banner prompting you to configure the database
    - Click "Go to Configuration"
@@ -173,19 +167,19 @@ moneybags/
 
 ## Development Notes
 
-- Virtual environment: `/home/xivind/code/moneybags-runtime/` (separate from repo)
+- Python environment: managed by `uv` (`.venv` in the repo)
 - All JavaScript in one file: `static/js/app.js` (no inline scripts)
 - All CSS in one file: `static/css/custom.css` (no inline styles)
 - Clean architecture: main.py → business_logic.py → database_manager.py → models
 - Database credentials stored in `moneybags_db_config.json` (excluded from Git)
 - Currency format: Symbol before amount with space (kr 1 234 | $ 1 234 | € 1 234)
 - Number format: Space as thousand separator
-- Production-ready with 34 passing tests
+- Production-ready with 18 tests
 
 ## Testing
 
 ```bash
-pytest tests/ -v
+uv run pytest tests/ -v
 ```
 
 ## Documentation

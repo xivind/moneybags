@@ -16,11 +16,20 @@ The program takes into account that each year has some of the same posts (which 
 
 **UX is critical**: The application uses htmx so saving and reloading happens automatically, without the user being redirected to the top of the page or losing context.
 
+## Working Principles
+
+Behavioral guidelines to reduce common LLM coding mistakes, adapted from [andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills/blob/main/CLAUDE.md). They bias toward caution over speed - for trivial tasks, use judgment.
+
+1. **Think before coding.** State assumptions explicitly. If a request has several plausible interpretations, present them instead of picking one silently. If something is unclear, stop and ask. If a simpler approach exists, say so - push back when warranted.
+2. **Simplicity first.** Write the minimum code that solves the problem: no features beyond what was asked, no abstractions for single-use code, no configurability nobody requested, no error handling for impossible scenarios. If 200 lines could be 50, rewrite it.
+3. **Surgical changes.** Every changed line should trace directly to the request. Don't "improve" adjacent code, comments or formatting, and don't refactor what isn't broken. Match existing style. Remove imports/variables/functions your own change made unused; mention pre-existing dead code instead of deleting it.
+4. **Goal-driven execution.** Turn the task into verifiable success criteria before starting (e.g. "fix the bug" -> "write a test that reproduces it, then make it pass"), and for multi-step tasks state a short plan with a verification check per step. Run `uv run pytest tests/ -v` before considering a task done, and add or update a test when fixing a bug.
+
 ## Production Status
 
 **Current Status:** Production-ready ✅
 
-The core application is fully implemented, tested (34 passing tests), and ready for production deployment. Dashboard and Analysis pages are intentionally placeholders, pending production data to inform their design.
+The core application is fully implemented, tested (18 tests), and ready for production deployment. Dashboard and Analysis pages are intentionally placeholders, pending production data to inform their design.
 
 **What's implemented:**
 - ✅ Complete Budget & Actuals interface (htmx auto-save, transaction tracking)
@@ -129,27 +138,16 @@ The application includes an Excel import feature for bulk-loading budget and tra
 
 ## Development Setup
 
-### Virtual Environment
-- **IMPORTANT**: Virtual environment is in `/home/xivind/code/moneybags-runtime/` (separate from repo)
-- This follows the pattern from gas-gauge and gear-calc projects
-- Never create venv inside the repo directory
-
-**Setup:**
-```bash
-# Create venv (if needed)
-python3 -m venv /home/xivind/code/moneybags-runtime
-
-# Activate venv
-source /home/xivind/code/moneybags-runtime/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
+### Python Environment
+- **Tooling**: `uv` with the project's `pyproject.toml` / `uv.lock`; the environment lives in `.venv`
+- **Run things**: `uv run ...` from the repo root (no manual activation needed)
+- **Add a dependency**: `uv add <package>` (or `uv add --dev <package>` for test-only tools)
+- **Docker**: The image still installs from `requirements.txt`, so keep it in sync when dependencies change
 
 ### Database Connection (moneybags_db_config.json)
 
 **First-time setup:**
-1. Start the application: `uvicorn main:app --host 0.0.0.0 --port 8009 --log-config uvicorn_log_config.ini --reload`
+1. Start the application: `uv run uvicorn main:app --host 0.0.0.0 --port 8009 --log-config uvicorn_log_config.ini --reload`
 2. Open browser to http://localhost:8009
 3. You'll see a banner prompting you to configure the database
 4. Click "Go to Configuration" and enter your database connection details:
@@ -177,14 +175,8 @@ The configuration is saved to `moneybags_db_config.json` (excluded from Git in `
 ### Running Locally
 
 ```bash
-# 1. Activate venv
-source /home/xivind/code/moneybags-runtime/bin/activate
-
-# 2. Go to project directory
-cd /home/xivind/code/moneybags
-
-# 3. Run with uvicorn (recommended for development)
-uvicorn main:app --host 0.0.0.0 --port 8009 --log-config uvicorn_log_config.ini --reload
+# Run from the repo root with uvicorn (recommended for development)
+uv run uvicorn main:app --host 0.0.0.0 --port 8009 --log-config uvicorn_log_config.ini --reload
 
 # The --reload flag auto-restarts on code changes (useful for development)
 ```
@@ -261,7 +253,7 @@ Located in `/migrations/` directory:
 
 **Run migration:**
 ```bash
-python migrations/migrate.py 001_initial_schema.sql
+uv run python migrations/migrate.py 001_initial_schema.sql
 ```
 
 ## API Structure
@@ -360,7 +352,8 @@ Or on error:
 ## Important Files
 
 - **database_model.py** - Database schema (PeeWee models - source of truth)
-- **requirements.txt** - Python dependencies
+- **pyproject.toml / uv.lock** - Python dependencies (uv)
+- **requirements.txt** - Python dependencies for the Docker image
 - **moneybags_db_config.json** - Database connection settings (not in Git, contains credentials)
 - **.gitignore** - Excludes moneybags_db_config.json, venv files, data directories
 - **.dockerignore** - Excludes moneybags_db_config.json, tests, migrations, markdown files
@@ -372,13 +365,13 @@ Or on error:
 
 Run tests with:
 ```bash
-pytest tests/ -v
+uv run pytest tests/ -v
 ```
 
 ## Notes for Future Development
 
 ### Production-Ready Application (December 2025)
-The application is production-ready with 34 passing tests. Core features fully implemented. Dashboard and Analysis are intentional placeholders pending production data.
+The application is production-ready with 18 tests. Core features fully implemented. Dashboard and Analysis are intentional placeholders pending production data.
 
 ### Critical Architecture Rules (NEVER violate these)
 1. **NO inline styles** - All CSS in `static/css/custom.css` only
@@ -401,9 +394,9 @@ The application is production-ready with 34 passing tests. Core features fully i
 10. **Transaction wrapping** - All writes use @with_transaction decorator
 
 ### Development Environment
-11. **Use venv from moneybags-runtime** - Not inside repo
+11. **Use uv** - `uv run ...` from the repo root, environment in `.venv`
 12. **First-run experience** - Banner on dashboard prompts user to configure database
-13. **Testing required** - Run `pytest tests/ -v` before commits
+13. **Testing required** - Run `uv run pytest tests/ -v` before commits
 
 ## graphify
 
