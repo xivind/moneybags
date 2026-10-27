@@ -130,20 +130,17 @@ The application includes an Excel import feature for bulk-loading budget and tra
 ## Development Setup
 
 ### Virtual Environment
-- **IMPORTANT**: Virtual environment is in `/home/xivind/code/moneybags-runtime/` (separate from repo)
-- This follows the pattern from gas-gauge and gear-calc projects
-- Never create venv inside the repo directory
+- Dependencies are managed with [uv](https://docs.astral.sh/uv/) from `pyproject.toml` and `uv.lock`
+- `uv sync` creates the virtual environment in `.venv/` inside the repo (gitignored and dockerignored)
+- Add packages with `uv add`, never edit `uv.lock` by hand
 
 **Setup:**
 ```bash
-# Create venv (if needed)
-python3 -m venv /home/xivind/code/moneybags-runtime
+# Install dependencies, including the dev group (pytest)
+uv sync
 
 # Activate venv
-source /home/xivind/code/moneybags-runtime/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
+source .venv/bin/activate
 ```
 
 ### Database Connection (moneybags_db_config.json)
@@ -177,11 +174,11 @@ The configuration is saved to `moneybags_db_config.json` (excluded from Git in `
 ### Running Locally
 
 ```bash
-# 1. Activate venv
-source /home/xivind/code/moneybags-runtime/bin/activate
-
-# 2. Go to project directory
+# 1. Go to project directory
 cd /home/xivind/code/moneybags
+
+# 2. Activate venv
+source .venv/bin/activate
 
 # 3. Run with uvicorn (recommended for development)
 uvicorn main:app --host 0.0.0.0 --port 8009 --log-config uvicorn_log_config.ini --reload
@@ -360,7 +357,7 @@ Or on error:
 ## Important Files
 
 - **database_model.py** - Database schema (PeeWee models - source of truth)
-- **requirements.txt** - Python dependencies
+- **pyproject.toml** / **uv.lock** - Python dependencies and locked versions
 - **moneybags_db_config.json** - Database connection settings (not in Git, contains credentials)
 - **.gitignore** - Excludes moneybags_db_config.json, venv files, data directories
 - **.dockerignore** - Excludes moneybags_db_config.json, tests, migrations, markdown files
@@ -401,7 +398,7 @@ The application is production-ready with 34 passing tests. Core features fully i
 10. **Transaction wrapping** - All writes use @with_transaction decorator
 
 ### Development Environment
-11. **Use venv from moneybags-runtime** - Not inside repo
+11. **Use the uv-managed .venv** - Created by `uv sync` inside the repo
 12. **First-run experience** - Banner on dashboard prompts user to configure database
 13. **Testing required** - Run `pytest tests/ -v` before commits
 

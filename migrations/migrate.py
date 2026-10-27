@@ -16,7 +16,7 @@ from pathlib import Path
 try:
     import pymysql
 except ImportError:
-    print("Error: pymysql not installed. Run: pip install pymysql")
+    print("Error: pymysql not installed. Run: uv sync")
     sys.exit(1)
 
 

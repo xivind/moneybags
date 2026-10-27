@@ -63,16 +63,13 @@ The application includes an Excel import feature for bulk-loading budget and tra
 
 ### Local Development
 
-1. **Create virtual environment** (in separate directory):
-   ```bash
-   python3 -m venv /home/xivind/code/moneybags-runtime
-   source /home/xivind/code/moneybags-runtime/bin/activate
-   ```
+1. **Install [uv](https://docs.astral.sh/uv/)**
 
-2. **Install dependencies:**
+2. **Install dependencies** (creates a virtual environment in `.venv` from `uv.lock`):
    ```bash
    cd /home/xivind/code/moneybags
-   pip install -r requirements.txt
+   uv sync
+   source .venv/bin/activate
    ```
 
 3. **Start the application:**
@@ -173,7 +170,7 @@ moneybags/
 
 ## Development Notes
 
-- Virtual environment: `/home/xivind/code/moneybags-runtime/` (separate from repo)
+- Virtual environment: `.venv/` in the repo, created by `uv sync` from `uv.lock`
 - All JavaScript in one file: `static/js/app.js` (no inline scripts)
 - All CSS in one file: `static/css/custom.css` (no inline styles)
 - Clean architecture: main.py → business_logic.py → database_manager.py → models
