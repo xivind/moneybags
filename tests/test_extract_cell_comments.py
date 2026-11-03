@@ -23,19 +23,19 @@ SIG = "\n\t-Test Person"
 
 def test_parse_amount_thousand_separators():
     assert parse_amount("850") == 850
-    assert parse_amount("2.200") == 2200
-    assert parse_amount("158.250") == 158250
-    assert parse_amount("2 200") == 2200
+    assert parse_amount("3.400") == 3400
+    assert parse_amount("123.456") == 123456
+    assert parse_amount("3 400") == 3400
     assert parse_amount("1500,50") == 1500
 
 
 def test_clean_comment_drops_signature_and_separators():
-    text = "420 = Gym" + SIG + "\n----\n700 = Rent" + SIG
-    assert clean_comment(text) == ["420 = Gym", "700 = Rent"]
+    text = "310 = Gym" + SIG + "\n----\n650 = Rent" + SIG
+    assert clean_comment(text) == ["310 = Gym", "650 = Rent"]
 
 
 def test_parse_comment_line_variants():
-    assert parse_comment_line("2.200 = Common costs") == (2200, "Common costs")
+    assert parse_comment_line("3.400 = Common costs") == (3400, "Common costs")
     assert parse_comment_line("850: Bike shop") == (850, "Bike shop")
     assert parse_comment_line("Bike shop = 850") == (850, "Bike shop")
     assert parse_comment_line("Electricity") == (None, "Electricity")
@@ -43,7 +43,7 @@ def test_parse_comment_line_variants():
 
 def test_formula_terms_matches_importer_splitting():
     assert formula_terms("=((1200+300)+45)+7") == [1200, 300, 45, 7]
-    assert formula_terms(2200) == [2200]
+    assert formula_terms(3400) == [3400]
     assert formula_terms("=55615.0") == [55615]
     assert formula_terms(None) == []
     assert formula_terms("=SUM(F1:Q1)") is None
@@ -61,10 +61,10 @@ def test_match_terms_pairs_by_amount_in_order():
 
 
 def test_match_terms_single_leftover_is_amount_differs():
-    rows = match_terms([100, 9990], ["100 = Cable", "9.999 = Laptop"])
+    rows = match_terms([100, 4500], ["100 = Cable", "4.550 = Laptop"])
     assert rows[1]["match"] == "amount_differs"
     assert rows[1]["description"] == "Laptop"
-    assert "9999" in rows[1]["note"]
+    assert "4550" in rows[1]["note"]
 
 
 def test_match_terms_one_amount_split_in_comment():

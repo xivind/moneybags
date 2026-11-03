@@ -54,7 +54,7 @@ NON_CATEGORY_LABELS = ("budsjett", "resultat", "differanse", "avvik", "totalt")
 
 SECTION_LABELS = ("utgifter", "inntekter")
 
-# An amount like 850, 2.200, 158.250, 2 200 or 1500,50
+# An amount like 850, 3.400, 123.456, 3 400 or 1500,50
 _AMOUNT = r"\d{1,3}(?:[.\s ]\d{3})+(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?"
 _SEP = r"\s*(?:kr\.?|,-)?\s*[=:]\s*"
 _LEADING_AMOUNT = re.compile(rf"^\s*(?:kr\.?\s*)?({_AMOUNT}){_SEP}(.*?)\s*$", re.IGNORECASE)
@@ -70,7 +70,7 @@ OUTPUT_COLUMNS = [
 
 
 def parse_amount(text: str) -> int:
-    """Convert '2.200', '158 250' or '1500,50' to an integer (decimals dropped)."""
+    """Convert '3.400', '123 456' or '1500,50' to an integer (decimals dropped)."""
     text = text.strip().replace(" ", " ")
     if re.fullmatch(r"\d{1,3}(?:[.\s]\d{3})+(?:,\d{1,2})?", text):
         text = re.sub(r"[.\s]", "", text)
