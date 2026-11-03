@@ -125,13 +125,14 @@ def test_extract_from_workbook(tmp_path):
     f12 = [(r["category"], r["section"], r["month"], r["amount"], r["description"], r["match"])
            for r in actuals if r["cell"] == "F12"]
     assert f12 == [
-        ("Housing", "Utgifter", 1, 1950, "Common costs", "match"),
-        ("Housing", "Utgifter", 1, 120, "Electricity", "match"),
-        ("Housing", "Utgifter", 1, 40, "Light bulbs", "match"),
+        ("Housing", "Utgifter", "Jan", 1950, "Common costs", "match"),
+        ("Housing", "Utgifter", "Jan", 120, "Electricity", "match"),
+        ("Housing", "Utgifter", "Jan", 40, "Light bulbs", "match"),
     ]
 
     g12 = [r for r in actuals if r["cell"] == "G12"]
     assert len(g12) == 1 and g12[0]["match"] == "no_comment" and g12[0]["amount"] == 1950
+    assert g12[0]["month"] == "Feb"
 
     assert not [r for r in rows if r["cell"] in ("H12", "F31")]
 
@@ -152,7 +153,7 @@ def test_main_writes_review(tmp_path):
 
     ws = load_workbook(out).active
     header = [c.value for c in ws[1]]
-    assert header[:4] == ["file", "sheet", "year", "month"]
+    assert header[:6] == ["file", "sheet", "year", "month", "section", "category"]
     assert "payee" in header
     data = [dict(zip(header, r)) for r in ws.iter_rows(min_row=2, values_only=True)]
     assert {r["year"] for r in data} == {2013}

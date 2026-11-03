@@ -61,11 +61,17 @@ _LEADING_AMOUNT = re.compile(rf"^\s*(?:kr\.?\s*)?({_AMOUNT}){_SEP}(.*?)\s*$", re
 _TRAILING_AMOUNT = re.compile(rf"^\s*(.*?)\s*[=:]\s*(?:kr\.?\s*)?({_AMOUNT})\s*(?:kr\.?|,-)?\s*$", re.IGNORECASE)
 _SIMPLE_SUM = re.compile(r"\d+(?:\.\d+)?(?:\+\d+(?:\.\d+)?)*")
 
+# Month labels as shown in the Moneybags Budget & Actuals view
+MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+# year + month + section + category locate the cell in Moneybags;
+# cell points back to the original spreadsheet
 OUTPUT_COLUMNS = [
-    ("file", 28), ("sheet", 12), ("year", 6), ("month", 6), ("cell", 7),
+    ("file", 28), ("sheet", 12), ("year", 6), ("month", 7),
     ("section", 10), ("category", 26), ("row_type", 10), ("amount", 10),
     ("description", 40), ("match", 16), ("payee", 22), ("note", 22),
-    ("cell_formula", 30), ("cell_comment", 60),
+    ("cell", 7), ("cell_formula", 30), ("cell_comment", 60),
 ]
 
 
@@ -286,7 +292,7 @@ def _output_row(path, ws, year, month, cell, context, item, comment_lines) -> di
         "file": path.name,
         "sheet": ws.title,
         "year": year,
-        "month": month,
+        "month": MONTH_NAMES[month - 1] if month else None,
         "cell": cell.coordinate,
         "section": context["section"],
         "category": context["category"],
