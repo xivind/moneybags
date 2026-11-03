@@ -34,6 +34,24 @@ def test_clean_comment_drops_signature_and_separators():
     assert clean_comment(text) == ["310 = Gym", "650 = Rent"]
 
 
+def test_clean_comment_threaded_comment_export():
+    # Google Sheets comments are exported as Excel threaded comments with
+    # a plain-text fallback in this shape
+    text = (
+        "[Threaded comment]\n"
+        " Your version of Excel allows you to read this threaded comment; however, any edits "
+        "to it will get removed if the file is opened in a newer version of Excel. "
+        "Learn more: https://go.microsoft.com/fwlink/?linkid=870924\n"
+        "Comment:\n"
+        "\t4 321 = Loan\n"
+        "1 234 = Common costs\n"
+        "Reply:\n"
+        "\t567 = Electricity\n"
+    )
+    assert clean_comment(text) == ["4 321 = Loan", "1 234 = Common costs", "567 = Electricity"]
+    assert match_terms([4321, 1234, 567], clean_comment(text))[2]["description"] == "Electricity"
+
+
 def test_parse_comment_line_variants():
     assert parse_comment_line("3.400 = Common costs") == (3400, "Common costs")
     assert parse_comment_line("850: Bike shop") == (850, "Bike shop")

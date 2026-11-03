@@ -84,10 +84,22 @@ def parse_amount(text: str) -> int:
 
 
 def clean_comment(text: str) -> list[str]:
-    """Split a comment into lines, dropping blanks and the '-Author' signature."""
+    """
+    Split a comment into lines, dropping blanks and boilerplate.
+
+    Handles both kinds of Google Sheets annotations exported to .xlsx:
+    notes end with a '\t-Author' signature line, and comments (threaded
+    comments in Excel) come with a '[Threaded comment]' header and
+    'Comment:' / 'Reply:' markers before each message.
+    """
     lines = []
-    for line in (text or "").splitlines():
-        if re.match(r"^\t+-", line):
+    raw_lines = (text or "").splitlines()
+    if raw_lines and raw_lines[0].strip() == "[Threaded comment]":
+        raw_lines = raw_lines[1:]
+        if raw_lines and raw_lines[0].lstrip().startswith("Your version of Excel"):
+            raw_lines = raw_lines[1:]
+    for line in raw_lines:
+        if re.match(r"^\t+-", line) or re.fullmatch(r"\s*(Comment|Reply):\s*", line):
             continue
         line = line.strip()
         if line and not re.fullmatch(r"[-_=*\s]+", line):
