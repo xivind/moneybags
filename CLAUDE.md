@@ -51,6 +51,8 @@ The application includes an Excel import feature for bulk-loading budget and tra
 - Frontend: `static/js/import.js` - Import page UI and workflow
 - API routes: `/api/import/parse`, `/api/import/validate`, `/api/import/execute`
 
+**Cell comment extraction:** `tools/extract_cell_comments.py` is a stand-alone, read-only helper (no database access) that lists each imported formula amount next to its cell comment line, for manual payee clean-up. Spreadsheets and its output are git-ignored; never commit real financial data (public repo).
+
 **Extensibility:** The import system is designed to be easily extended. To add a new import format (CSV, JSON, other Excel formats), add a new parser function to `import_logic.py` following the same pattern as `_parse_hovedark_format()` and `_parse_original_format()`. The validation and import execution logic is format-agnostic and will work with any parser that returns the expected data structure.
 
 ## Tech Stack

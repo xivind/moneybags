@@ -34,6 +34,14 @@ coverage.xml
 # Git worktrees
 .worktrees/
 
+# Spreadsheets contain personal financial data - never commit them
+*.xlsx
+*.xls
+*.xlsm
+*.ods
+*.gsheet
+*.csv
+
 # Database
 data/
 

@@ -16,3 +16,8 @@ data/
 tests/
 .worktrees/
 .venv/
+tools/
+*.xlsx
+*.xls
+*.gsheet
+*.csv

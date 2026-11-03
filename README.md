@@ -53,6 +53,16 @@ The application includes an Excel import feature for bulk-loading budget and tra
 
 **How to extend:** To add a new import format (CSV, JSON, other Excel formats), add a new parser function to `import_logic.py` following the same pattern as existing parsers. The validation and import execution logic is format-agnostic.
 
+### Extracting cell comments (payee clean-up)
+
+The import splits formula cells like `=34+850+90` into one transaction per amount, but the cell comments describing each amount (`850 = Bikeshop`) are not imported, so those transactions get the payee "Import - Google Sheets". `tools/extract_cell_comments.py` is a read-only helper that lists every amount next to its comment line in one review workbook, so payees can be fixed manually:
+
+```bash
+python tools/extract_cell_comments.py ~/budgets/*.xlsx -o ~/budgets/review.xlsx
+```
+
+Download Google Sheets files as `.xlsx` first (`.gsheet` files are only links). Spreadsheets and review files are ignored by Git, so keep real data out of commits.
+
 ## Tech Stack
 
 - **Backend:** FastAPI + PeeWee ORM + MariaDB
@@ -165,6 +175,7 @@ moneybags/
 │   └── css/custom.css        # Custom styles (single file)
 ├── templates/                 # Jinja2 HTML templates
 ├── migrations/                # Database migration scripts
+├── tools/                     # Stand-alone helper scripts (not part of the app)
 └── tests/                     # Test suite
 ```
 
