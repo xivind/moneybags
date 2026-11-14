@@ -69,7 +69,6 @@ The application includes an Excel import feature for bulk-loading budget and tra
    ```bash
    cd /home/xivind/code/moneybags
    uv sync
-   source .venv/bin/activate
    ```
 
 3. **Start the application:**

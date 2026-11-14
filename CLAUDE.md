@@ -148,9 +148,6 @@ The application includes an Excel import feature for bulk-loading budget and tra
 ```bash
 # Install dependencies, including the dev group (pytest)
 uv sync
-
-# Activate venv
-source .venv/bin/activate
 ```
 
 ### Database Connection (moneybags_db_config.json)
@@ -187,11 +184,8 @@ The configuration is saved to `moneybags_db_config.json` (excluded from Git in `
 # 1. Go to project directory
 cd /home/xivind/code/moneybags
 
-# 2. Activate venv
-source .venv/bin/activate
-
-# 3. Run with uvicorn (recommended for development)
-uvicorn main:app --host 0.0.0.0 --port 8009 --log-config uvicorn_log_config.ini --reload
+# 2. Run with uvicorn (recommended for development)
+uv run uvicorn main:app --host 0.0.0.0 --port 8009 --log-config uvicorn_log_config.ini --reload
 
 # The --reload flag auto-restarts on code changes (useful for development)
 ```
