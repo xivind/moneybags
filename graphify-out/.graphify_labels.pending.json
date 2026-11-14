@@ -1,0 +1,14 @@
+{
+  "7": "BudgetEntry",
+  "11": "database_manager.py",
+  "12": "with_transaction",
+  "15": "setup_test_db",
+  "18": "templates/base.html",
+  "21": "execute_with_retry",
+  "23": "with_retry",
+  "24": "get_recurring_payment_status",
+  "25": "supersaver_database_manager.py",
+  "26": "budget_page",
+  "29": "_get_config_file_path",
+  "48": "get_all_supersaver_entries_for_year"
+}
