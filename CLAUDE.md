@@ -138,11 +138,19 @@ The application includes an Excel import feature for bulk-loading budget and tra
 
 ## Development Setup
 
-### Python Environment
-- **Tooling**: `uv` with the project's `pyproject.toml` / `uv.lock`; the environment lives in `.venv`
-- **Run things**: `uv run ...` from the repo root (no manual activation needed)
-- **Add a dependency**: `uv add <package>` (or `uv add --dev <package>` for test-only tools)
-- **Docker**: The image still installs from `requirements.txt`, so keep it in sync when dependencies change
+### Virtual Environment
+- Dependencies are managed with [uv](https://docs.astral.sh/uv/) from `pyproject.toml` and `uv.lock`
+- `uv sync` creates the virtual environment in `.venv/` inside the repo (gitignored and dockerignored)
+- Add packages with `uv add`, never edit `uv.lock` by hand
+
+**Setup:**
+```bash
+# Install dependencies, including the dev group (pytest)
+uv sync
+
+# Activate venv
+source .venv/bin/activate
+```
 
 ### Database Connection (moneybags_db_config.json)
 
@@ -175,8 +183,14 @@ The configuration is saved to `moneybags_db_config.json` (excluded from Git in `
 ### Running Locally
 
 ```bash
-# Run from the repo root with uvicorn (recommended for development)
-uv run uvicorn main:app --host 0.0.0.0 --port 8009 --log-config uvicorn_log_config.ini --reload
+# 1. Go to project directory
+cd /home/xivind/code/moneybags
+
+# 2. Activate venv
+source .venv/bin/activate
+
+# 3. Run with uvicorn (recommended for development)
+uvicorn main:app --host 0.0.0.0 --port 8009 --log-config uvicorn_log_config.ini --reload
 
 # The --reload flag auto-restarts on code changes (useful for development)
 ```
@@ -352,8 +366,7 @@ Or on error:
 ## Important Files
 
 - **database_model.py** - Database schema (PeeWee models - source of truth)
-- **pyproject.toml / uv.lock** - Python dependencies (uv)
-- **requirements.txt** - Python dependencies for the Docker image
+- **pyproject.toml** / **uv.lock** - Python dependencies and locked versions
 - **moneybags_db_config.json** - Database connection settings (not in Git, contains credentials)
 - **.gitignore** - Excludes moneybags_db_config.json, venv files, data directories
 - **.dockerignore** - Excludes moneybags_db_config.json, tests, migrations, markdown files
@@ -394,7 +407,7 @@ The application is production-ready with 18 tests. Core features fully implement
 10. **Transaction wrapping** - All writes use @with_transaction decorator
 
 ### Development Environment
-11. **Use uv** - `uv run ...` from the repo root, environment in `.venv`
+11. **Use the uv-managed .venv** - Created by `uv sync` inside the repo
 12. **First-run experience** - Banner on dashboard prompts user to configure database
 13. **Testing required** - Run `uv run pytest tests/ -v` before commits
 

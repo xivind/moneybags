@@ -63,18 +63,21 @@ The application includes an Excel import feature for bulk-loading budget and tra
 
 ### Local Development
 
-1. **Install dependencies** (uv creates `.venv` in the repo from `pyproject.toml` / `uv.lock`):
+1. **Install [uv](https://docs.astral.sh/uv/)**
+
+2. **Install dependencies** (creates a virtual environment in `.venv` from `uv.lock`):
    ```bash
    cd /home/xivind/code/moneybags
    uv sync
+   source .venv/bin/activate
    ```
 
-2. **Start the application:**
+3. **Start the application:**
    ```bash
    uv run uvicorn main:app --host 0.0.0.0 --port 8009 --log-config uvicorn_log_config.ini --reload
    ```
 
-3. **Configure database:**
+4. **Configure database:**
    - Open browser to http://localhost:8009
    - You'll see a banner prompting you to configure the database
    - Click "Go to Configuration"
@@ -167,7 +170,7 @@ moneybags/
 
 ## Development Notes
 
-- Python environment: managed by `uv` (`.venv` in the repo)
+- Virtual environment: `.venv/` in the repo, created by `uv sync` from `uv.lock`
 - All JavaScript in one file: `static/js/app.js` (no inline scripts)
 - All CSS in one file: `static/css/custom.css` (no inline styles)
 - Clean architecture: main.py → business_logic.py → database_manager.py → models
