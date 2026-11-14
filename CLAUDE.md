@@ -141,7 +141,8 @@ The application includes an Excel import feature for bulk-loading budget and tra
 ### Virtual Environment
 - Dependencies are managed with [uv](https://docs.astral.sh/uv/) from `pyproject.toml` and `uv.lock`
 - `uv sync` creates the virtual environment in `.venv/` inside the repo (gitignored and dockerignored)
-- Add packages with `uv add`, never edit `uv.lock` by hand
+- Add packages with `uv add` (or `uv add --dev <package>` for test-only tools), never edit `uv.lock` by hand
+- `uv run ...` from the repo root runs a command in the environment without activating it
 
 **Setup:**
 ```bash
